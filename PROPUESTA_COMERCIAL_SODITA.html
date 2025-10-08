@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SODITA - Sistema de Reservas | Propuesta Comercial</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #F86704, #FF8A33);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .section {
+            margin: 30px 0;
+        }
+        
+        .section h2 {
+            color: #F86704;
+            border-bottom: 3px solid #F86704;
+            padding-bottom: 10px;
+            font-size: 1.8em;
+        }
+        
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .pricing-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .pricing-card.recommended {
+            border-color: #F86704;
+            background: linear-gradient(135deg, #fff5f0, #fff);
+        }
+        
+        .pricing-card.recommended::before {
+            content: "⭐ RECOMENDADO";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #F86704;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .pricing-card h3 {
+            color: #F86704;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .price {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #333;
+            margin: 15px 0;
+        }
+        
+        .price .currency {
+            font-size: 0.6em;
+            color: #666;
+        }
+        
+        .price .period {
+            font-size: 0.4em;
+            color: #999;
+        }
+        
+        .features {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .features li:before {
+            content: "✅ ";
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #F86704, #FF8A33);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(248, 103, 4, 0.4);
+        }
+        
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .support-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #F86704;
+        }
+        
+        .support-card h4 {
+            color: #F86704;
+            margin-top: 0;
+        }
+        
+        .contact-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .contact-info h3 {
+            margin-top: 0;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            color: #666;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #ffeaa7 0%, #fab1a0 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #F86704;
+        }
+        
+        .tech-specs {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .tech-specs h4 {
+            color: #F86704;
+            margin-top: 0;
+        }
+        
+        .tech-specs ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .container {
+                box-shadow: none;
+                padding: 15px;
+                max-width: none;
+            }
+            .pricing-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 15px;
+                page-break-inside: avoid;
+            }
+            .pricing-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 15px;
+            }
+            .support-grid {
+                display: block;
+                page-break-inside: avoid;
+            }
+            .support-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 10px;
+            }
+            .section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin: 15px 0;
+            }
+            .header {
+                page-break-after: avoid;
+            }
+            table {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .highlight {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .tech-specs {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .contact-info {
+                page-break-before: avoid;
+                page-break-inside: avoid;
+            }
+            h2 {
+                page-break-after: avoid;
+            }
+            h3 {
+                page-break-after: avoid;
+            }
+            .footer {
+                page-break-before: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ SODITA</h1>
+            <p>Sistema Completo de Gestión de Reservas para Restaurantes</p>
+            <p><strong>Desarrollado en Flutter + Supabase</strong></p>
+        </div>
+
+        <div class="section">
+            <h2>📋 Descripción del Sistema</h2>
+            <div class="tech-specs">
+                <h4>🚀 Características Principales:</h4>
+                <ul>
+                    <li><strong>Panel de Administración Completo</strong> - Gestión en tiempo real de reservas</li>
+                    <li><strong>Sistema de Reservas Online</strong> - Interfaz intuitiva para clientes</li>
+                    <li><strong>Gestión de Mesas</strong> - Control total de disponibilidad (10 mesas configuradas)</li>
+                    <li><strong>Estados Automáticos</strong> - Confirmada → En Mesa → Completada → No-Show</li>
+                    <li><strong>Notificaciones en Tiempo Real</strong> - Alertas críticas y seguimiento</li>
+                    <li><strong>Estadísticas Avanzadas</strong> - Métricas diarias, semanales y mensuales</li>
+                    <li><strong>Base de Datos en la Nube</strong> - Supabase (PostgreSQL)</li>
+                    <li><strong>Aplicación Multiplataforma</strong> - Android, iOS, Web</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>💰 Modalidades de Comercialización</h2>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>🔄 SUSCRIPCIÓN MENSUAL</h3>
+                    <div class="price">
+                        <span class="currency">ARS</span> 45.000
+                        <span class="period">/mes</span>
+                    </div>
+                    <ul class="features">
+                        <li>Sistema completo en funcionamiento</li>
+                        <li>Hosting y base de datos incluidos</li>
+                        <li>Actualizaciones automáticas</li>
+                        <li>Soporte técnico básico incluido</li>
+                        <li>Backup automático diario</li>
+                        <li>Sin costo inicial de implementación</li>
+                    </ul>
+                    <button class="btn-primary">Elegir Plan</button>
+                </div>
+
+                <div class="pricing-card recommended">
+                    <h3>💻 COMPRA DEL CÓDIGO + SUSCRIPCIÓN</h3>
+                    <div class="price">
+                        <span class="currency">ARS</span> 180.000
+                        <span class="period">+ 25.000/mes</span>
+                    </div>
+                    <ul class="features">
+                        <li>Código fuente completo incluido</li>
+                        <li>Licencia de uso permanente</li>
+                        <li>Personalización completa</li>
+                        <li>Hosting y mantenimiento incluido</li>
+                        <li>Soporte técnico premium</li>
+                        <li>Capacitación completa del sistema</li>
+                        <li>Documentación técnica detallada</li>
+                    </ul>
+                    <button class="btn-primary">Mejor Opción</button>
+                </div>
+
+                <div class="pricing-card">
+                    <h3>🏢 LICENCIA COMPLETA</h3>
+                    <div class="price">
+                        <span class="currency">ARS</span> 320.000
+                        <span class="period">pago único</span>
+                    </div>
+                    <ul class="features">
+                        <li>Código fuente 100% tuyo</li>
+                        <li>Sin mensualidades</li>
+                        <li>Implementación incluida</li>
+                        <li>3 meses de soporte gratuito</li>
+                        <li>Capacitación presencial</li>
+                        <li>Personalización inicial incluida</li>
+                        <li>Reventa permitida</li>
+                    </ul>
+                    <button class="btn-primary">Comprar Ahora</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ Servicios de Soporte Técnico</h2>
+            
+            <div class="support-grid">
+                <div class="support-card">
+                    <h4>📞 Soporte Básico</h4>
+                    <p><strong>ARS 15.000/mes</strong></p>
+                    <ul>
+                        <li>Soporte por WhatsApp/Email</li>
+                        <li>Respuesta en 24-48 horas</li>
+                        <li>Resolución de bugs menores</li>
+                        <li>Consultas de uso del sistema</li>
+                    </ul>
+                </div>
+
+                <div class="support-card">
+                    <h4>⚡ Soporte Premium</h4>
+                    <p><strong>ARS 35.000/mes</strong></p>
+                    <ul>
+                        <li>Soporte telefónico directo</li>
+                        <li>Respuesta en 2-6 horas</li>
+                        <li>Acceso remoto para soluciones</li>
+                        <li>Pequeñas personalizaciones</li>
+                        <li>Monitoreo proactivo</li>
+                    </ul>
+                </div>
+
+                <div class="support-card">
+                    <h4>🏆 Soporte Enterprise</h4>
+                    <p><strong>ARS 65.000/mes</strong></p>
+                    <ul>
+                        <li>Soporte 24/7 disponible</li>
+                        <li>Respuesta inmediata (1 hora)</li>
+                        <li>Desarrollo de nuevas funciones</li>
+                        <li>Consultoría estratégica</li>
+                        <li>Capacitaciones mensuales</li>
+                        <li>Backup en tiempo real</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Servicios Adicionales</h2>
+            
+            <div class="highlight">
+                <h4>📍 Implementación Presencial en Argentina</h4>
+                <p><strong>Costo:</strong> ARS 85.000 (viáticos incluidos en CABA/GBA)</p>
+                <ul>
+                    <li>Instalación completa en sitio</li>
+                    <li>Capacitación del personal (4 horas)</li>
+                    <li>Configuración personalizada</li>
+                    <li>Pruebas en vivo con clientes reales</li>
+                    <li>Manual de usuario personalizado</li>
+                </ul>
+            </div>
+
+            <div class="support-grid">
+                <div class="support-card">
+                    <h4>🎨 Personalización de Diseño</h4>
+                    <p><strong>Desde ARS 45.000</strong></p>
+                    <ul>
+                        <li>Colores corporativos</li>
+                        <li>Logo personalizado</li>
+                        <li>Interfaz adaptada</li>
+                        <li>Branding completo</li>
+                    </ul>
+                </div>
+
+                <div class="support-card">
+                    <h4>📊 Reportes Avanzados</h4>
+                    <p><strong>ARS 25.000</strong></p>
+                    <ul>
+                        <li>Dashboard ejecutivo</li>
+                        <li>Exportación a Excel/PDF</li>
+                        <li>Métricas personalizadas</li>
+                        <li>Análisis de tendencias</li>
+                    </ul>
+                </div>
+
+                <div class="support-card">
+                    <h4>🔗 Integraciones</h4>
+                    <p><strong>Desde ARS 35.000</strong></p>
+                    <ul>
+                        <li>WhatsApp Business API</li>
+                        <li>Sistemas de punto de venta</li>
+                        <li>Redes sociales</li>
+                        <li>Sistemas contables</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📈 Comparativa de Planes</h2>
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background: #F86704; color: white;">
+                        <th style="padding: 12px; text-align: left;">Característica</th>
+                        <th style="padding: 12px; text-align: center;">Suscripción</th>
+                        <th style="padding: 12px; text-align: center;">Código + Suscripción</th>
+                        <th style="padding: 12px; text-align: center;">Licencia Completa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 10px;">Sistema Funcional</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;">Código Fuente</td>
+                        <td style="padding: 10px; text-align: center;">❌</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 10px;">Hosting Incluido</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                        <td style="padding: 10px; text-align: center;">3 meses</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;">Soporte Técnico</td>
+                        <td style="padding: 10px; text-align: center;">Básico</td>
+                        <td style="padding: 10px; text-align: center;">Premium</td>
+                        <td style="padding: 10px; text-align: center;">3 meses gratis</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                        <td style="padding: 10px;">Personalizaciones</td>
+                        <td style="padding: 10px; text-align: center;">Limitadas</td>
+                        <td style="padding: 10px; text-align: center;">Completas</td>
+                        <td style="padding: 10px; text-align: center;">Ilimitadas</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;">Reventa Permitida</td>
+                        <td style="padding: 10px; text-align: center;">❌</td>
+                        <td style="padding: 10px; text-align: center;">❌</td>
+                        <td style="padding: 10px; text-align: center;">✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>⚡ Beneficios del Sistema SODITA</h2>
+            <div class="highlight">
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Reducción del 80% en errores de reservas</strong> - Sistema automatizado</li>
+                    <li><strong>Aumento del 35% en ocupación de mesas</strong> - Optimización automática</li>
+                    <li><strong>Ahorro de 15 horas semanales</strong> - Gestión automatizada</li>
+                    <li><strong>Control total en tiempo real</strong> - Dashboard ejecutivo</li>
+                    <li><strong>Experiencia cliente mejorada</strong> - Reservas fluidas y confirmaciones</li>
+                    <li><strong>Datos estadísticos precisos</strong> - Toma de decisiones basada en datos</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <h3>📞 Contacto y Ventas</h3>
+            <p><strong>Desarrollador:</strong> Tu Nombre</p>
+            <p><strong>WhatsApp:</strong> +54 9 11 XXXX-XXXX</p>
+            <p><strong>Email:</strong> tuEmail@domain.com</p>
+            <p><strong>Ubicación:</strong> Argentina (Servicios presenciales disponibles)</p>
+            <br>
+            <p><strong>🎯 Oferta de Lanzamiento:</strong></p>
+            <p>❗ <strong>15% de descuento</strong> en cualquier plan contratado antes del 31/12/2024</p>
+            <p>❗ <strong>Primer mes gratis</strong> en planes de suscripción</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>SODITA - Sistema de Reservas</strong></p>
+            <p>Desarrollado con Flutter + Supabase | Tecnología Argentina 🇦🇷</p>
+            <p><em>Todos los precios están expresados en Pesos Argentinos (ARS) - Válidos hasta Marzo 2025</em></p>
+            <p style="margin-top: 20px; font-size: 0.9em;">
+                © 2024 - Propuesta comercial confidencial. 
+                Los precios pueden variar según requerimientos específicos del cliente.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

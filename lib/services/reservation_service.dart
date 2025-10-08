@@ -1,0 +1,453 @@
+import '../supabase_config.dart';
+
+class ReservationService {
+  static final _client = supabase;
+
+  // Obtener todas las mesas
+  static Future<List<Map<String, dynamic>>> getMesas() async {
+    try {
+      print('🔍 Cargando mesas desde la base de datos...');
+      final response = await _client
+          .from('sodita_mesas')
+          .select('*')
+          .eq('activa', true)
+          .order('numero');
+
+      print('✅ Mesas cargadas: ${response.length} mesas encontradas');
+      print('📋 Datos de mesas: $response');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error fetching mesas: $e');
+      return [];
+    }
+  }
+
+  // Crear una nueva reserva
+  static Future<Map<String, dynamic>?> createReservation({
+    required String mesaId,
+    required DateTime date,
+    required String time,
+    required int partySize,
+    required String customerName,
+    required String customerPhone,
+    String? customerEmail,
+    String? comments,
+  }) async {
+    try {
+      print('🍽️ Creando reserva:');
+      print('   Mesa: $mesaId');
+      print('   Fecha: ${date.toIso8601String().split('T')[0]}');
+      print('   Hora: $time');
+      print('   Personas: $partySize');
+      print('   Cliente: $customerName');
+      print('   Teléfono: $customerPhone');
+
+      final reservationData = <String, dynamic>{
+        'mesa_id': mesaId,
+        'fecha': date.toIso8601String().split('T')[0],
+        'hora': time,
+        'personas': partySize,
+        'nombre': customerName,
+        'telefono': customerPhone,
+        'estado': 'confirmada',
+      };
+
+      if (customerEmail != null && customerEmail.isNotEmpty) {
+        reservationData['email'] = customerEmail;
+      }
+
+      if (comments != null && comments.isNotEmpty) {
+        reservationData['comentarios'] = comments;
+      }
+
+      final response = await _client
+          .from('sodita_reservas')
+          .insert(reservationData)
+          .select()
+          .single();
+
+      print('✅ Reserva creada exitosamente: ${response['codigo_confirmacion']}');
+      return response;
+    } catch (e) {
+      print('❌ Error creating reservation: $e');
+      return null;
+    }
+  }
+
+  // Verificar disponibilidad de mesa
+  static Future<bool> isTableAvailable({
+    required String mesaId,
+    required DateTime date,
+    required String time,
+  }) async {
+    try {
+      final response = await _client
+          .rpc('verificar_disponibilidad_mesa', params: {
+            'p_mesa_id': mesaId,
+            'p_fecha': date.toIso8601String().split('T')[0],
+            'p_hora': time,
+            'p_duracion_minutos': 120,
+          });
+
+      return response as bool;
+    } catch (e) {
+      print('Error checking table availability: $e');
+      return false;
+    }
+  }
+
+  // Obtener mesas ocupadas para una fecha y hora específica
+  static Future<List<String>> getOccupiedTables({
+    required DateTime date,
+    required String time,
+  }) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('mesa_id')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('hora', time)
+          .or('estado.eq.confirmada,estado.eq.en_mesa'); // Incluir mesas ocupadas
+
+      return response.map<String>((item) => item['mesa_id'] as String).toList();
+    } catch (e) {
+      print('Error fetching occupied tables: $e');
+      return [];
+    }
+  }
+  
+  // Obtener mesas ocupadas actualmente (clientes en mesa)
+  static Future<List<String>> getCurrentlyOccupiedTables({
+    required DateTime date,
+  }) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('mesa_id')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('estado', 'en_mesa');
+
+      return response.map<String>((item) => item['mesa_id'] as String).toList();
+    } catch (e) {
+      print('Error fetching currently occupied tables: $e');
+      return [];
+    }
+  }
+  
+  // Verificar el estado de una mesa específica
+  static Future<String> getTableStatus({
+    required String mesaId,
+    required DateTime date,
+    required String time,
+  }) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('estado')
+          .eq('mesa_id', mesaId)
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('hora', time)
+          .order('creado_en', ascending: false)
+          .limit(1);
+
+      if (response.isEmpty) return 'available';
+      
+      final estado = response.first['estado'];
+      switch (estado) {
+        case 'confirmada':
+          return 'reserved';
+        case 'en_mesa':
+          return 'occupied';
+        case 'completada':
+        case 'no_show':
+        case 'cancelada':
+          return 'available';
+        default:
+          return 'available';
+      }
+    } catch (e) {
+      print('Error getting table status: $e');
+      return 'available';
+    }
+  }
+
+  // Obtener reservas por fecha (solo pendientes de check-in)
+  static Future<List<Map<String, dynamic>>> getReservationsByDate(DateTime date) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('estado', 'confirmada') // Solo mostrar las que esperan check-in
+          .order('hora');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching reservations: $e');
+      return [];
+    }
+  }
+  
+  // Obtener reservas activas (en mesa) para estadísticas
+  static Future<List<Map<String, dynamic>>> getActiveReservationsByDate(DateTime date) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('estado', 'en_mesa')
+          .order('hora');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching active reservations: $e');
+      return [];
+    }
+  }
+  
+  // Obtener todas las reservas del día (para estadísticas completas)
+  static Future<List<Map<String, dynamic>>> getAllReservationsByDate(DateTime date) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .order('hora');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching all reservations: $e');
+      return [];
+    }
+  }
+
+  // Obtener todas las reservas (para admin)
+  static Future<List<Map<String, dynamic>>> getAllReservations() async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .order('fecha', ascending: false)
+          .order('hora', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching all reservations: $e');
+      return [];
+    }
+  }
+
+  // Actualizar estado de reserva
+  static Future<bool> updateReservationStatus(String reservationId, String status) async {
+    try {
+      await _client
+          .from('sodita_reservas')
+          .update({'estado': status})
+          .eq('id', reservationId);
+
+      return true;
+    } catch (e) {
+      print('Error updating reservation status: $e');
+      return false;
+    }
+  }
+
+  // Cancelar reserva
+  static Future<bool> cancelReservation(String reservationId) async {
+    return await updateReservationStatus(reservationId, 'cancelada');
+  }
+
+  // Check-in: Marcar que el cliente llegó a la mesa
+  static Future<bool> checkInReservation(String reservationId) async {
+    return await updateReservationStatus(reservationId, 'en_mesa');
+  }
+
+  // Marcar como no_show
+  static Future<bool> markAsNoShow(String reservationId) async {
+    return await updateReservationStatus(reservationId, 'no_show');
+  }
+
+  // Completar reserva (cliente terminó de comer)
+  static Future<bool> completeReservation(String reservationId) async {
+    return await updateReservationStatus(reservationId, 'completada');
+  }
+
+  // Obtener reservas que necesitan check-in (confirmadas y dentro del rango de tiempo)
+  static Future<List<Map<String, dynamic>>> getReservationsNeedingCheckIn() async {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      
+      // Buscar reservas confirmadas de hoy que deberían haber llegado
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .eq('fecha', today)
+          .eq('estado', 'confirmada')
+          .order('hora');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching reservations needing check-in: $e');
+      return [];
+    }
+  }
+
+  // Marcar automáticamente como no_show las reservas que pasaron 15 minutos
+  static Future<void> autoMarkNoShow() async {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      
+      // Calcular 15 minutos atrás
+      final fifteenMinutesAgo = DateTime.now().subtract(const Duration(minutes: 15));
+      final timeLimit = '${fifteenMinutesAgo.hour.toString().padLeft(2, '0')}:${fifteenMinutesAgo.minute.toString().padLeft(2, '0')}';
+
+      // Buscar reservas confirmadas que pasaron 15 minutos
+      final response = await _client
+          .from('sodita_reservas')
+          .select('id, hora')
+          .eq('fecha', today)
+          .eq('estado', 'confirmada')
+          .lt('hora', timeLimit);
+
+      // Marcar cada una como no_show
+      for (final reservation in response) {
+        await updateReservationStatus(reservation['id'], 'no_show');
+        print('⏰ Marcada como no_show: ${reservation['id']} (hora: ${reservation['hora']})');
+      }
+    } catch (e) {
+      print('Error auto-marking no_show: $e');
+    }
+  }
+  
+  // Calcular tiempo restante antes de que se marque como no_show
+  static Duration? getTimeUntilNoShow(String hora) {
+    final now = DateTime.now();
+    final reservationTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(hora.split(':')[0]),
+      int.parse(hora.split(':')[1]),
+    );
+    
+    final expireTime = reservationTime.add(const Duration(minutes: 15));
+    
+    if (now.isAfter(expireTime)) {
+      return null; // Ya expiró
+    }
+    
+    return expireTime.difference(now);
+  }
+  
+  // Verificar si una reserva está en período crítico (últimos 5 minutos)
+  static bool isInCriticalPeriod(String hora) {
+    final timeLeft = getTimeUntilNoShow(hora);
+    if (timeLeft == null) return false;
+    return timeLeft.inMinutes <= 5;
+  }
+  
+  // Verificar si una reserva ya expiró
+  static bool hasExpired(String hora) {
+    return getTimeUntilNoShow(hora) == null;
+  }
+  
+  // Formatear tiempo restante para mostrar
+  static String formatTimeRemaining(Duration timeLeft) {
+    final minutes = timeLeft.inMinutes;
+    final seconds = timeLeft.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  // Obtener reservas por rango de fechas (7, 15, 30 días)
+  static Future<List<Map<String, dynamic>>> getReservationsByDateRange(int days) async {
+    try {
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(Duration(days: days - 1));
+      
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .gte('fecha', startDate.toIso8601String().split('T')[0])
+          .lte('fecha', endDate.toIso8601String().split('T')[0])
+          .order('fecha', ascending: false)
+          .order('hora', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching reservations by date range: $e');
+      return [];
+    }
+  }
+
+  // Obtener estadísticas de reservas por período
+  static Future<Map<String, dynamic>> getReservationStats(int days) async {
+    try {
+      final reservations = await getReservationsByDateRange(days);
+      
+      final total = reservations.length;
+      final confirmadas = reservations.where((r) => r['estado'] == 'confirmada').length;
+      final completadas = reservations.where((r) => r['estado'] == 'completada').length;
+      final noShows = reservations.where((r) => r['estado'] == 'no_show').length;
+      final canceladas = reservations.where((r) => r['estado'] == 'cancelada').length;
+      final enMesa = reservations.where((r) => r['estado'] == 'en_mesa').length;
+
+      return {
+        'total': total,
+        'confirmadas': confirmadas,
+        'completadas': completadas,
+        'no_shows': noShows,
+        'canceladas': canceladas,
+        'en_mesa': enMesa,
+        'tasa_completadas': total > 0 ? (completadas / total * 100).round() : 0,
+        'tasa_no_shows': total > 0 ? (noShows / total * 100).round() : 0,
+      };
+    } catch (e) {
+      print('Error calculating reservation stats: $e');
+      return {};
+    }
+  }
+
+  // Obtener reservas agrupadas por fecha para el calendario
+  static Future<Map<DateTime, List<Map<String, dynamic>>>> getReservationsForCalendar(int days) async {
+    try {
+      final reservations = await getReservationsByDateRange(days);
+      final Map<DateTime, List<Map<String, dynamic>>> groupedReservations = {};
+
+      for (final reservation in reservations) {
+        final date = DateTime.parse(reservation['fecha']);
+        final dateKey = DateTime(date.year, date.month, date.day);
+        
+        if (groupedReservations[dateKey] == null) {
+          groupedReservations[dateKey] = [];
+        }
+        
+        groupedReservations[dateKey]!.add(reservation);
+      }
+
+      return groupedReservations;
+    } catch (e) {
+      print('Error grouping reservations for calendar: $e');
+      return {};
+    }
+  }
+}

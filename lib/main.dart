@@ -233,10 +233,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     
     try {
       // Cargar mesas, mesas ocupadas y mesas reservadas en paralelo
+      final timeString = selectedTime != null 
+          ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+          : '20:00'; // Hora por defecto para mostrar disponibilidad general
+      
       final results = await Future.wait([
         ReservationService.getMesas().timeout(const Duration(seconds: 5)),
-        ReservationService.getCurrentlyOccupiedTables(date: DateTime.now()).timeout(const Duration(seconds: 5)),
-        ReservationService.getOccupiedTables(date: DateTime.now(), time: '20:00').timeout(const Duration(seconds: 5)),
+        ReservationService.getCurrentlyOccupiedTables(date: selectedDate).timeout(const Duration(seconds: 5)),
+        ReservationService.getOccupiedTables(date: selectedDate, time: timeString).timeout(const Duration(seconds: 5)),
       ]);
       
       final tables = results[0] as List<Map<String, dynamic>>;
@@ -475,6 +479,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 const SizedBox(height: 16),
                 _buildRestaurantCard(),
                 const SizedBox(height: 24),
+                _buildDateTimeSelector(),
+                const SizedBox(height: 24),
                 _buildTableSection(),
                 const SizedBox(height: 24),
                 _buildReserveButton(),
@@ -641,6 +647,180 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
+  Widget _buildDateTimeSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '📅 Fecha y Hora',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1C1B1F),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          Row(
+            children: [
+              // Selector de fecha
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _selectDate(),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Color(0xFFFF6B35),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Fecha',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: const Color(0xFF1C1B1F),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Selector de hora
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _selectTime(),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selectedTime == null 
+                            ? const Color(0xFFFF6B35) 
+                            : const Color(0xFFE5E7EB),
+                        width: selectedTime == null ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          color: selectedTime == null 
+                              ? const Color(0xFFFF6B35)
+                              : const Color(0xFFFF6B35),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hora',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              selectedTime != null
+                                  ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+                                  : 'Seleccionar',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: selectedTime == null 
+                                    ? const Color(0xFFFF6B35)
+                                    : const Color(0xFF1C1B1F),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          if (selectedTime == null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFFF6B35),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Selecciona una hora para continuar',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFFFF6B35),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildTableSection() {
     if (isLoadingTables) {
       return const Center(
@@ -670,9 +850,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.2,
           ),
           itemCount: availableTables.length,
           itemBuilder: (context, index) {
@@ -704,7 +884,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isOccupied
                         ? Colors.red.withValues(alpha: 0.5)
@@ -728,7 +908,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(14),
                   child: Stack(
                     children: [
                       // Imagen de fondo con fallback
@@ -758,10 +938,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 children: [
                                   Icon(
                                     Icons.restaurant,
-                                    size: 32,
+                                    size: 24,
                                     color: Color(0xFFFF6B35),
                                   ),
-                                  SizedBox(height: 8),
+                                  SizedBox(height: 4),
                                   Text(
                                     'Mesa',
                                     style: TextStyle(
@@ -802,14 +982,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       
                       // Contenido
                       Positioned(
-                        bottom: 16,
-                        left: 16,
-                        right: 16,
+                        bottom: 12,
+                        left: 12,
+                        right: 12,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isOccupied 
                                     ? Colors.red.withValues(alpha: 0.8)
@@ -826,12 +1006,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                         : 'Mesa ${table['numero']}',
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
                               isOccupied 
                                   ? l10n.tableOccupied
@@ -840,7 +1020,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                       : table['ubicacion'] ?? '',
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -863,7 +1043,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                       : '${table['capacidad']} personas',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white.withValues(alpha: 0.8),
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -909,17 +1089,17 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       height: 56,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: selectedTableNumber != null
+        gradient: (selectedTableNumber != null && selectedTime != null)
             ? const LinearGradient(
                 colors: [Color(0xFFFF6B35), Color(0xFFFF8A50)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
             : null,
-        color: selectedTableNumber == null ? const Color(0xFFE5E7EB) : null,
+        color: (selectedTableNumber == null || selectedTime == null) ? const Color(0xFFE5E7EB) : null,
       ),
       child: ElevatedButton(
-        onPressed: selectedTableNumber != null ? _showReservationForm : null,
+        onPressed: (selectedTableNumber != null && selectedTime != null) ? _showReservationForm : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -928,13 +1108,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ),
         ),
         child: Text(
-          selectedTableNumber != null 
+          (selectedTableNumber != null && selectedTime != null)
               ? 'Reservar Mesa $selectedTableNumber' 
-              : 'Seleccioná una mesa',
+              : selectedTableNumber == null
+                  ? 'Seleccioná una mesa'
+                  : 'Seleccioná fecha y hora',
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: selectedTableNumber != null ? Colors.white : const Color(0xFF9CA3AF),
+            color: (selectedTableNumber != null && selectedTime != null) ? Colors.white : const Color(0xFF9CA3AF),
           ),
         ),
       ),
@@ -1103,10 +1285,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       lastPhoneNumber = phone.trim();
       
       // Crear reserva con timeout
+      final timeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
       final reservation = await ReservationService.createReservation(
         mesaId: selectedTableId!,
         date: selectedDate,
-        time: '20:00', // Por ahora hora fija
+        time: timeString,
         partySize: partySize,
         customerName: name.trim(),
         customerPhone: phone.trim(),
@@ -1267,13 +1450,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       }
       
       // Mensaje de confirmación
+      final selectedTimeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
       final message = '''
 ¡Hola! Tu reserva en SODITA ha sido confirmada ✅
 
 🏷️ Código: $confirmationCode
 🍽️ Mesa: $selectedTableNumber
 📅 Fecha: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}
-⏰ Hora: 20:00
+⏰ Hora: $selectedTimeString
 👥 Personas: $partySize
 
 ⚠️ IMPORTANTE: Tenés 15 minutos de tolerancia desde tu horario de reserva. Pasado ese tiempo, la mesa se libera automáticamente para otros clientes.
@@ -1320,6 +1504,151 @@ SODITA - Cocina casera, ambiente familiar
         ),
       );
     }
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFFF6B35),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF1C1B1F),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        // Resetear hora cuando cambia la fecha
+        selectedTime = null;
+      });
+      // Recargar mesas para la nueva fecha
+      _loadTables();
+    }
+  }
+
+  Future<void> _selectTime() async {
+    // Horarios disponibles del restaurante
+    final List<TimeOfDay> availableTimes = [
+      // Almuerzo
+      const TimeOfDay(hour: 12, minute: 0),
+      const TimeOfDay(hour: 12, minute: 30),
+      const TimeOfDay(hour: 13, minute: 0),
+      const TimeOfDay(hour: 13, minute: 30),
+      const TimeOfDay(hour: 14, minute: 0),
+      const TimeOfDay(hour: 14, minute: 30),
+      const TimeOfDay(hour: 15, minute: 0),
+      // Cena
+      const TimeOfDay(hour: 19, minute: 0),
+      const TimeOfDay(hour: 19, minute: 30),
+      const TimeOfDay(hour: 20, minute: 0),
+      const TimeOfDay(hour: 20, minute: 30),
+      const TimeOfDay(hour: 21, minute: 0),
+      const TimeOfDay(hour: 21, minute: 30),
+      const TimeOfDay(hour: 22, minute: 0),
+      const TimeOfDay(hour: 22, minute: 30),
+      const TimeOfDay(hour: 23, minute: 0),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        height: 400,
+        child: Column(
+          children: [
+            Text(
+              '⏰ Selecciona un horario',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1C1B1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 2.5,
+                ),
+                itemCount: availableTimes.length,
+                itemBuilder: (context, index) {
+                  final time = availableTimes[index];
+                  final timeString = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                  final isLunchTime = time.hour >= 12 && time.hour <= 15;
+                  
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedTime = time;
+                      });
+                      Navigator.pop(context);
+                      // Recargar mesas para la nueva hora
+                      _loadTables();
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFE5E7EB),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            timeString,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1C1B1F),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isLunchTime ? '🍽️ Almuerzo' : '🌙 Cena',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showLanguageSelector(BuildContext context) {

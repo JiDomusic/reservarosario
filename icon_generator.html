@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Iconos SODITA</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        canvas { border: 2px solid #ddd; margin: 10px; border-radius: 8px; }
+        .size-group { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+        button { 
+            background: #F86704; color: white; border: none; padding: 10px 20px; 
+            border-radius: 5px; margin: 5px; cursor: pointer; font-weight: bold;
+        }
+        button:hover { background: #E65100; }
+        .preview { text-align: center; margin: 20px 0; }
+        .download-links { margin: 10px 0; }
+        .download-links a { 
+            display: inline-block; margin: 5px; padding: 8px 15px; 
+            background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍶 Generador de Iconos SODITA</h1>
+        <p>Genera iconos personalizados para la app SODITA en diferentes tamaños.</p>
+        
+        <div class="preview">
+            <h3>👀 Vista Previa (512x512)</h3>
+            <canvas id="preview" width="512" height="512"></canvas>
+            <br>
+            <button onclick="generateIcon(512, 'preview')">🎨 Generar Vista Previa</button>
+            <button onclick="downloadCanvas('preview', 'sodita_icon_512.png')">💾 Descargar 512x512</button>
+        </div>
+
+        <div class="size-group">
+            <h3>📱 Android Icons</h3>
+            <canvas id="android48" width="48" height="48"></canvas>
+            <canvas id="android72" width="72" height="72"></canvas>
+            <canvas id="android96" width="96" height="96"></canvas>
+            <canvas id="android144" width="144" height="144"></canvas>
+            <canvas id="android192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="generateAndroidIcons()">🤖 Generar Iconos Android</button>
+            <div class="download-links">
+                <a href="#" onclick="downloadCanvas('android48', 'ic_launcher_48.png')">📥 48x48 (mdpi)</a>
+                <a href="#" onclick="downloadCanvas('android72', 'ic_launcher_72.png')">📥 72x72 (hdpi)</a>
+                <a href="#" onclick="downloadCanvas('android96', 'ic_launcher_96.png')">📥 96x96 (xhdpi)</a>
+                <a href="#" onclick="downloadCanvas('android144', 'ic_launcher_144.png')">📥 144x144 (xxhdpi)</a>
+                <a href="#" onclick="downloadCanvas('android192', 'ic_launcher_192.png')">📥 192x192 (xxxhdpi)</a>
+            </div>
+        </div>
+
+        <div class="size-group">
+            <h3>🌐 Web Icons</h3>
+            <canvas id="web32" width="32" height="32"></canvas>
+            <canvas id="web192" width="192" height="192"></canvas>
+            <canvas id="web512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="generateWebIcons()">🌐 Generar Iconos Web</button>
+            <div class="download-links">
+                <a href="#" onclick="downloadCanvas('web32', 'favicon.png')">📥 32x32 (Favicon)</a>
+                <a href="#" onclick="downloadCanvas('web192', 'icon-192.png')">📥 192x192 (PWA)</a>
+                <a href="#" onclick="downloadCanvas('web512', 'icon-512.png')">📥 512x512 (PWA)</a>
+            </div>
+        </div>
+
+        <button onclick="generateAllIcons()" style="font-size: 18px; padding: 15px 30px;">🚀 Generar Todos los Iconos</button>
+    </div>
+
+    <script>
+        function generateIcon(size, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Colores
+            const orange = '#F86704';
+            const green = '#4CAF50';
+            const darkGreen = '#388E3C';
+            const yellow = '#FFC107';
+            const white = '#FFFFFF';
+            const lightGray = '#F5F5F5';
+            
+            // Fondo circular naranja
+            const margin = size * 0.05;
+            const radius = (size - 2 * margin) / 2;
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = orange;
+            ctx.fill();
+            ctx.strokeStyle = '#E65100';
+            ctx.lineWidth = Math.max(1, size / 64);
+            ctx.stroke();
+            
+            // Botella principal
+            const bottleWidth = size * 0.25;
+            const bottleHeight = size * 0.5;
+            const bottleX = centerX - bottleWidth / 2;
+            const bottleY = size * 0.3;
+            
+            // Gradiente para la botella
+            const bottleGradient = ctx.createLinearGradient(bottleX, bottleY, bottleX + bottleWidth, bottleY + bottleHeight);
+            bottleGradient.addColorStop(0, green);
+            bottleGradient.addColorStop(1, darkGreen);
+            
+            ctx.fillStyle = bottleGradient;
+            ctx.fillRect(bottleX, bottleY, bottleWidth, bottleHeight);
+            ctx.strokeStyle = darkGreen;
+            ctx.lineWidth = Math.max(1, size / 128);
+            ctx.strokeRect(bottleX, bottleY, bottleWidth, bottleHeight);
+            
+            // Cuello de la botella
+            const neckWidth = bottleWidth * 0.4;
+            const neckHeight = size * 0.12;
+            const neckX = centerX - neckWidth / 2;
+            const neckY = bottleY - neckHeight;
+            
+            ctx.fillStyle = green;
+            ctx.fillRect(neckX, neckY, neckWidth, neckHeight);
+            ctx.strokeStyle = darkGreen;
+            ctx.strokeRect(neckX, neckY, neckWidth, neckHeight);
+            
+            // Tapa
+            const capWidth = neckWidth * 1.3;
+            const capHeight = size * 0.06;
+            const capX = centerX - capWidth / 2;
+            const capY = neckY - capHeight / 2;
+            
+            ctx.fillStyle = yellow;
+            ctx.fillRect(capX, capY, capWidth, capHeight);
+            ctx.strokeStyle = '#F57F17';
+            ctx.strokeRect(capX, capY, capWidth, capHeight);
+            
+            // Etiqueta
+            const labelWidth = bottleWidth * 0.85;
+            const labelHeight = size * 0.12;
+            const labelX = centerX - labelWidth / 2;
+            const labelY = bottleY + bottleHeight * 0.25;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+            ctx.strokeStyle = '#E0E0E0';
+            ctx.strokeRect(labelX, labelY, labelWidth, labelHeight);
+            
+            // Texto SODITA (solo para iconos grandes)
+            if (size >= 48) {
+                ctx.fillStyle = orange;
+                ctx.font = `bold ${Math.max(8, size / 25)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText('SODITA', centerX, labelY + labelHeight * 0.6);
+                
+                if (size >= 96) {
+                    ctx.font = `${Math.max(6, size / 40)}px Arial`;
+                    ctx.fillText('RESERVAS', centerX, labelY + labelHeight * 0.85);
+                }
+            }
+            
+            // Brillo en la botella
+            const highlightX = bottleX + bottleWidth * 0.15;
+            const highlightY = bottleY + bottleHeight * 0.2;
+            const highlightWidth = bottleWidth * 0.2;
+            const highlightHeight = bottleHeight * 0.4;
+            
+            const highlightGradient = ctx.createLinearGradient(highlightX, highlightY, highlightX + highlightWidth, highlightY);
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+            
+            ctx.fillStyle = highlightGradient;
+            ctx.beginPath();
+            ctx.ellipse(highlightX + highlightWidth/2, highlightY + highlightHeight/2, highlightWidth/2, highlightHeight/2, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Burbujas decorativas (solo para iconos grandes)
+            if (size >= 96) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                // Burbuja 1
+                ctx.beginPath();
+                ctx.arc(bottleX + bottleWidth * 0.7, bottleY + bottleHeight * 0.6, size * 0.02, 0, 2 * Math.PI);
+                ctx.fill();
+                // Burbuja 2
+                ctx.beginPath();
+                ctx.arc(bottleX + bottleWidth * 0.3, bottleY + bottleHeight * 0.8, size * 0.015, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+        
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function generateAndroidIcons() {
+            generateIcon(48, 'android48');
+            generateIcon(72, 'android72');
+            generateIcon(96, 'android96');
+            generateIcon(144, 'android144');
+            generateIcon(192, 'android192');
+        }
+        
+        function generateWebIcons() {
+            generateIcon(32, 'web32');
+            generateIcon(192, 'web192');
+            generateIcon(512, 'web512');
+        }
+        
+        function generateAllIcons() {
+            generateIcon(512, 'preview');
+            generateAndroidIcons();
+            generateWebIcons();
+            alert('🎉 ¡Todos los iconos generados! Haz clic en los enlaces para descargar.');
+        }
+        
+        // Generar vista previa al cargar
+        window.onload = function() {
+            generateIcon(512, 'preview');
+        };
+    </script>
+</body>
+</html>
