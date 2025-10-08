@@ -31,6 +31,9 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   rive: ^0.13.19
   
+  # Calendario moderno Material 3
+  table_calendar: ^3.1.2
+  
   # Navigation
   go_router: ^14.6.2
   
@@ -48,6 +51,13 @@ dependencies:
   
   # Permissions
   permission_handler: ^11.3.1
+  
+  # WhatsApp integration
+  url_launcher: ^6.3.1
+  
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_analytics: ^11.3.3
 
 dev_dependencies:
   flutter_test:

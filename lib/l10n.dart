@@ -9,7 +9,7 @@ class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static Map<String, Map<String, String>> _localizedValues = {
+  static final Map<String, Map<String, String>> _localizedValues = {
     'es': {
       'app_title': 'SODITA - Reservas',
       'reserve_table': 'Reservar Mesa',
@@ -74,6 +74,42 @@ class AppLocalizations {
       'oct': 'Oct',
       'nov': 'Nov',
       'dec': 'Dic',
+      
+      // Nuevas traducciones para historial y estadísticas
+      'customer_history': 'Historial de Clientes',
+      'statistics': 'Estadísticas',
+      'calendar_view': 'Vista Calendario',
+      'last_7_days': 'Últimos 7 días',
+      'last_15_days': 'Últimos 15 días',
+      'last_30_days': 'Últimos 30 días',
+      'completion_rate': 'Tasa de Completadas',
+      'no_show_rate': 'Tasa de No-Shows',
+      'total_reservations': 'Total de Reservas',
+      'completed_reservations': 'Reservas Completadas',
+      'cancelled_reservations': 'Reservas Canceladas',
+      'no_show_reservations': 'No Vinieron',
+      'confirmed_reservations': 'Confirmadas',
+      'in_table_reservations': 'En Mesa',
+      'reservation_trends': 'Tendencias de Reservas',
+      'performance_metrics': 'Métricas de Rendimiento',
+      'view_details': 'Ver Detalles',
+      'expired_reservation': 'Reserva Vencida',
+      'time_remaining': 'Tiempo Restante',
+      'critical_period': 'Período Crítico',
+      'late_arrival': 'Llegada Tardía',
+      'cancelled_tables': 'Mesas Canceladas',
+      'table_layout_notice': 'Información de Mesas',
+      'table_layout_description': 'El restaurante cuenta con 10 mesas ubicadas en la planta alta: 5 barras altas, 5 mesas bajas y 1 área de living para mayor comodidad.',
+      'upper_floor_info': 'Todas las mesas están en la planta alta',
+      'table_occupied': 'Mesa Ocupada',
+      'table_not_available': 'No Disponible',
+      'language_selector': 'Idioma',
+      'spanish': 'Español',
+      'english': 'English',
+      'chinese': '中文',
+      'table_reserved': 'Mesa Reservada',
+      'table_reserved_message': 'Esta mesa ya está reservada para hoy. Por favor elige otra mesa disponible.',
+      'choose_another_table': 'Elegir otra mesa',
     },
     'en': {
       'app_title': 'SODITA - Reservations',
@@ -139,6 +175,37 @@ class AppLocalizations {
       'oct': 'Oct',
       'nov': 'Nov',
       'dec': 'Dec',
+      
+      // Nuevas traducciones para historial y estadísticas
+      'customer_history': 'Customer History',
+      'statistics': 'Statistics',
+      'calendar_view': 'Calendar View',
+      'last_7_days': 'Last 7 days',
+      'last_15_days': 'Last 15 days',
+      'last_30_days': 'Last 30 days',
+      'completion_rate': 'Completion Rate',
+      'no_show_rate': 'No-Show Rate',
+      'total_reservations': 'Total Reservations',
+      'completed_reservations': 'Completed Reservations',
+      'cancelled_reservations': 'Cancelled Reservations',
+      'no_show_reservations': 'No Shows',
+      'confirmed_reservations': 'Confirmed',
+      'in_table_reservations': 'At Table',
+      'reservation_trends': 'Reservation Trends',
+      'performance_metrics': 'Performance Metrics',
+      'view_details': 'View Details',
+      'table_layout_notice': 'Table Information',
+      'table_layout_description': 'The restaurant has 10 tables located on the upper floor: 5 high bar tables, 5 low tables and 1 living area for greater comfort.',
+      'upper_floor_info': 'All tables are on the upper floor',
+      'table_occupied': 'Table Occupied',
+      'table_not_available': 'Not Available',
+      'language_selector': 'Language',
+      'spanish': 'Español',
+      'english': 'English',
+      'chinese': '中文',
+      'table_reserved': 'Table Reserved',
+      'table_reserved_message': 'This table is already reserved for today. Please choose another available table.',
+      'choose_another_table': 'Choose another table',
     },
     'zh': {
       'app_title': 'SODITA - 预订',
@@ -204,6 +271,37 @@ class AppLocalizations {
       'oct': '10月',
       'nov': '11月',
       'dec': '12月',
+      
+      // Nuevas traducciones para historial y estadísticas
+      'customer_history': '客户历史',
+      'statistics': '统计数据',
+      'calendar_view': '日历视图',
+      'last_7_days': '最近7天',
+      'last_15_days': '最近15天',
+      'last_30_days': '最近30天',
+      'completion_rate': '完成率',
+      'no_show_rate': '未到率',
+      'total_reservations': '总预订数',
+      'completed_reservations': '已完成预订',
+      'cancelled_reservations': '已取消预订',
+      'no_show_reservations': '未到预订',
+      'confirmed_reservations': '已确认',
+      'in_table_reservations': '就餐中',
+      'reservation_trends': '预订趋势',
+      'performance_metrics': '性能指标',
+      'view_details': '查看详情',
+      'table_layout_notice': '餐桌信息',
+      'table_layout_description': '餐厅在二楼设有10张餐桌：5张高吧台桌、5张低桌和1个休息区，更加舒适。',
+      'upper_floor_info': '所有餐桌都在二楼',
+      'table_occupied': '餐桌已被占用',
+      'table_not_available': '不可用',
+      'language_selector': '语言',
+      'spanish': 'Español',
+      'english': 'English',
+      'chinese': '中文',
+      'table_reserved': '餐桌已预订',
+      'table_reserved_message': '这张餐桌今天已经被预订了。请选择其他可用餐桌。',
+      'choose_another_table': '选择其他餐桌',
     },
   };
 
@@ -256,6 +354,37 @@ class AppLocalizations {
   String get policyDetail1 => translate('policy_detail1');
   String get policyDetail2 => translate('policy_detail2');
   String get available => translate('available');
+  
+  // Nuevos getters para historial y estadísticas
+  String get customerHistory => translate('customer_history');
+  String get statistics => translate('statistics');
+  String get calendarView => translate('calendar_view');
+  String get last7Days => translate('last_7_days');
+  String get last15Days => translate('last_15_days');
+  String get last30Days => translate('last_30_days');
+  String get completionRate => translate('completion_rate');
+  String get noShowRate => translate('no_show_rate');
+  String get totalReservations => translate('total_reservations');
+  String get completedReservations => translate('completed_reservations');
+  String get cancelledReservations => translate('cancelled_reservations');
+  String get noShowReservations => translate('no_show_reservations');
+  String get confirmedReservations => translate('confirmed_reservations');
+  String get inTableReservations => translate('in_table_reservations');
+  String get reservationTrends => translate('reservation_trends');
+  String get performanceMetrics => translate('performance_metrics');
+  String get viewDetails => translate('view_details');
+  String get tableLayoutNotice => translate('table_layout_notice');
+  String get tableLayoutDescription => translate('table_layout_description');
+  String get upperFloorInfo => translate('upper_floor_info');
+  String get tableOccupied => translate('table_occupied');
+  String get tableNotAvailable => translate('table_not_available');
+  String get languageSelector => translate('language_selector');
+  String get spanish => translate('spanish');
+  String get english => translate('english');
+  String get chinese => translate('chinese');
+  String get tableReserved => translate('table_reserved');
+  String get tableReservedMessage => translate('table_reserved_message');
+  String get chooseAnotherTable => translate('choose_another_table');
 
   // Días de la semana
   String getDayName(int weekday) {

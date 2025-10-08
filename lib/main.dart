@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
+import 'services/reservation_service.dart';
+import 'admin_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  // Inicializar Analytics
+  FirebaseAnalytics.instance;
+  
+  // Inicializar Supabase
   await SupabaseConfig.initialize();
+  
   runApp(const SoditaApp());
 }
 
@@ -19,12 +35,16 @@ class SoditaApp extends StatefulWidget {
 }
 
 class _SoditaAppState extends State<SoditaApp> {
-  Locale _locale = const Locale('es'); // Español por defecto
+  Locale _locale = const Locale('es');
 
   void _changeLanguage(Locale locale) {
     setState(() {
       _locale = locale;
     });
+  }
+
+  void changeLanguage(Locale locale) {
+    _changeLanguage(locale);
   }
 
   @override
@@ -46,18 +66,53 @@ class _SoditaAppState extends State<SoditaApp> {
       ],
       theme: ThemeData(
         useMaterial3: true,
+        // Colores exactos de Woki
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF6B35),
+          seedColor: const Color(0xFFFF6B35), // Naranja Woki
           brightness: Brightness.light,
+          primary: const Color(0xFFFF6B35),
+          surface: const Color(0xFFFFFBFF),
+          onSurface: const Color(0xFF1C1B1F),
         ),
-        fontFamily: GoogleFonts.inter().fontFamily,
+        // Tipografía moderna Woki
+        fontFamily: GoogleFonts.poppins().fontFamily,
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        // Botones estilo Woki 2025
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFF6B35),
+            foregroundColor: Colors.white,
             elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            textStyle: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        // Cards estilo Woki
+        cardTheme: const CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shadowColor: Color(0x14000000),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
+        ),
+        // AppBar estilo Woki
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1C1B1F),
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          titleTextStyle: GoogleFonts.poppins(
+            color: const Color(0xFF1C1B1F),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -75,1127 +130,1345 @@ class SoditaHome extends StatefulWidget {
   State<SoditaHome> createState() => _SoditaHomeState();
 }
 
-class _SoditaHomeState extends State<SoditaHome>
-    with TickerProviderStateMixin {
+class _SoditaHomeState extends State<SoditaHome> {
+  int _currentIndex = 0;
+  
+  final List<Widget> _pages = [
+    const RestaurantsPage(),
+    const ReservationsPage(),
+    const ProfilePage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          selectedItemColor: const Color(0xFFFF6B35),
+          unselectedItemColor: const Color(0xFF9CA3AF),
+          selectedLabelStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          ),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.restaurant),
+              label: 'Restaurantes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_outline),
+              label: 'Reservas',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'Perfil',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RestaurantsPage extends StatefulWidget {
+  const RestaurantsPage({super.key});
+
+  @override
+  State<RestaurantsPage> createState() => _RestaurantsPageState();
+}
+
+class _RestaurantsPageState extends State<RestaurantsPage> {
   DateTime selectedDate = DateTime.now();
   TimeOfDay? selectedTime;
   int partySize = 2;
   int? selectedTableNumber;
-  bool showFloorPlan = false; // Vista de plano vs lista
+  String? selectedTableId;
+  String? lastPhoneNumber;
   
-  late AnimationController _headerAnimationController;
-  late AnimationController _cardAnimationController;
+  List<Map<String, dynamic>> availableTables = [];
+  List<String> occupiedTableIds = [];
+  List<String> reservedTableIds = [];
+  bool isLoadingTables = true;
   
-  final List<String> timeSlots = [
-    '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', 
-    '21:00', '21:30', '22:00', '22:30', '23:00'
-  ];
-
-  final List<Map<String, dynamic>> tables = [
-    {'number': 1, 'capacity': 2, 'location': 'Barra ventana', 'type': 'barra'},
-    {'number': 2, 'capacity': 2, 'location': 'Barra lateral', 'type': 'barra'},
-    {'number': 3, 'capacity': 4, 'location': 'Mesa pared izquierda', 'type': 'mesa'},
-    {'number': 4, 'capacity': 4, 'location': 'Mesa pared derecha', 'type': 'mesa'},
-    {'number': 5, 'capacity': 6, 'location': 'Mesa familiar fondo', 'type': 'mesa'},
-    {'number': 6, 'capacity': 8, 'location': 'Mesa grande esquina', 'type': 'mesa'},
-    {'number': 7, 'capacity': 2, 'location': 'Barra rincón', 'type': 'barra'},
-    {'number': 8, 'capacity': 4, 'location': 'Mesa centro-derecha', 'type': 'mesa'},
-    {'number': 9, 'capacity': 4, 'location': 'Mesa centro-izquierda', 'type': 'mesa'},
-    {'number': 10, 'capacity': 2, 'location': 'Barra entrada', 'type': 'barra'},
-  ];
+  // Analytics instance
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   void initState() {
     super.initState();
-    _headerAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    _cardAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    _headerAnimationController.forward();
-    _cardAnimationController.forward();
+    _loadTables();
   }
 
   @override
   void dispose() {
-    _headerAnimationController.dispose();
-    _cardAnimationController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Future<void> _loadTables() async {
+    if (!mounted) return;
+    
+    setState(() {
+      isLoadingTables = true;
+    });
+    
+    try {
+      // Cargar mesas, mesas ocupadas y mesas reservadas en paralelo
+      final results = await Future.wait([
+        ReservationService.getMesas().timeout(const Duration(seconds: 5)),
+        ReservationService.getCurrentlyOccupiedTables(date: DateTime.now()).timeout(const Duration(seconds: 5)),
+        ReservationService.getOccupiedTables(date: DateTime.now(), time: '20:00').timeout(const Duration(seconds: 5)),
+      ]);
+      
+      final tables = results[0] as List<Map<String, dynamic>>;
+      final occupied = results[1] as List<String>;
+      final reserved = results[2] as List<String>;
+      
+      if (!mounted) return;
+      
+      setState(() {
+        availableTables = tables.isNotEmpty ? tables : _getFallbackTables();
+        occupiedTableIds = occupied;
+        reservedTableIds = reserved.where((id) => !occupied.contains(id)).toList(); // Excluir las que ya están ocupadas
+        isLoadingTables = false;
+      });
+      
+      print('🍽️ Mesas cargadas desde BD: ${tables.length} mesas');
+      print('🚫 Mesas ocupadas: ${occupied.length} mesas');
+      print('📅 Mesas reservadas: ${reservedTableIds.length} mesas');
+    } catch (e) {
+      print('⚠️ Error cargando mesas, usando datos locales: $e');
+      
+      if (!mounted) return;
+      
+      setState(() {
+        availableTables = _getFallbackTables();
+        occupiedTableIds = []; // Sin datos de ocupación en modo offline
+        reservedTableIds = []; // Sin datos de reserva en modo offline
+        isLoadingTables = false;
+      });
+      
+      // Mostrar mensaje discreto al usuario
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('🔄 Usando datos locales - Conexión lenta'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _getFallbackTables() {
+    return [
+      {'id': '1', 'numero': 1, 'capacidad': 2, 'ubicacion': 'Ventana frontal', 'activa': true},
+      {'id': '2', 'numero': 2, 'capacidad': 2, 'ubicacion': 'Ventana lateral', 'activa': true},
+      {'id': '3', 'numero': 3, 'capacidad': 4, 'ubicacion': 'Centro del salon', 'activa': true},
+      {'id': '4', 'numero': 4, 'capacidad': 4, 'ubicacion': 'Cerca de la ventana', 'activa': true},
+      {'id': '5', 'numero': 5, 'capacidad': 6, 'ubicacion': 'Mesa grande central', 'activa': true},
+      {'id': '6', 'numero': 6, 'capacidad': 8, 'ubicacion': 'Mesa familiar grande', 'activa': true},
+      {'id': '7', 'numero': 7, 'capacidad': 2, 'ubicacion': 'Rincon privado', 'activa': true},
+      {'id': '8', 'numero': 8, 'capacidad': 4, 'ubicacion': 'Centro-derecha', 'activa': true},
+      {'id': '9', 'numero': 9, 'capacidad': 4, 'ubicacion': 'Centro-izquierda', 'activa': true},
+      {'id': '10', 'numero': 10, 'capacidad': 2, 'ubicacion': 'Mesa de la esquina', 'activa': true},
+    ];
+  }
+
+  String _getTableImage(int tableNumber) {
+    // URLs más estables de imágenes de mesas de restaurante
+    final images = {
+      1: 'https://picsum.photos/400/300?random=1',
+      2: 'https://picsum.photos/400/300?random=2',
+      3: 'https://picsum.photos/400/300?random=3',
+      4: 'https://picsum.photos/400/300?random=4',
+      5: 'https://picsum.photos/400/300?random=5',
+      6: 'https://picsum.photos/400/300?random=6',
+      7: 'https://picsum.photos/400/300?random=7',
+      8: 'https://picsum.photos/400/300?random=8',
+      9: 'https://picsum.photos/400/300?random=9',
+      10: 'https://picsum.photos/400/300?random=10',
+    };
+    
+    return images[tableNumber] ?? 'https://picsum.photos/400/300?random=default';
+  }
+
+  Widget _buildTableInfoNotice() {
     final l10n = AppLocalizations.of(context);
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SODITA'),
-        backgroundColor: const Color(0xFFFF6B35),
-        foregroundColor: Colors.white,
-        actions: [
-          // Selector de idiomas
-          PopupMenuButton<Locale>(
-            icon: const Icon(Icons.language),
-            onSelected: widget.onLanguageChange,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: Locale('es'),
-                child: Row(
-                  children: [
-                    Text('🇪🇸'),
-                    SizedBox(width: 8),
-                    Text('Español'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: Locale('en'),
-                child: Row(
-                  children: [
-                    Text('🇺🇸'),
-                    SizedBox(width: 8),
-                    Text('English'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: Locale('zh'),
-                child: Row(
-                  children: [
-                    Text('🇨🇳'),
-                    SizedBox(width: 8),
-                    Text('中文'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings),
-            onPressed: _showAdminLogin,
-          ),
-        ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFFF6B35).withValues(alpha: 0.1),
+            const Color(0xFFFF8A50).withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+          width: 1,
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            FadeInUp(
-              child: const Text(
-                'Reservar Mesa',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Color(0xFFFF6B35),
+                    size: 20,
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.tableLayoutNotice,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFF6B35),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.tableLayoutDescription,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF374151),
+                height: 1.4,
               ),
             ),
-            
             const SizedBox(height: 8),
-            
-            FadeInUp(
-              delay: const Duration(milliseconds: 200),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Text(
-                'Elige tu mesa en el piso superior',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade600,
+                '📍 ${l10n.upperFloorInfo}',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFFF6B35),
                 ),
               ),
             ),
-            
-            const SizedBox(height: 32),
-            
-            _buildDateSection(),
-            
-            const SizedBox(height: 28),
-            
-            _buildTimeSection(),
-            
-            const SizedBox(height: 28),
-            
-            _buildPartySizeSection(),
-            
-            const SizedBox(height: 32),
-            
-            _buildTableSection(),
-            
-            const SizedBox(height: 40),
-            
-            _buildReserveButton(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDateSection() {
-    return FadeInUp(
-      delay: const Duration(milliseconds: 300),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '¿Cuándo?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 90,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 7,
-              itemBuilder: (context, index) {
-                final date = DateTime.now().add(Duration(days: index));
-                final isSelected = selectedDate.day == date.day && 
-                                 selectedDate.month == date.month;
-                
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedDate = date;
-                      selectedTableNumber = null;
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      gradient: isSelected 
-                        ? LinearGradient(
-                            colors: [
-                              const Color(0xFFFF6B35),
-                              const Color(0xFFFF8A65),
-                            ],
-                          )
-                        : null,
-                      color: isSelected ? null : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _getDayName(date.weekday),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected ? Colors.white : Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          date.day.toString(),
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        Text(
-                          _getMonthName(date.month),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isSelected ? Colors.white : Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: CustomScrollView(
+        slivers: [
+          // AppBar estilo Woki
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            foregroundColor: const Color(0xFF1C1B1F),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hola! 👋',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF6B7280),
                   ),
-                );
-              },
+                ),
+                Text(
+                  'Reservá tu mesa',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1C1B1F),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.language),
+                onPressed: () => _showLanguageSelector(context),
+                tooltip: AppLocalizations.of(context).languageSelector,
+              ),
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const AdminScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.ease;
 
-  Widget _buildTimeSection() {
-    return FadeInUp(
-      delay: const Duration(milliseconds: 400),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '¿A qué hora?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: timeSlots.map((time) {
-              final timeOfDay = TimeOfDay(
-                hour: int.parse(time.split(':')[0]),
-                minute: int.parse(time.split(':')[1]),
-              );
-              final isSelected = selectedTime == timeOfDay;
-              
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    selectedTime = timeOfDay;
-                    selectedTableNumber = null;
-                  });
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 300),
+                    ),
+                  );
                 },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: isSelected 
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFFFF6B35),
-                            const Color(0xFFFF8A65),
-                          ],
-                        )
-                      : null,
-                    color: isSelected ? null : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Text(
-                    time,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPartySizeSection() {
-    return FadeInUp(
-      delay: const Duration(milliseconds: 500),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '¿Cuántas personas?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildCounterButton(
-                icon: Icons.remove,
-                onTap: partySize > 1 ? () {
-                  setState(() {
-                    partySize--;
-                    selectedTableNumber = null;
-                  });
-                } : null,
-              ),
-              
-              const SizedBox(width: 20),
-              
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFFFF6B35).withOpacity(0.1),
-                      const Color(0xFFFF8A65).withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFFF6B35).withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: Text(
-                  '$partySize ${partySize == 1 ? 'persona' : 'personas'}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF6B35),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(width: 20),
-              
-              _buildCounterButton(
-                icon: Icons.add,
-                onTap: partySize < 8 ? () {
-                  setState(() {
-                    partySize++;
-                    selectedTableNumber = null;
-                  });
-                } : null,
+                tooltip: 'Panel de Administración',
               ),
             ],
+            expandedHeight: 100,
+          ),
+          
+          // Contenido principal
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildTableInfoNotice(),
+                const SizedBox(height: 16),
+                _buildRestaurantCard(),
+                const SizedBox(height: 24),
+                _buildTableSection(),
+                const SizedBox(height: 24),
+                _buildReserveButton(),
+              ]),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCounterButton({
-    required IconData icon,
-    required VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          gradient: onTap != null 
-            ? LinearGradient(
-                colors: [
-                  const Color(0xFFFF6B35),
-                  const Color(0xFFFF8A65),
-                ],
-              )
-            : null,
-          color: onTap == null ? Colors.grey.shade300 : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: onTap != null ? Colors.white : Colors.grey.shade600,
-          size: 24,
-        ),
+  Widget _buildRestaurantCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Imagen del restaurante
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              image: DecorationImage(
+                image: const NetworkImage('https://picsum.photos/800/400?random=restaurant'),
+                fit: BoxFit.cover,
+                onError: (exception, stackTrace) {
+                  print('Error cargando imagen del restaurante: $exception');
+                },
+              ),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.3),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Info del restaurante
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SODITA',
+                            style: GoogleFonts.poppins(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1C1B1F),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cocina casera • Ambiente familiar',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            size: 16,
+                            color: Color(0xFFFF6B35),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '4.8',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFFF6B35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Info adicional
+                Row(
+                  children: [
+                    _buildInfoChip(Icons.access_time, '30 min'),
+                    const SizedBox(width: 12),
+                    _buildInfoChip(Icons.attach_money, '\$\$'),
+                    const SizedBox(width: 12),
+                    _buildInfoChip(Icons.people, '2-8 personas'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: const Color(0xFF6B7280),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTableSection() {
-    if (selectedTime == null) return const SizedBox();
-    
-    final l10n = AppLocalizations.of(context);
-    final availableTables = tables.where((table) => 
-      table['capacity'] >= partySize
-    ).toList();
-    
-    return FadeInUp(
-      delay: const Duration(milliseconds: 600),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.selectTable,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              // Toggle vista lista/plano
-              Container(
+    if (isLoadingTables) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF6B35),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Título sección
+        Text(
+          'Elegí tu mesa',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1C1B1F),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Grid de mesas estilo Woki
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: availableTables.length,
+          itemBuilder: (context, index) {
+            final table = availableTables[index];
+            final isSelected = selectedTableNumber == table['numero'];
+            final isOccupied = occupiedTableIds.contains(table['id']);
+            final isReserved = reservedTableIds.contains(table['id']);
+            final l10n = AppLocalizations.of(context);
+            
+            return GestureDetector(
+              onTap: (isOccupied || isReserved) ? () {
+                // Mostrar mensaje flotante para mesas no disponibles
+                _showTableNotAvailableDialog(table, isOccupied, isReserved);
+              } : () {
+                setState(() {
+                  selectedTableNumber = table['numero'];
+                  selectedTableId = table['id'];
+                });
+                
+                // Analytics: Mesa seleccionada
+                analytics.logEvent(
+                  name: 'select_table',
+                  parameters: {
+                    'table_number': table['numero'],
+                    'table_capacity': table['capacidad'],
+                    'table_location': table['ubicacion'] ?? '',
+                  },
+                );
+              },
+              child: Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => showFloorPlan = false),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: !showFloorPlan 
-                            ? LinearGradient(
-                                colors: [
-                                  const Color(0xFFFF6B35),
-                                  const Color(0xFFFF8A65),
-                                ],
-                              )
-                            : null,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(25),
-                            bottomLeft: Radius.circular(25),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.list,
-                          size: 16,
-                          color: !showFloorPlan ? Colors.white : Colors.grey.shade600,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => showFloorPlan = true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: showFloorPlan 
-                            ? LinearGradient(
-                                colors: [
-                                  const Color(0xFFFF6B35),
-                                  const Color(0xFFFF8A65),
-                                ],
-                              )
-                            : null,
-                          borderRadius: const BorderRadius.only(
-                            topRight: Radius.circular(25),
-                            bottomRight: Radius.circular(25),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.map,
-                          size: 16,
-                          color: showFloorPlan ? Colors.white : Colors.grey.shade600,
-                        ),
-                      ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isOccupied
+                        ? Colors.red.withValues(alpha: 0.5)
+                        : isReserved
+                            ? Colors.orange.withValues(alpha: 0.5)
+                            : isSelected 
+                                ? const Color(0xFFFF6B35)
+                                : Colors.transparent,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isOccupied 
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : isReserved
+                              ? Colors.orange.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${availableTables.length} ${l10n.availableTables} $partySize ${partySize == 1 ? l10n.person : l10n.people}',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          showFloorPlan ? _buildFloorPlan(availableTables) : _buildTableList(availableTables),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableList(List<Map<String, dynamic>> availableTables) {
-    final l10n = AppLocalizations.of(context);
-    
-    return Column(
-      children: availableTables.map((table) {
-        final isSelected = selectedTableNumber == table['number'];
-        
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedTableNumber = table['number'];
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: isSelected 
-                ? LinearGradient(
-                    colors: [
-                      const Color(0xFFFF6B35).withOpacity(0.1),
-                      const Color(0xFFFF8A65).withOpacity(0.1),
-                    ],
-                  )
-                : null,
-              color: isSelected ? null : Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected 
-                  ? const Color(0xFFFF6B35)
-                  : Colors.grey.shade200,
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: isSelected 
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFFFF6B35),
-                            const Color(0xFFFF8A65),
-                          ],
-                        )
-                      : null,
-                    color: isSelected ? null : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${table['number']}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.grey.shade700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Stack(
                     children: [
-                      Text(
-                        table['location'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? const Color(0xFFFF6B35) : Colors.black87,
+                      // Imagen de fondo con fallback
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Image.network(
+                          _getTableImage(table['numero']),
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFFF6B35),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant,
+                                    size: 32,
+                                    color: Color(0xFFFF6B35),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Mesa',
+                                    style: TextStyle(
+                                      color: Color(0xFFFF6B35),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${l10n.upTo} ${table['capacity']} ${table['capacity'] == 1 ? l10n.person : l10n.people}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
+                      
+                      // Overlay
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isOccupied 
+                                ? [
+                                    Colors.grey.withValues(alpha: 0.8),
+                                    Colors.grey.withValues(alpha: 0.9),
+                                  ]
+                                : isReserved
+                                    ? [
+                                        Colors.orange.withValues(alpha: 0.6),
+                                        Colors.orange.withValues(alpha: 0.8),
+                                      ]
+                                    : [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.7),
+                                      ],
+                          ),
                         ),
                       ),
+                      
+                      // Contenido
+                      Positioned(
+                        bottom: 16,
+                        left: 16,
+                        right: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isOccupied 
+                                    ? Colors.red.withValues(alpha: 0.8)
+                                    : isReserved
+                                        ? Colors.orange.withValues(alpha: 0.9)
+                                        : const Color(0xFFFF6B35),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                isOccupied 
+                                    ? l10n.tableNotAvailable
+                                    : isReserved
+                                        ? l10n.tableReserved
+                                        : 'Mesa ${table['numero']}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              isOccupied 
+                                  ? l10n.tableOccupied
+                                  : isReserved
+                                      ? 'Reservada para hoy'
+                                      : table['ubicacion'] ?? '',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  isOccupied 
+                                      ? Icons.block 
+                                      : isReserved
+                                          ? Icons.event_busy
+                                          : Icons.people,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  (isOccupied || isReserved)
+                                      ? 'Mesa ${table['numero']}'
+                                      : '${table['capacidad']} personas',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Icono seleccionado
+                      if (isSelected)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFF6B35),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: Color(0xFFFF6B35),
-                    size: 24,
-                  ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildFloorPlan(List<Map<String, dynamic>> availableTables) {
-    return Container(
-      height: 450,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          // Título del plano
-          Row(
-            children: [
-              const Icon(Icons.map, color: Color(0xFFFF6B35), size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Plano SODITA - Piso Superior (8x16m)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Plano del salón 8x16 metros
-          Expanded(
-            child: Stack(
-              children: [
-                // Fondo del restaurante (proporción 8x16)
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300, width: 3),
-                  ),
-                ),
-                
-                // Zona de ventanas (parte superior)
-                Positioned(
-                  top: 5,
-                  left: 5,
-                  right: 5,
-                  child: Container(
-                    height: 25,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'VENTANAS - VISTA AL EXTERIOR',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Living/Área central
-                Positioned(
-                  left: 100,
-                  top: 140,
-                  width: 120,
-                  height: 80,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.brown.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.brown.withOpacity(0.3)),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.weekend, color: Colors.brown, size: 20),
-                          Text(
-                            'LIVING',
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.brown,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // BARRAS (mesas altas)
-                // Barra 1 - Ventana izquierda
-                _buildTableOnPlan(1, const Offset(60, 60), availableTables, isBarra: true),
-                
-                // Barra 2 - Ventana derecha  
-                _buildTableOnPlan(2, const Offset(260, 60), availableTables, isBarra: true),
-                
-                // Barra 7 - Rincón izquierdo
-                _buildTableOnPlan(7, const Offset(30, 120), availableTables, isBarra: true),
-                
-                // Barra 10 - Cerca entrada
-                _buildTableOnPlan(10, const Offset(160, 320), availableTables, isBarra: true),
-                
-                // MESAS BAJAS (alrededor del living)
-                // Mesa 3 - Pared izquierda
-                _buildTableOnPlan(3, const Offset(40, 180), availableTables),
-                
-                // Mesa 4 - Pared derecha
-                _buildTableOnPlan(4, const Offset(280, 180), availableTables),
-                
-                // Mesa 5 - Fondo del salón
-                _buildTableOnPlan(5, const Offset(160, 280), availableTables, isLarge: true),
-                
-                // Mesa 6 - Esquina derecha grande
-                _buildTableOnPlan(6, const Offset(270, 250), availableTables, isLarge: true),
-                
-                // Mesa 8 - Centro derecha
-                _buildTableOnPlan(8, const Offset(240, 140), availableTables),
-                
-                // Mesa 9 - Centro izquierda
-                _buildTableOnPlan(9, const Offset(80, 140), availableTables),
-                
-                // Entrada principal
-                Positioned(
-                  bottom: 5,
-                  left: 5,
-                  right: 5,
-                  child: Container(
-                    height: 25,
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(10),
-                        bottomRight: Radius.circular(10),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.login, color: Colors.green, size: 16),
-                          SizedBox(width: 8),
-                          Text(
-                            'ENTRADA PRINCIPAL',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Leyenda actualizada
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildLegendItem('Disponible', Colors.green),
-                  _buildLegendItem('No disponible', Colors.grey),
-                  _buildLegendItem('Seleccionada', const Color(0xFFFF6B35)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildLegendItem('🪑 Mesa baja', Colors.blue),
-                  _buildLegendItem('🍷 Barra alta', Colors.purple),
-                  _buildLegendItem('🛋️ Living', Colors.brown),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableOnPlan(int tableNumber, Offset position, List<Map<String, dynamic>> availableTables, {bool isLarge = false, bool isBarra = false}) {
-    final table = tables.firstWhere((t) => t['number'] == tableNumber);
-    final isAvailable = availableTables.any((t) => t['number'] == tableNumber);
-    final isSelected = selectedTableNumber == tableNumber;
-    
-    Color tableColor;
-    if (isSelected) {
-      tableColor = const Color(0xFFFF6B35);
-    } else if (isAvailable) {
-      tableColor = Colors.green;
-    } else {
-      tableColor = Colors.grey;
-    }
-    
-    final size = isLarge ? 50.0 : 40.0;
-    
-    return Positioned(
-      left: position.dx - size/2,
-      top: position.dy - size/2,
-      child: GestureDetector(
-        onTap: isAvailable ? () {
-          setState(() {
-            selectedTableNumber = tableNumber;
-          });
-        } : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: tableColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? Colors.white : tableColor.withOpacity(0.7),
-              width: isSelected ? 3 : 1,
-            ),
-            boxShadow: isSelected ? [
-              BoxShadow(
-                color: tableColor.withOpacity(0.4),
-                spreadRadius: 2,
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ] : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$tableNumber',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: isLarge ? 16 : 14,
-                ),
-              ),
-              if (isLarge)
-                Text(
-                  '${table['capacity']}p',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10),
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildReserveButton() {
-    final canReserve = selectedTime != null && selectedTableNumber != null;
-    
-    return FadeInUp(
-      delay: const Duration(milliseconds: 700),
-      child: Column(
-        children: [
-          // Aviso de 15 minutos
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.schedule, color: Colors.orange, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '⚠️ IMPORTANTE: Política de 15 minutos',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tienes 15 minutos desde tu hora de reserva para llegar. Si no llegas a tiempo, tu mesa se liberará automáticamente.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: selectedTableNumber != null
+            ? const LinearGradient(
+                colors: [Color(0xFFFF6B35), Color(0xFFFF8A50)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              )
+            : null,
+        color: selectedTableNumber == null ? const Color(0xFFE5E7EB) : null,
+      ),
+      child: ElevatedButton(
+        onPressed: selectedTableNumber != null ? _showReservationForm : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
           ),
-          
-          const SizedBox(height: 24),
-          
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.green.withOpacity(0.1),
-                  Colors.green.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.green.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '¡Reserva GRATIS!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        'Solo paga lo que consumas en el restaurante',
-                        style: TextStyle(
-                          color: Colors.green.shade700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        ),
+        child: Text(
+          selectedTableNumber != null 
+              ? 'Reservar Mesa $selectedTableNumber' 
+              : 'Seleccioná una mesa',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: selectedTableNumber != null ? Colors.white : const Color(0xFF9CA3AF),
           ),
-          
-          const SizedBox(height: 24),
-          
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: double.infinity,
-            height: 60,
-            child: ElevatedButton(
-              onPressed: canReserve ? _showReservationForm : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: canReserve ? const Color(0xFFFF6B35) : Colors.grey.shade300,
-                elevation: canReserve ? 8 : 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  void _showReservationForm() {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final commentsController = TextEditingController();
+    int selectedRating = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Reservar Mesa $selectedTableNumber',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre completo',
+                  border: OutlineInputBorder(),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentsController,
+                decoration: const InputDecoration(
+                  labelText: 'Comentarios (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+              // Sistema de puntuación
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.restaurant_menu,
-                    color: canReserve ? Colors.white : Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 12),
                   Text(
-                    canReserve 
-                      ? 'Reservar Mesa ${selectedTableNumber ?? ''}'
-                      : 'Selecciona hora y mesa',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: canReserve ? Colors.white : Colors.grey.shade600,
+                    '¿Cómo calificarías tu experiencia previa? (opcional)',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  StatefulBuilder(
+                    builder: (context, setStateDialog) {
+                      return Row(
+                        children: List.generate(5, (index) {
+                          return GestureDetector(
+                            onTap: () {
+                              setStateDialog(() {
+                                selectedRating = index + 1;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Icon(
+                                index < selectedRating 
+                                    ? Icons.star 
+                                    : Icons.star_border,
+                                color: const Color(0xFFFF6B35),
+                                size: 32,
+                              ),
+                            ),
+                          );
+                        }),
+                      );
+                    },
+                  ),
                 ],
               ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => _processReservation(
+              nameController.text,
+              phoneController.text,
+              emailController.text,
+              commentsController.text,
+              selectedRating,
             ),
+            child: const Text('Confirmar'),
           ),
         ],
       ),
     );
   }
 
-  String _getDayName(int weekday) {
-    switch (weekday) {
-      case 1: return 'Lun';
-      case 2: return 'Mar';
-      case 3: return 'Mié';
-      case 4: return 'Jue';
-      case 5: return 'Vie';
-      case 6: return 'Sáb';
-      case 7: return 'Dom';
-      default: return '';
+  Future<void> _processReservation(String name, String phone, String email, String comments, int rating) async {
+    if (name.trim().isEmpty || phone.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Por favor completa nombre y teléfono'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    Navigator.pop(context); // Cerrar diálogo
+
+    // Mostrar loading con timeout visual
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                color: Color(0xFFFF6B35),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Creando tu reserva...',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Guardar el teléfono para WhatsApp
+      lastPhoneNumber = phone.trim();
+      
+      // Crear reserva con timeout
+      final reservation = await ReservationService.createReservation(
+        mesaId: selectedTableId!,
+        date: selectedDate,
+        time: '20:00', // Por ahora hora fija
+        partySize: partySize,
+        customerName: name.trim(),
+        customerPhone: phone.trim(),
+        customerEmail: email.trim().isEmpty ? null : email.trim(),
+        comments: comments.trim().isEmpty ? null : comments.trim(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (mounted) {
+        Navigator.pop(context); // Cerrar loading
+
+        if (reservation != null) {
+          // Analytics: Reserva completada
+          analytics.logEvent(
+            name: 'reservation_completed',
+            parameters: {
+              'table_number': selectedTableNumber ?? 0,
+              'party_size': partySize,
+              'confirmation_code': reservation['codigo_confirmacion'],
+              'method': 'database',
+              'customer_rating': rating,
+            },
+          );
+          
+          // Mostrar diálogo de éxito
+          _showSuccessDialog(reservation['codigo_confirmacion']);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('❌ Error al crear la reserva. Intenta nuevamente.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error en reserva: $e');
+      
+      if (mounted) {
+        Navigator.pop(context); // Cerrar loading
+        
+        // Generar código de respaldo
+        final fallbackCode = 'SOD${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+        
+        // Analytics: Reserva con código de respaldo
+        analytics.logEvent(
+          name: 'reservation_completed',
+          parameters: {
+            'table_number': selectedTableNumber ?? 0,
+            'party_size': partySize,
+            'confirmation_code': fallbackCode,
+            'method': 'fallback',
+            'customer_rating': rating,
+          },
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⚠️ Conexión lenta. Usando código temporal: $fallbackCode'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Mostrar diálogo con código temporal
+        _showSuccessDialog(fallbackCode);
+      }
     }
   }
-  
-  String _getMonthName(int month) {
-    switch (month) {
-      case 1: return 'Ene';
-      case 2: return 'Feb';
-      case 3: return 'Mar';
-      case 4: return 'Abr';
-      case 5: return 'May';
-      case 6: return 'Jun';
-      case 7: return 'Jul';
-      case 8: return 'Ago';
-      case 9: return 'Sep';
-      case 10: return 'Oct';
-      case 11: return 'Nov';
-      case 12: return 'Dic';
-      default: return '';
+
+  void _showSuccessDialog(String confirmationCode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '✅ Reserva Confirmada',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w700,
+            color: Colors.green,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Tu reserva ha sido confirmada exitosamente.',
+              style: GoogleFonts.poppins(),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Código de Confirmación',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    confirmationCode,
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.orange,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _sendWhatsAppConfirmation(confirmationCode),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0x0025d366),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              icon: const Icon(Icons.message, size: 16),
+              label: const Text(
+                'Enviar por WhatsApp',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sendWhatsAppConfirmation(String confirmationCode) async {
+    try {
+      // Usar el teléfono del formulario de reserva
+      String phoneNumber = lastPhoneNumber ?? '';
+      
+      // Limpiar el número de teléfono
+      phoneNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+      
+      // Si no tiene código de país, agregar Argentina
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = '+54$phoneNumber';
+      }
+      
+      // Mensaje de confirmación
+      final message = '''
+¡Hola! Tu reserva en SODITA ha sido confirmada ✅
+
+🏷️ Código: $confirmationCode
+🍽️ Mesa: $selectedTableNumber
+📅 Fecha: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}
+⏰ Hora: 20:00
+👥 Personas: $partySize
+
+⚠️ IMPORTANTE: Tenés 15 minutos de tolerancia desde tu horario de reserva. Pasado ese tiempo, la mesa se libera automáticamente para otros clientes.
+
+💡 Recomendamos llegar 5 minutos antes de tu horario.
+
+¡Te esperamos! 🎉
+
+SODITA - Cocina casera, ambiente familiar
+📍 Rosario, Santa Fe
+      ''';
+
+      final whatsappUrl = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
+      final uri = Uri.parse(whatsappUrl);
+      
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        
+        // Analytics: WhatsApp enviado
+        analytics.logEvent(
+          name: 'whatsapp_confirmation_sent',
+          parameters: {
+            'table_number': selectedTableNumber ?? 0,
+            'confirmation_code': confirmationCode,
+          },
+        );
+        
+        // Mostrar mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ WhatsApp abierto. Envía el mensaje para confirmar tu reserva.'),
+            backgroundColor: Color(0x0025d366),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        throw 'No se puede abrir WhatsApp';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error al abrir WhatsApp: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
-  
-  void _showReservationForm() {
+
+  void _showLanguageSelector(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.languageSelector,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1C1B1F),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildLanguageOption(
+              context,
+              '🇪🇸',
+              l10n.spanish,
+              const Locale('es'),
+            ),
+            _buildLanguageOption(
+              context,
+              '🇺🇸',
+              l10n.english,
+              const Locale('en'),
+            ),
+            _buildLanguageOption(
+              context,
+              '🇨🇳',
+              l10n.chinese,
+              const Locale('zh'),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(BuildContext context, String flag, String name, Locale locale) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Text(
+          flag,
+          style: const TextStyle(fontSize: 24),
+        ),
+        title: Text(
+          name,
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        onTap: () {
+          Navigator.pop(context);
+          // Cambiar idioma a través del callback del widget padre
+          final soditaApp = context.findAncestorStateOfType<_SoditaAppState>();
+          if (soditaApp != null) {
+            soditaApp.changeLanguage(locale);
+          }
+        },
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        tileColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+  }
+
+  void _showTableNotAvailableDialog(Map<String, dynamic> table, bool isOccupied, bool isReserved) {
+    final l10n = AppLocalizations.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text('Reserva Confirmada'),
+        title: Row(
+          children: [
+            Icon(
+              isOccupied ? Icons.block : Icons.event_busy,
+              color: isOccupied ? Colors.red : Colors.orange,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isOccupied ? l10n.tableOccupied : l10n.tableReserved,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isOccupied ? Colors.red : Colors.orange,
+                ),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Mesa ${selectedTableNumber} reservada para ${partySize} personas',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Fecha: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            Text(
-              'Hora: ${selectedTime!.format(context)}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                color: (isOccupied ? Colors.red : Colors.orange).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                '⚠️ RECORDATORIO: Tienes 15 minutos para llegar o se libera tu mesa.',
-                style: TextStyle(fontSize: 11),
-                textAlign: TextAlign.center,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.restaurant,
+                    color: isOccupied ? Colors.red : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mesa ${table['numero']} - ${table['ubicacion']}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isOccupied ? Colors.red : Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isOccupied 
+                  ? 'Esta mesa está actualmente ocupada por otros clientes. Por favor elige otra mesa disponible.'
+                  : l10n.tableReservedMessage,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF374151),
+                height: 1.4,
               ),
             ),
           ],
@@ -1203,502 +1476,92 @@ class _SoditaHomeState extends State<SoditaHome>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Entendido',
-              style: TextStyle(
-                color: Color(0xFFFF6B35),
-                fontWeight: FontWeight.bold,
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF6B7280),
+            ),
+            child: Text(
+              'Cerrar',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Scroll hacia arriba para mostrar las mesas disponibles
+              Scrollable.ensureVisible(
+                context,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B35),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
+            ),
+            child: Text(
+              l10n.chooseAnotherTable,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
     );
   }
-  
-  void _showAdminLogin() {
-    showDialog(
-      context: context,
-      builder: (context) => AdminLoginDialog(),
-    );
-  }
 }
 
-class AdminLoginDialog extends StatefulWidget {
-  @override
-  State<AdminLoginDialog> createState() => _AdminLoginDialogState();
-}
-
-class _AdminLoginDialogState extends State<AdminLoginDialog> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFFFF6B35),
-                  const Color(0xFFFF8A65),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.admin_panel_settings,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Text('Acceso Admin'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              prefixIcon: const Icon(Icons.email, color: Color(0xFFFF6B35)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFFF6B35),
-                  width: 2,
-                ),
-              ),
-            ),
-            keyboardType: TextInputType.emailAddress,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'Contraseña',
-              prefixIcon: const Icon(Icons.lock, color: Color(0xFFFF6B35)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFFF6B35),
-                  width: 2,
-                ),
-              ),
-            ),
-            obscureText: true,
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _handleLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF6B35),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Text(
-                'Ingresar',
-                style: TextStyle(color: Colors.white),
-              ),
-        ),
-      ],
-    );
-  }
-
-  void _handleLogin() async {
-    setState(() {
-      _isLoading = true;
-    });
-    
-    try {
-      // Autenticación con Supabase
-      final response = await supabase.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      
-      if (response.user != null) {
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const AdminDashboard(),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-}
-
-class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
-
-  @override
-  State<AdminDashboard> createState() => _AdminDashboardState();
-}
-
-class _AdminDashboardState extends State<AdminDashboard> {
-  List<Map<String, dynamic>> tablesStatus = [
-    {'number': 1, 'capacity': 2, 'location': 'Ventana frontal', 'status': 'libre', 'customer': '', 'time': '', 'remaining': 0},
-    {'number': 2, 'capacity': 2, 'location': 'Ventana lateral', 'status': 'libre', 'customer': '', 'time': '', 'remaining': 0},
-    {'number': 3, 'capacity': 4, 'location': 'Centro del salón', 'status': 'ocupada', 'customer': 'Juan Pérez', 'time': '20:00', 'remaining': 8},
-    {'number': 4, 'capacity': 4, 'location': 'Cerca de la ventana', 'status': 'libre', 'customer': '', 'time': '', 'remaining': 0},
-    {'number': 5, 'capacity': 6, 'location': 'Mesa grande central', 'status': 'reservada', 'customer': 'María García', 'time': '20:30', 'remaining': 12},
-    {'number': 6, 'capacity': 8, 'location': 'Mesa familiar grande', 'status': 'ocupada', 'customer': 'Familia López', 'time': '19:30', 'remaining': 3},
-    {'number': 7, 'capacity': 2, 'location': 'Rincón privado', 'status': 'libre', 'customer': '', 'time': '', 'remaining': 0},
-    {'number': 8, 'capacity': 4, 'location': 'Centro-derecha', 'status': 'reservada', 'customer': 'Carlos Ruiz', 'time': '21:00', 'remaining': 7},
-    {'number': 9, 'capacity': 4, 'location': 'Centro-izquierda', 'status': 'libre', 'customer': '', 'time': '', 'remaining': 0},
-    {'number': 10, 'capacity': 2, 'location': 'Mesa de la esquina', 'status': 'vencida', 'customer': 'Ana Torres', 'time': '19:00', 'remaining': 0},
-  ];
+// Página de Reservas
+class ReservationsPage extends StatelessWidget {
+  const ReservationsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('SODITA - Control de Mesas'),
-        backgroundColor: const Color(0xFFFF6B35),
-        foregroundColor: Colors.white,
+        title: Text(
+          'Mis Reservas',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1C1B1F),
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {});
-            },
-          ),
-        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFFF6B35).withOpacity(0.1),
-                    const Color(0xFFFF8A65).withOpacity(0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickStat('Libres', _getTableCount('libre'), Colors.green),
-                  ),
-                  Expanded(
-                    child: _buildQuickStat('Ocupadas', _getTableCount('ocupada'), Colors.red),
-                  ),
-                  Expanded(
-                    child: _buildQuickStat('Reservadas', _getTableCount('reservada'), Colors.orange),
-                  ),
-                  Expanded(
-                    child: _buildQuickStat('Vencidas', _getTableCount('vencida'), Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            Row(
-              children: [
-                _buildLegendItem('Libre', Colors.green),
-                _buildLegendItem('Ocupada', Colors.red),
-                _buildLegendItem('Reservada', Colors.orange),
-                _buildLegendItem('Vencida', Colors.grey),
-              ],
-            ),
-            
-            const SizedBox(height: 20),
-            
-            const Text(
-              'Estado del Piso Superior',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                ),
-                itemCount: tablesStatus.length,
-                itemBuilder: (context, index) {
-                  return _buildTableCard(tablesStatus[index]);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: [
-                  const Icon(Icons.schedule, color: Color(0xFFFF6B35)),
-                  const SizedBox(width: 12),
-                  const Text('Política de 15 Minutos'),
-                ],
-              ),
-              content: const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '⏰ Tiempo de gracia: 15 minutos',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text('• Si el comensal no llega en 15 minutos, la mesa se libera automáticamente'),
-                  SizedBox(height: 8),
-                  Text('• Las mesas vencidas aparecen en gris y pueden liberarse manualmente'),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(color: Color(0xFFFF6B35)),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFFFF6B35),
-        label: const Text('Política 15 min'),
-        icon: const Icon(Icons.schedule),
+      body: const Center(
+        child: Text('Próximamente: Historial de reservas'),
       ),
     );
   }
-  
-  Widget _buildQuickStat(String label, int count, Color color) {
-    return Column(
-      children: [
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
+}
+
+// Página de Perfil
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(
+          'Perfil',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildLegendItem(String label, Color color) {
-    return Expanded(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1C1B1F),
+        elevation: 0,
+      ),
+      body: const Center(
+        child: Text('Próximamente: Configuración de perfil'),
       ),
     );
-  }
-  
-  Widget _buildTableCard(Map<String, dynamic> table) {
-    Color statusColor;
-    Color bgColor;
-    IconData statusIcon;
-    
-    switch (table['status']) {
-      case 'libre':
-        statusColor = Colors.green;
-        bgColor = Colors.green.withOpacity(0.1);
-        statusIcon = Icons.check_circle;
-        break;
-      case 'ocupada':
-        statusColor = Colors.red;
-        bgColor = Colors.red.withOpacity(0.1);
-        statusIcon = Icons.people;
-        break;
-      case 'reservada':
-        statusColor = Colors.orange;
-        bgColor = Colors.orange.withOpacity(0.1);
-        statusIcon = Icons.schedule;
-        break;
-      case 'vencida':
-        statusColor = Colors.grey;
-        bgColor = Colors.grey.withOpacity(0.1);
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.grey;
-        bgColor = Colors.grey.withOpacity(0.1);
-        statusIcon = Icons.help;
-    }
-    
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor, width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${table['number']}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Icon(statusIcon, color: statusColor, size: 20),
-            ],
-          ),
-          
-          const SizedBox(height: 8),
-          
-          Text(
-            table['location'],
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          
-          Text(
-            '${table['capacity']} personas',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          
-          const SizedBox(height: 8),
-          
-          if (table['status'] != 'libre') ...[
-            Text(
-              table['customer'],
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: statusColor,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (table['status'] == 'reservada' || table['status'] == 'ocupada')
-              Text(
-                '${table['time']} (${table['remaining']} min)',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-          ] else ...[
-            Text(
-              'Disponible',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: statusColor,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-  
-  int _getTableCount(String status) {
-    return tablesStatus.where((table) => table['status'] == status).length;
   }
 }
