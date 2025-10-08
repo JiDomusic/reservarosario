@@ -450,4 +450,101 @@ class ReservationService {
       return {};
     }
   }
+
+  // Obtener reservas futuras (próximos 30 días desde hoy)
+  static Future<Map<DateTime, List<Map<String, dynamic>>>> getFutureReservations() async {
+    try {
+      final startDate = DateTime.now();
+      final endDate = startDate.add(const Duration(days: 30));
+      
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .gte('fecha', startDate.toIso8601String().split('T')[0])
+          .lte('fecha', endDate.toIso8601String().split('T')[0])
+          .order('fecha', ascending: true)
+          .order('hora', ascending: true);
+
+      final reservations = List<Map<String, dynamic>>.from(response);
+      final Map<DateTime, List<Map<String, dynamic>>> groupedReservations = {};
+
+      for (final reservation in reservations) {
+        final date = DateTime.parse(reservation['fecha']);
+        final dateKey = DateTime(date.year, date.month, date.day);
+        
+        if (groupedReservations[dateKey] == null) {
+          groupedReservations[dateKey] = [];
+        }
+        
+        groupedReservations[dateKey]!.add(reservation);
+      }
+
+      return groupedReservations;
+    } catch (e) {
+      print('Error getting future reservations: $e');
+      return {};
+    }
+  }
+
+  // Obtener reservas por fecha específica
+  static Future<List<Map<String, dynamic>>> getReservationsBySpecificDate(DateTime date) async {
+    try {
+      final response = await _client
+          .from('sodita_reservas')
+          .select('''
+            *,
+            sodita_mesas!inner(numero, capacidad, ubicacion)
+          ''')
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .order('hora');
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching reservations for specific date: $e');
+      return [];
+    }
+  }
+
+  // Obtener estadísticas de ocupación por fecha
+  static Future<Map<String, dynamic>> getDateOccupancyStats(DateTime date) async {
+    try {
+      final reservations = await getReservationsBySpecificDate(date);
+      final allTables = await getMesas();
+      final totalTables = allTables.length;
+      
+      final totalReservations = reservations.length;
+      final confirmedReservations = reservations.where((r) => r['estado'] == 'confirmada').length;
+      final activeReservations = reservations.where((r) => r['estado'] == 'en_mesa').length;
+      final completedReservations = reservations.where((r) => r['estado'] == 'completada').length;
+      final cancelledReservations = reservations.where((r) => r['estado'] == 'cancelada').length;
+      
+      // Mesas únicas ocupadas
+      final occupiedTables = reservations
+          .where((r) => r['estado'] == 'confirmada' || r['estado'] == 'en_mesa')
+          .map((r) => r['mesa_id'])
+          .toSet()
+          .length;
+      
+      final occupancyRate = totalTables > 0 ? (occupiedTables / totalTables * 100).round() : 0;
+      
+      return {
+        'total_reservations': totalReservations,
+        'confirmed': confirmedReservations,
+        'active': activeReservations,
+        'completed': completedReservations,
+        'cancelled': cancelledReservations,
+        'total_tables': totalTables,
+        'occupied_tables': occupiedTables,
+        'free_tables': totalTables - occupiedTables,
+        'occupancy_rate': occupancyRate,
+        'reservations': reservations,
+      };
+    } catch (e) {
+      print('Error calculating date occupancy stats: $e');
+      return {};
+    }
+  }
 }

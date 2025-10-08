@@ -249,39 +249,106 @@ class ClockPainter extends CustomPainter {
   }
 
   void _drawHands(Canvas canvas, Offset center, double radius) {
-    final now = DateTime.now();
+    if (timeRemaining == null) {
+      // Si no hay tiempo restante, mostrar reloj estático en 12:00
+      _drawStaticHands(canvas, center, radius);
+      return;
+    }
     
-    // Manecilla de minutos (basada en tiempo real)
-    final minuteAngle = (now.minute * 6 - 90) * math.pi / 180;
+    final totalSeconds = 15 * 60; // 15 minutos total
+    final remainingSeconds = timeRemaining!.inSeconds;
+    final progress = remainingSeconds / totalSeconds;
+    
+    // Manecilla principal que muestra el tiempo restante (de 0 a 15 minutos)
+    // Comienza en 12 (arriba) y se mueve en sentido horario
+    final timeAngle = ((1 - progress) * 90 - 90) * math.pi / 180; // 90 grados = 15 minutos
     _drawHand(
       canvas,
       center,
-      minuteAngle,
-      radius * 0.7,
-      2.5,
+      timeAngle,
+      radius * 0.8,
+      3.0,
       clockColor,
     );
     
-    // Manecilla de segundos (animada)
+    // Manecilla de segundos (animada para mostrar que está funcionando)
     final secondAngle = (secondHandAnimation.value * 360 - 90) * math.pi / 180;
     _drawHand(
       canvas,
       center,
       secondAngle,
-      radius * 0.8,
+      radius * 0.6,
       1.0,
-      clockColor.withOpacity(0.8),
+      clockColor.withOpacity(0.6),
     );
     
-    // Manecilla de horas (basada en tiempo real)
-    final hourAngle = ((now.hour % 12) * 30 + now.minute * 0.5 - 90) * math.pi / 180;
+    // Dibujar números de minutos (5, 10, 15)
+    _drawMinuteNumbers(canvas, center, radius);
+  }
+  
+  void _drawStaticHands(Canvas canvas, Offset center, double radius) {
+    // Manecilla principal apuntando a 12 (sin tiempo restante)
     _drawHand(
       canvas,
       center,
-      hourAngle,
-      radius * 0.5,
+      -math.pi / 2, // 12 en punto
+      radius * 0.8,
       3.0,
-      clockColor,
+      clockColor.withOpacity(0.5),
+    );
+  }
+  
+  void _drawMinuteNumbers(Canvas canvas, Offset center, double radius) {
+    final textPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+
+    // Dibujar números 5, 10, 15 en las posiciones correspondientes
+    final positions = [
+      {'number': '5', 'angle': 0}, // 3 en punto = 5 minutos
+      {'number': '10', 'angle': 90}, // 6 en punto = 10 minutos  
+      {'number': '15', 'angle': 180}, // 9 en punto = 15 minutos
+    ];
+    
+    for (final pos in positions) {
+      final angle = ((pos['angle'] as int) - 90) * math.pi / 180;
+      final x = center.dx + (radius - 20) * math.cos(angle);
+      final y = center.dy + (radius - 20) * math.sin(angle);
+
+      textPainter.text = TextSpan(
+        text: pos['number'] as String,
+        style: TextStyle(
+          color: clockColor,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+      
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
+      );
+    }
+    
+    // Dibujar "0" en la parte superior (12 en punto)
+    final topX = center.dx;
+    final topY = center.dy - (radius - 20);
+    
+    textPainter.text = TextSpan(
+      text: '0',
+      style: TextStyle(
+        color: clockColor,
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(topX - textPainter.width / 2, topY - textPainter.height / 2),
     );
   }
 
@@ -311,22 +378,70 @@ class ClockPainter extends CustomPainter {
     
     if (progress <= 0) return;
     
+    // Color del arco basado en el tiempo restante
+    Color arcColor;
+    if (progress > 0.66) {
+      arcColor = const Color(0xFF10B981); // Verde
+    } else if (progress > 0.33) {
+      arcColor = const Color(0xFFEF6C00); // Naranja
+    } else {
+      arcColor = const Color(0xFFE53E3E); // Rojo
+    }
+    
     final paint = Paint()
-      ..color = clockColor.withOpacity(0.3)
-      ..strokeWidth = 3
+      ..color = arcColor.withOpacity(0.8)
+      ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final rect = Rect.fromCircle(center: center, radius: radius + 6);
+    final rect = Rect.fromCircle(center: center, radius: radius + 8);
+    
+    // Dibujar arco completo de fondo (gris claro)
+    final backgroundPaint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+    
+    canvas.drawCircle(center, radius + 8, backgroundPaint);
+    
+    // Dibujar arco de progreso (solo la parte restante)
     final sweepAngle = 2 * math.pi * progress;
     
     canvas.drawArc(
       rect,
-      -math.pi / 2, // Empezar desde arriba
+      -math.pi / 2, // Empezar desde arriba (12 en punto)
       sweepAngle,
       false,
       paint,
     );
+    
+    // Dibujar marcadores cada 5 minutos (3 marcadores)
+    _drawTimeMarkers(canvas, center, radius + 8);
+  }
+  
+  void _drawTimeMarkers(Canvas canvas, Offset center, double radius) {
+    final markerPaint = Paint()
+      ..color = clockColor.withOpacity(0.4)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    
+    // Marcadores a los 5, 10 y 15 minutos
+    for (int i = 1; i <= 3; i++) {
+      final angle = (i * (360 / 4) - 90) * math.pi / 180; // Cada 5 min = 90 grados
+      final startRadius = radius - 4;
+      final endRadius = radius + 4;
+      
+      final startX = center.dx + startRadius * math.cos(angle);
+      final startY = center.dy + startRadius * math.sin(angle);
+      final endX = center.dx + endRadius * math.cos(angle);
+      final endY = center.dy + endRadius * math.sin(angle);
+      
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        markerPaint,
+      );
+    }
   }
 
   @override
@@ -347,6 +462,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   List<Map<String, dynamic>> reservations = [];
   Map<String, dynamic> stats = {};
   Map<DateTime, List<Map<String, dynamic>>> calendarEvents = {};
+  Map<DateTime, List<Map<String, dynamic>>> futureReservations = {};
   bool isLoading = true;
   Timer? _autoCheckTimer;
   Timer? _countdownTimer;
@@ -354,6 +470,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   // Variables para filtros y vista
   int selectedPeriod = 7; // 7, 15, 30 días
   bool showCalendarView = false;
+  bool showFutureView = false;
   DateTime focusedDay = DateTime.now();
   DateTime? selectedDay;
   
@@ -407,24 +524,34 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Iniciar verificación automática cada 5 minutos y contador cada segundo
+  // Iniciar verificación automática y contadores
   void _startAutoCheck() {
-    _autoCheckTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-      _autoMarkNoShows();
+    // Auto-marcar no-shows cada 2 minutos (más frecuente)
+    _autoCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
+      if (mounted && !showCalendarView && !showFutureView) {
+        _autoMarkNoShows();
+      }
     });
     
     // Contador en tiempo real cada segundo para actualizar los tiempos
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && !showCalendarView) {
+      if (mounted && !showCalendarView && !showFutureView) {
         setState(() {
-          // Forzar reconstrucción para actualizar contadores
+          // Forzar reconstrucción para actualizar contadores y filtrar vencidas
         });
+        
+        // Cada 30 segundos, recargar datos para filtrar reservas vencidas
+        if (DateTime.now().second % 30 == 0) {
+          _loadData();
+        }
       }
     });
     
     // Timer para notificaciones críticas cada 30 segundos
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _checkCriticalReservations();
+      if (mounted && !showCalendarView && !showFutureView) {
+        _checkCriticalReservations();
+      }
     });
   }
 
@@ -434,7 +561,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     });
 
     try {
-      if (showCalendarView) {
+      if (showFutureView) {
+        // Cargar reservas futuras (próximos 30 días)
+        final futureData = await ReservationService.getFutureReservations();
+        setState(() {
+          futureReservations = futureData;
+          isLoading = false;
+        });
+      } else if (showCalendarView) {
         // Cargar datos para el calendario
         final calendarData = await ReservationService.getReservationsForCalendar(selectedPeriod);
         final statsData = await ReservationService.getReservationStats(selectedPeriod);
@@ -445,14 +579,38 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           isLoading = false;
         });
       } else {
-        // Cargar reservas del día actual (solo pendientes)
+        // Cargar reservas del día actual (solo activas: confirmadas y en_mesa)
         final today = DateTime.now();
-        final todaysReservations = await ReservationService.getReservationsByDate(today);
         final allTodaysReservations = await ReservationService.getAllReservationsByDate(today);
+        
+        // Filtrar reservas según el estado:
+        // - 'confirmada': Solo si aún no vencieron (para alertas/reloj)
+        // - 'en_mesa': Siempre visible (clientes que llegaron)
+        final now = DateTime.now();
+        final activeReservations = allTodaysReservations
+            .where((reservation) {
+              final estado = reservation['estado'];
+              
+              if (estado == 'en_mesa') {
+                // Siempre mostrar clientes que están en mesa
+                return true;
+              }
+              
+              if (estado == 'confirmada') {
+                // Solo mostrar reservas confirmadas que aún no vencieron
+                final timeLeft = ReservationService.getTimeUntilNoShow(reservation['hora']);
+                return timeLeft != null; // null = ya vencida
+              }
+              
+              // No mostrar: completada, no_show, cancelada
+              return false;
+            })
+            .toList();
+        
         final todayStats = await _calculateTodayStats(allTodaysReservations);
         
         setState(() {
-          reservations = todaysReservations; // Solo las pendientes para la vista
+          reservations = activeReservations; // Solo reservas activas
           stats = todayStats; // Estadísticas completas del día
           isLoading = false;
         });
@@ -466,8 +624,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
 
   Future<void> _autoMarkNoShows() async {
+    print('🔄 Ejecutando auto-marcado de no-shows...');
     await ReservationService.autoMarkNoShow();
-    _loadData(); // Recargar después de marcar no_shows
+    
+    // Recargar datos para actualizar la vista
+    await _loadData();
+    
+    print('✅ Auto-marcado completado y vista actualizada');
   }
   
   Future<Map<String, dynamic>> _calculateTodayStats(List<Map<String, dynamic>> todayReservations) async {
@@ -482,13 +645,30 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final allTables = await ReservationService.getMesas();
     final totalTables = allTables.length;
     
-    // Mesas ocupadas = reservas confirmadas (esperando) + mesas en uso
-    final reservedTables = confirmadas; // Mesas reservadas esperando check-in
-    final activeTables = enMesa; // Mesas actualmente ocupadas
-    final cancelledTables = canceladas; // Reservas canceladas hoy
+    // Obtener mesas únicas con estados activos
+    final mesasConfirmadas = todayReservations
+        .where((r) => r['estado'] == 'confirmada')
+        .map((r) => r['mesa_id'])
+        .toSet();
     
-    // Mesas libres = total - (reservadas + activas)
-    final freeTables = totalTables - (reservedTables + activeTables);
+    final mesasEnUso = todayReservations
+        .where((r) => r['estado'] == 'en_mesa')
+        .map((r) => r['mesa_id'])
+        .toSet();
+    
+    final mesasCanceladas = todayReservations
+        .where((r) => r['estado'] == 'cancelada')
+        .map((r) => r['mesa_id'])
+        .toSet();
+    
+    // Contar mesas únicas por estado
+    final reservedTables = mesasConfirmadas.length; // Mesas con reservas confirmadas únicas
+    final activeTables = mesasEnUso.length; // Mesas actualmente ocupadas únicas
+    final cancelledTables = mesasCanceladas.length; // Mesas con cancelaciones únicas
+    
+    // Mesas libres = total - (mesas con cualquier reserva activa)
+    final mesasOcupadasHoy = mesasConfirmadas.union(mesasEnUso);
+    final freeTables = totalTables - mesasOcupadasHoy.length;
     
     return {
       'total': total,
@@ -498,9 +678,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       'canceladas': canceladas,
       'en_mesa': enMesa,
       'total_tables': totalTables,
-      'occupied_tables': activeTables, // Solo mesas con clientes actualmente
-      'reserved_tables': reservedTables, // Mesas reservadas esperando
-      'cancelled_tables': cancelledTables,
+      'occupied_tables': activeTables, // Mesas únicas con clientes actualmente
+      'reserved_tables': reservedTables, // Mesas únicas reservadas esperando
+      'cancelled_tables': cancelledTables, // Mesas únicas con cancelaciones
       'free_tables': freeTables,
       'tasa_completadas': total > 0 ? (completadas / total * 100).round() : 0,
       'tasa_no_shows': total > 0 ? (noShows / total * 100).round() : 0,
@@ -715,6 +895,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   Future<void> _updateReservationStatus(String reservationId, String newStatus) async {
     bool success = false;
     
+    // Mostrar indicador de carga
+    setState(() {
+      isLoading = true;
+    });
+    
     switch (newStatus) {
       case 'en_mesa':
         success = await ReservationService.checkInReservation(reservationId);
@@ -731,20 +916,53 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
 
     if (success) {
-      _loadData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Estado actualizado a: $newStatus'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Recargar datos inmediatamente
+      await _loadData();
+      
+      // Mostrar mensaje según el estado
+      String message;
+      switch (newStatus) {
+        case 'en_mesa':
+          message = '✅ Cliente en mesa confirmado';
+          break;
+        case 'completada':
+          message = '🎉 Reserva completada exitosamente';
+          break;
+        case 'no_show':
+          message = '❌ Mesa liberada - Cliente no llegó';
+          break;
+        case 'cancelada':
+          message = '🚫 Reserva cancelada';
+          break;
+        default:
+          message = 'Estado actualizado';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: newStatus == 'no_show' || newStatus == 'cancelada' 
+                ? Colors.orange 
+                : Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al actualizar el estado'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Error al actualizar el estado'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -806,12 +1024,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           ? _buildLoadingIndicator()
           : Column(
               children: [
-                _buildFilterTabs(l10n),
-                _buildStatsCard(l10n),
+                if (!showFutureView) _buildFilterTabs(l10n),
+                if (!showFutureView) _buildStatsCard(l10n),
                 Expanded(
-                  child: showCalendarView 
-                      ? _buildCalendarView(l10n)
-                      : _buildReservationsList(l10n),
+                  child: showFutureView 
+                      ? _buildFutureReservationsView(l10n)
+                      : showCalendarView 
+                          ? _buildCalendarView(l10n)
+                          : _buildReservationsList(l10n),
                 ),
               ],
             ),
@@ -833,10 +1053,22 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         // Indicador de alertas críticas
         _buildCriticalAlertsIndicator(),
         IconButton(
+          icon: Icon(showFutureView ? Icons.event_note : Icons.calendar_today_outlined),
+          onPressed: () {
+            setState(() {
+              showFutureView = !showFutureView;
+              showCalendarView = false;
+            });
+            _loadData();
+          },
+          tooltip: showFutureView ? 'Vista Hoy' : 'Reservas Futuras',
+        ),
+        IconButton(
           icon: Icon(showCalendarView ? Icons.list : Icons.calendar_month),
           onPressed: () {
             setState(() {
               showCalendarView = !showCalendarView;
+              showFutureView = false;
             });
             _loadData();
           },
@@ -1618,24 +1850,61 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                         ],
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _getStatusColor(reservation['estado']),
-                          width: 1,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _getStatusColor(reservation['estado']),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                reservation['estado'] == 'en_mesa' 
+                                    ? Icons.people 
+                                    : Icons.schedule,
+                                color: _getStatusColor(reservation['estado']),
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _getStatusText(reservation['estado']),
+                                style: GoogleFonts.inter(
+                                  color: _getStatusColor(reservation['estado']),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        _getStatusText(reservation['estado']),
-                        style: GoogleFonts.inter(
-                          color: _getStatusColor(reservation['estado']),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
+                        if (reservation['estado'] == 'en_mesa') ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(
+                              '🔴 OCUPADA',
+                              style: GoogleFonts.inter(
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -1898,10 +2167,17 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ],
         if (status == 'en_mesa') ...[
           _buildActionButton(
-            icon: Icons.restaurant_menu,
+            icon: Icons.payments,
+            color: Colors.green,
+            onPressed: () => _showClientLeftDialog(reservation),
+            tooltip: 'Cliente pagó y se fue - Liberar mesa',
+          ),
+          const SizedBox(width: 8),
+          _buildActionButton(
+            icon: Icons.event_available,
             color: Colors.blue,
-            onPressed: () => _updateReservationStatus(reservation['id'], 'completada'),
-            tooltip: 'Cliente terminó - Completar reserva',
+            onPressed: () => _showMakeTableAvailableDialog(reservation),
+            tooltip: 'Mesa disponible - Otras razones',
           ),
         ],
       ],
@@ -2241,6 +2517,214 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
   
+  // Diálogo para cuando el cliente pagó y se fue
+  void _showClientLeftDialog(Map<String, dynamic> reservation) {
+    final mesa = reservation['sodita_mesas'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.payments, color: Colors.green, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Cliente se fue',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Confirma que el cliente pagó y se fue de la mesa.',
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
+                  Text('👤 ${reservation['nombre']}'),
+                  Text('⏰ Hora: ${reservation['hora']}'),
+                  Text('👥 ${reservation['personas']} personas'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Servicios completados:',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text('✓ Cliente atendido correctamente'),
+                  Text('✓ Pago procesado'),
+                  Text('✓ Mesa lista para limpiar'),
+                  Text('✓ Disponible para nuevos clientes'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateReservationStatus(reservation['id'], 'completada');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Mesa ${mesa['numero']} liberada - Cliente se fue'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Confirmar - Liberar Mesa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Diálogo para liberar mesa (Mesa Disponible)
+  void _showMakeTableAvailableDialog(Map<String, dynamic> reservation) {
+    final mesa = reservation['sodita_mesas'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.event_available, color: Colors.green, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Mesa Disponible',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Liberar esta mesa y marcarla como disponible?',
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
+                  Text('👤 ${reservation['nombre']}'),
+                  Text('⏰ Hora: ${reservation['hora']}'),
+                  Text('👥 ${reservation['personas']} personas'),
+                  Text('📞 ${reservation['telefono']}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📋 RAZONES COMUNES:',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('• Los clientes se fueron'),
+                  Text('• Mesa necesita limpieza/arreglo'),
+                  Text('• Problema en la cocina/servicio'),
+                  Text('• Mesa disponible para nuevos clientes'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Text(
+                '⚠️ La mesa se liberará inmediatamente para nuevas reservas.',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.orange[800],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateReservationStatus(reservation['id'], 'completada');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Mesa ${mesa['numero']} liberada y disponible'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Liberar Mesa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Diálogo para período crítico
   void _showCriticalPeriodDialog(Map<String, dynamic> reservation) {
     final mesa = reservation['sodita_mesas'];
@@ -2327,5 +2811,343 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ],
       ),
     );
+  }
+
+  // Vista de reservas futuras (próximos 30 días)
+  Widget _buildFutureReservationsView(AppLocalizations l10n) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildFutureReservationsHeader(),
+          Expanded(
+            child: _buildFutureReservationsList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFutureReservationsHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF86704), Color(0xFFFF8A33)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            color: Colors.white,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Reservas Futuras (próximos 30 días)',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${futureReservations.length} días con reservas',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFutureReservationsList() {
+    if (futureReservations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.event_available,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No hay reservas futuras',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Las nuevas reservas aparecerán aquí',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final sortedDates = futureReservations.keys.toList()
+      ..sort((a, b) => a.compareTo(b));
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: sortedDates.length,
+      itemBuilder: (context, index) {
+        final date = sortedDates[index];
+        final dayReservations = futureReservations[date]!;
+        final isToday = _isSameDay(date, DateTime.now());
+        final isTomorrow = _isSameDay(date, DateTime.now().add(const Duration(days: 1)));
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isToday ? const Color(0xFFF86704).withValues(alpha: 0.1) : Colors.grey[50],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isToday ? const Color(0xFFF86704) : Colors.grey[200]!,
+              width: isToday ? 2 : 1,
+            ),
+          ),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.all(16),
+            childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isToday ? const Color(0xFFF86704) : Colors.grey[600],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isToday 
+                            ? 'Hoy, ${_formatDate(date)}'
+                            : isTomorrow
+                                ? 'Mañana, ${_formatDate(date)}'
+                                : _formatDateWithDay(date),
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isToday ? const Color(0xFFF86704) : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        '${dayReservations.length} reserva${dayReservations.length != 1 ? 's' : ''}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildOccupancyIndicator(dayReservations),
+              ],
+            ),
+            children: dayReservations.map((reservation) {
+              return _buildFutureReservationCard(reservation);
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOccupancyIndicator(List<Map<String, dynamic>> reservations) {
+    final confirmedCount = reservations.where((r) => r['estado'] == 'confirmada').length;
+    final totalTables = 10; // Total de mesas
+    final occupancyRate = (confirmedCount / totalTables * 100).round();
+    
+    Color indicatorColor;
+    if (occupancyRate >= 80) {
+      indicatorColor = Colors.red;
+    } else if (occupancyRate >= 50) {
+      indicatorColor = Colors.orange;
+    } else {
+      indicatorColor = Colors.green;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: indicatorColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: indicatorColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$occupancyRate%',
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: indicatorColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFutureReservationCard(Map<String, dynamic> reservation) {
+    final mesa = reservation['sodita_mesas'];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getStatusColor(reservation['estado']).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.restaurant,
+              color: _getStatusColor(reservation['estado']),
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Mesa ${mesa['numero']}',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _getStatusText(reservation['estado']),
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _getStatusColor(reservation['estado']),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${reservation['hora']} • ${reservation['nombre']} • ${reservation['personas']} personas',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                if (reservation['telefono'] != null)
+                  Text(
+                    '📞 ${reservation['telefono']}',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return '${date.day} de ${months[date.month - 1]}';
+  }
+
+  String _formatDateWithDay(DateTime date) {
+    final days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    final months = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return '${days[date.weekday - 1]}, ${date.day} de ${months[date.month - 1]}';
   }
 }

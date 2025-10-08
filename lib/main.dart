@@ -850,9 +850,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.4,
           ),
           itemCount: availableTables.length,
           itemBuilder: (context, index) {
@@ -956,7 +956,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         ),
                       ),
                       
-                      // Overlay
+                      // Overlay estilo Woki
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -964,21 +964,91 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             end: Alignment.bottomCenter,
                             colors: isOccupied 
                                 ? [
-                                    Colors.grey.withValues(alpha: 0.8),
-                                    Colors.grey.withValues(alpha: 0.9),
+                                    const Color(0xFFE53E3E).withValues(alpha: 0.9),
+                                    const Color(0xFFE53E3E).withValues(alpha: 0.95),
                                   ]
                                 : isReserved
                                     ? [
-                                        Colors.orange.withValues(alpha: 0.6),
-                                        Colors.orange.withValues(alpha: 0.8),
+                                        const Color(0xFFDD6B20).withValues(alpha: 0.85),
+                                        const Color(0xFFDD6B20).withValues(alpha: 0.95),
                                       ]
                                     : [
                                         Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.7),
+                                        Colors.black.withValues(alpha: 0.6),
                                       ],
                           ),
                         ),
                       ),
+                      
+                      // Badge de estado estilo Woki (esquina superior derecha)
+                      if (isOccupied || isReserved)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isOccupied 
+                                  ? const Color(0xFFE53E3E) 
+                                  : const Color(0xFFDD6B20),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isOccupied ? Icons.people : Icons.schedule,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isOccupied ? 'OCUPADA' : 'RESERVADA',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                      // Icono central grande estilo Woki para mesas ocupadas
+                      if (isOccupied)
+                        Positioned.fill(
+                          child: Center(
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 12,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.people,
+                                color: const Color(0xFFE53E3E),
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                        ),
                       
                       // Contenido
                       Positioned(
@@ -1178,44 +1248,99 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
-              // Sistema de puntuación
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '¿Cómo calificarías tu experiencia previa? (opcional)',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+              // Sistema de puntuación mejorado
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B35).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+                    width: 1,
                   ),
-                  const SizedBox(height: 8),
-                  StatefulBuilder(
-                    builder: (context, setStateDialog) {
-                      return Row(
-                        children: List.generate(5, (index) {
-                          return GestureDetector(
-                            onTap: () {
-                              setStateDialog(() {
-                                selectedRating = index + 1;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Icon(
-                                index < selectedRating 
-                                    ? Icons.star 
-                                    : Icons.star_border,
-                                color: const Color(0xFFFF6B35),
-                                size: 32,
-                              ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.star_rate,
+                          color: const Color(0xFFFF6B35),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '¿Cómo calificarías tu experiencia previa?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFFF6B35),
                             ),
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Opcional - Ayúdanos a mejorar',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    StatefulBuilder(
+                      builder: (context, setStateDialog) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            final isSelected = index < selectedRating;
+                            return GestureDetector(
+                              onTap: () {
+                                setStateDialog(() {
+                                  selectedRating = index + 1;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  isSelected ? Icons.star_rounded : Icons.star_border_rounded,
+                                  color: isSelected 
+                                      ? const Color(0xFFFF6B35)
+                                      : Colors.grey[400],
+                                  size: isSelected ? 36 : 32,
+                                ),
+                              ),
+                            );
+                          }),
+                        );
+                      },
+                    ),
+                    if (selectedRating > 0) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _getRatingText(selectedRating),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFFF6B35),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1403,6 +1528,70 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       color: Colors.orange,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // ⚠️ ADVERTENCIA IMPORTANTE DE 15 MINUTOS
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.red[700],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'IMPORTANTE - Tiempo de tolerancia',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.red[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tenés 15 minutos de tolerancia desde tu horario de reserva. Pasado ese tiempo, la mesa se libera automáticamente para otros clientes.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.red[600],
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '💡 Recomendamos llegar 5 minutos antes',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green[700],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1728,6 +1917,23 @@ SODITA - Cocina casera, ambiente familiar
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
+  }
+
+  String _getRatingText(int rating) {
+    switch (rating) {
+      case 1:
+        return '😞 Malo';
+      case 2:
+        return '😐 Regular';
+      case 3:
+        return '😊 Bueno';
+      case 4:
+        return '😄 Muy Bueno';
+      case 5:
+        return '🤩 Excelente';
+      default:
+        return '';
+    }
   }
 
   void _showTableNotAvailableDialog(Map<String, dynamic> table, bool isOccupied, bool isReserved) {
