@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,6 +10,8 @@ import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
 import 'admin_screen.dart';
+import 'widgets/sodita_logo.dart';
+import 'widgets/animated_card.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,9 +71,9 @@ class _SoditaAppState extends State<SoditaApp> {
         useMaterial3: true,
         // Colores exactos de Woki
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF6B35), // Naranja Woki
+          seedColor: const Color(0xFFE53E3E), // Rojo Woki mejorado
           brightness: Brightness.light,
-          primary: const Color(0xFFFF6B35),
+          primary: const Color(0xFFE53E3E),
           surface: const Color(0xFFFFFBFF),
           onSurface: const Color(0xFF1C1B1F),
         ),
@@ -80,7 +83,7 @@ class _SoditaAppState extends State<SoditaApp> {
         // Botones estilo Woki 2025
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF6B35),
+            backgroundColor: const Color(0xFFE53E3E),
             foregroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
@@ -92,6 +95,7 @@ class _SoditaAppState extends State<SoditaApp> {
               fontWeight: FontWeight.w600,
               fontSize: 16,
             ),
+            animationDuration: const Duration(milliseconds: 200),
           ),
         ),
         // Cards estilo Woki
@@ -160,7 +164,7 @@ class _SoditaHomeState extends State<SoditaHome> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: const Color(0xFFFF6B35),
+          selectedItemColor: const Color(0xFFE53E3E),
           unselectedItemColor: const Color(0xFF9CA3AF),
           selectedLabelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
@@ -325,15 +329,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFFF6B35).withValues(alpha: 0.1),
-            const Color(0xFFFF8A50).withValues(alpha: 0.05),
+            const Color(0xFFE53E3E).withValues(alpha: 0.1),
+            const Color(0xFFFF6B6B).withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+          color: const Color(0xFFE53E3E).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -414,23 +418,34 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             elevation: 0,
             backgroundColor: Colors.white,
             foregroundColor: const Color(0xFF1C1B1F),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                Text(
-                  'Hola! 👋',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF6B7280),
-                  ),
+                const SoditaLogoCompact(
+                  size: 36,
+                  color: Color(0xFFE53E3E),
                 ),
-                Text(
-                  'Reservá tu mesa',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1C1B1F),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hola! 👋',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
+                      Text(
+                        'Reservá tu mesa',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1C1B1F),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -549,13 +564,24 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'SODITA',
-                            style: GoogleFonts.poppins(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1C1B1F),
-                            ),
+                          Row(
+                            children: [
+                              const SoditaLogo(
+                                width: 80,
+                                height: 32,
+                                showText: false,
+                                primaryColor: Color(0xFFE53E3E),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'SODITA',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1C1B1F),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(

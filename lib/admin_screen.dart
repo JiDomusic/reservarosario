@@ -132,12 +132,9 @@ class _AnimatedClockState extends State<AnimatedClock>
               ],
             ),
             child: CustomPaint(
-              painter: ClockPainter(
-                secondHandAnimation: _secondHandController,
-                minuteHandAnimation: _minuteHandController,
+              painter: SimpleClockPainter(
                 timeRemaining: widget.timeRemaining,
                 clockColor: _getClockColor(),
-                showNumbers: widget.showNumbers,
               ),
             ),
           ),
@@ -147,199 +144,74 @@ class _AnimatedClockState extends State<AnimatedClock>
   }
 }
 
-// Painter personalizado para dibujar el reloj
-class ClockPainter extends CustomPainter {
-  final AnimationController secondHandAnimation;
-  final AnimationController minuteHandAnimation;
+// Reloj simple de 15 minutos
+class SimpleClockPainter extends CustomPainter {
   final Duration? timeRemaining;
   final Color clockColor;
-  final bool showNumbers;
 
-  ClockPainter({
-    required this.secondHandAnimation,
-    required this.minuteHandAnimation,
+  SimpleClockPainter({
     required this.timeRemaining,
     required this.clockColor,
-    required this.showNumbers,
-  }) : super(
-          repaint: Listenable.merge([
-            secondHandAnimation,
-            minuteHandAnimation,
-          ]),
-        );
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 4;
-
-    // Dibujar marcas de horas
-    _drawHourMarks(canvas, center, radius);
     
-    // Dibujar números si está habilitado
-    if (showNumbers) {
-      _drawNumbers(canvas, center, radius);
-    }
+    if (timeRemaining == null) return;
     
-    // Dibujar manecillas
-    _drawHands(canvas, center, radius);
-    
-    // Dibujar centro
-    _drawCenter(canvas, center);
-    
-    // Dibujar indicador de tiempo restante
-    if (timeRemaining != null) {
-      _drawTimeRemainingArc(canvas, center, radius);
-    }
-  }
-
-  void _drawHourMarks(Canvas canvas, Offset center, double radius) {
-    final paint = Paint()
-      ..color = clockColor.withOpacity(0.6)
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    for (int i = 0; i < 12; i++) {
-      final angle = (i * 30 - 90) * math.pi / 180;
-      final isMainHour = i % 3 == 0;
-      final markLength = isMainHour ? 6.0 : 3.0;
-      final markWidth = isMainHour ? 2.0 : 1.0;
-      
-      paint.strokeWidth = markWidth;
-      
-      final startX = center.dx + (radius - markLength) * math.cos(angle);
-      final startY = center.dy + (radius - markLength) * math.sin(angle);
-      final endX = center.dx + radius * math.cos(angle);
-      final endY = center.dy + radius * math.sin(angle);
-
-      canvas.drawLine(
-        Offset(startX, startY),
-        Offset(endX, endY),
-        paint,
-      );
-    }
-  }
-
-  void _drawNumbers(Canvas canvas, Offset center, double radius) {
-    final textPainter = TextPainter(
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.ltr,
-    );
-
-    for (int i = 1; i <= 12; i++) {
-      final angle = (i * 30 - 90) * math.pi / 180;
-      final x = center.dx + (radius - 15) * math.cos(angle);
-      final y = center.dy + (radius - 15) * math.sin(angle);
-
-      textPainter.text = TextSpan(
-        text: i.toString(),
-        style: TextStyle(
-          color: clockColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-      );
-    }
-  }
-
-  void _drawHands(Canvas canvas, Offset center, double radius) {
-    if (timeRemaining == null) {
-      // Si no hay tiempo restante, mostrar reloj estático en 12:00
-      _drawStaticHands(canvas, center, radius);
-      return;
-    }
-    
-    final totalSeconds = 15 * 60; // 15 minutos total
-    final remainingSeconds = timeRemaining!.inSeconds;
+    // Calcular progreso (0 a 15 minutos)
+    final totalSeconds = 15 * 60;
+    final remainingSeconds = timeRemaining!.inSeconds.clamp(0, totalSeconds);
     final progress = remainingSeconds / totalSeconds;
     
-    // Manecilla principal que muestra el tiempo restante (de 0 a 15 minutos)
-    // Comienza en 12 (arriba) y se mueve en sentido horario
-    final timeAngle = ((1 - progress) * 90 - 90) * math.pi / 180; // 90 grados = 15 minutos
-    _drawHand(
-      canvas,
-      center,
-      timeAngle,
-      radius * 0.8,
-      3.0,
-      clockColor,
+    // Color según tiempo restante
+    Color progressColor;
+    if (progress > 0.66) {
+      progressColor = Colors.green;
+    } else if (progress > 0.33) {
+      progressColor = Colors.orange;
+    } else {
+      progressColor = Colors.red;
+    }
+    
+    // Fondo del círculo
+    final backgroundPaint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    
+    canvas.drawCircle(center, radius, backgroundPaint);
+    
+    // Progreso del tiempo
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * progress,
+      false,
+      progressPaint,
     );
     
-    // Manecilla de segundos (animada para mostrar que está funcionando)
-    final secondAngle = (secondHandAnimation.value * 360 - 90) * math.pi / 180;
-    _drawHand(
-      canvas,
-      center,
-      secondAngle,
-      radius * 0.6,
-      1.0,
-      clockColor.withOpacity(0.6),
-    );
-    
-    // Dibujar números de minutos (5, 10, 15)
-    _drawMinuteNumbers(canvas, center, radius);
-  }
-  
-  void _drawStaticHands(Canvas canvas, Offset center, double radius) {
-    // Manecilla principal apuntando a 12 (sin tiempo restante)
-    _drawHand(
-      canvas,
-      center,
-      -math.pi / 2, // 12 en punto
-      radius * 0.8,
-      3.0,
-      clockColor.withOpacity(0.5),
-    );
-  }
-  
-  void _drawMinuteNumbers(Canvas canvas, Offset center, double radius) {
+    // Tiempo restante en el centro
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
-
-    // Dibujar números 5, 10, 15 en las posiciones correspondientes
-    final positions = [
-      {'number': '5', 'angle': 0}, // 3 en punto = 5 minutos
-      {'number': '10', 'angle': 90}, // 6 en punto = 10 minutos  
-      {'number': '15', 'angle': 180}, // 9 en punto = 15 minutos
-    ];
     
-    for (final pos in positions) {
-      final angle = ((pos['angle'] as int) - 90) * math.pi / 180;
-      final x = center.dx + (radius - 20) * math.cos(angle);
-      final y = center.dy + (radius - 20) * math.sin(angle);
-
-      textPainter.text = TextSpan(
-        text: pos['number'] as String,
-        style: TextStyle(
-          color: clockColor,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-      );
-    }
-    
-    // Dibujar "0" en la parte superior (12 en punto)
-    final topX = center.dx;
-    final topY = center.dy - (radius - 20);
+    final minutes = remainingSeconds ~/ 60;
+    final seconds = remainingSeconds % 60;
     
     textPainter.text = TextSpan(
-      text: '0',
+      text: '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
       style: TextStyle(
-        color: clockColor,
+        color: progressColor,
         fontSize: 12,
         fontWeight: FontWeight.bold,
       ),
@@ -348,106 +220,13 @@ class ClockPainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(topX - textPainter.width / 2, topY - textPainter.height / 2),
+      Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2),
     );
-  }
-
-  void _drawHand(Canvas canvas, Offset center, double angle, double length, double width, Color color) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = width
-      ..strokeCap = StrokeCap.round;
-
-    final endX = center.dx + length * math.cos(angle);
-    final endY = center.dy + length * math.sin(angle);
-
-    canvas.drawLine(center, Offset(endX, endY), paint);
-  }
-
-  void _drawCenter(Canvas canvas, Offset center) {
-    final paint = Paint()..color = clockColor;
-    canvas.drawCircle(center, 3, paint);
-  }
-
-  void _drawTimeRemainingArc(Canvas canvas, Offset center, double radius) {
-    if (timeRemaining == null) return;
-    
-    final totalSeconds = 15 * 60; // 15 minutos en segundos
-    final remainingSeconds = timeRemaining!.inSeconds;
-    final progress = remainingSeconds / totalSeconds;
-    
-    if (progress <= 0) return;
-    
-    // Color del arco basado en el tiempo restante
-    Color arcColor;
-    if (progress > 0.66) {
-      arcColor = const Color(0xFF10B981); // Verde
-    } else if (progress > 0.33) {
-      arcColor = const Color(0xFFEF6C00); // Naranja
-    } else {
-      arcColor = const Color(0xFFE53E3E); // Rojo
-    }
-    
-    final paint = Paint()
-      ..color = arcColor.withOpacity(0.8)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final rect = Rect.fromCircle(center: center, radius: radius + 8);
-    
-    // Dibujar arco completo de fondo (gris claro)
-    final backgroundPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-    
-    canvas.drawCircle(center, radius + 8, backgroundPaint);
-    
-    // Dibujar arco de progreso (solo la parte restante)
-    final sweepAngle = 2 * math.pi * progress;
-    
-    canvas.drawArc(
-      rect,
-      -math.pi / 2, // Empezar desde arriba (12 en punto)
-      sweepAngle,
-      false,
-      paint,
-    );
-    
-    // Dibujar marcadores cada 5 minutos (3 marcadores)
-    _drawTimeMarkers(canvas, center, radius + 8);
-  }
-  
-  void _drawTimeMarkers(Canvas canvas, Offset center, double radius) {
-    final markerPaint = Paint()
-      ..color = clockColor.withOpacity(0.4)
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    
-    // Marcadores a los 5, 10 y 15 minutos
-    for (int i = 1; i <= 3; i++) {
-      final angle = (i * (360 / 4) - 90) * math.pi / 180; // Cada 5 min = 90 grados
-      final startRadius = radius - 4;
-      final endRadius = radius + 4;
-      
-      final startX = center.dx + startRadius * math.cos(angle);
-      final startY = center.dy + startRadius * math.sin(angle);
-      final endX = center.dx + endRadius * math.cos(angle);
-      final endY = center.dy + endRadius * math.sin(angle);
-      
-      canvas.drawLine(
-        Offset(startX, startY),
-        Offset(endX, endY),
-        markerPaint,
-      );
-    }
   }
 
   @override
-  bool shouldRepaint(ClockPainter oldDelegate) {
-    return oldDelegate.timeRemaining != timeRemaining ||
-           oldDelegate.clockColor != clockColor;
+  bool shouldRepaint(SimpleClockPainter oldDelegate) {
+    return oldDelegate.timeRemaining != timeRemaining;
   }
 }
 
@@ -579,31 +358,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           isLoading = false;
         });
       } else {
-        // Cargar reservas del día actual (solo activas: confirmadas y en_mesa)
+        // Cargar reservas del día actual (solo activas)
         final today = DateTime.now();
         final allTodaysReservations = await ReservationService.getAllReservationsByDate(today);
         
-        // Filtrar reservas según el estado:
-        // - 'confirmada': Solo si aún no vencieron (para alertas/reloj)
-        // - 'en_mesa': Siempre visible (clientes que llegaron)
-        final now = DateTime.now();
+        // Filtrar solo reservas que el admin necesita ver:
+        // - 'confirmada': Esperando llegada del cliente
+        // - 'en_mesa': Clientes que llegaron y están comiendo
+        // NO mostrar: no_show, cancelada, completada (para no confundir)
         final activeReservations = allTodaysReservations
             .where((reservation) {
               final estado = reservation['estado'];
-              
-              if (estado == 'en_mesa') {
-                // Siempre mostrar clientes que están en mesa
-                return true;
-              }
-              
-              if (estado == 'confirmada') {
-                // Solo mostrar reservas confirmadas que aún no vencieron
-                final timeLeft = ReservationService.getTimeUntilNoShow(reservation['hora']);
-                return timeLeft != null; // null = ya vencida
-              }
-              
-              // No mostrar: completada, no_show, cancelada
-              return false;
+              return estado == 'confirmada' || estado == 'en_mesa';
             })
             .toList();
         
@@ -980,6 +746,58 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         return Colors.grey;
       default:
         return Colors.grey;
+    }
+  }
+
+  // Colores de fondo para las tarjetas según el estado
+  Color _getCardBackgroundColor(String status) {
+    switch (status) {
+      case 'confirmada':
+        return Colors.orange.withOpacity(0.05); // Fondo naranja muy suave - esperando cliente
+      case 'en_mesa':
+        return Colors.green.withOpacity(0.08); // Fondo verde suave - mesa ocupada
+      case 'completada':
+        return Colors.blue.withOpacity(0.05);
+      case 'no_show':
+        return Colors.red.withOpacity(0.05);
+      case 'cancelada':
+        return Colors.grey.withOpacity(0.05);
+      default:
+        return Colors.white;
+    }
+  }
+
+  // Gradientes elegantes para las tarjetas estilo Woki premium
+  LinearGradient _getCardGradient(String status) {
+    switch (status) {
+      case 'confirmada':
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Colors.orange.withOpacity(0.08),
+            Colors.white,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        );
+      case 'en_mesa':
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            Colors.green.withOpacity(0.12),
+            Colors.white,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        );
+      default:
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.white, Colors.grey.withOpacity(0.05)],
+        );
     }
   }
 
@@ -1792,14 +1610,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              gradient: _getCardGradient(reservation['estado']),
               borderRadius: BorderRadius.circular(16),
               border: _getBorderForReservation(reservation, isLate, hasExpired, isInCriticalPeriod),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.7),
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: const Offset(0, -1),
+                  spreadRadius: 0,
                 ),
               ],
             ),
@@ -1812,15 +1637,52 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF86704).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            gradient: RadialGradient(
+                              colors: [
+                                _getStatusColor(reservation['estado']).withOpacity(0.2),
+                                _getStatusColor(reservation['estado']).withOpacity(0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _getStatusColor(reservation['estado']).withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getStatusColor(reservation['estado']).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: Icon(
-                            Icons.table_restaurant,
-                            color: const Color(0xFFF86704),
-                            size: 20,
+                          child: Stack(
+                            children: [
+                              Icon(
+                                reservation['estado'] == 'en_mesa' 
+                                    ? Icons.people // Ícono de personas cuando está ocupada
+                                    : Icons.table_restaurant, // Ícono de mesa cuando está esperando
+                                color: _getStatusColor(reservation['estado']),
+                                size: 20,
+                              ),
+                              // Indicador adicional para mesa ocupada
+                              if (reservation['estado'] == 'en_mesa')
+                                Positioned(
+                                  top: -2,
+                                  right: -2,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 1),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1853,14 +1715,24 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _getStatusColor(reservation['estado']),
-                              width: 1,
+                            gradient: LinearGradient(
+                              colors: [
+                                _getStatusColor(reservation['estado']).withOpacity(0.8),
+                                _getStatusColor(reservation['estado']),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getStatusColor(reservation['estado']).withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1869,16 +1741,17 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                                 reservation['estado'] == 'en_mesa' 
                                     ? Icons.people 
                                     : Icons.schedule,
-                                color: _getStatusColor(reservation['estado']),
+                                color: Colors.white,
                                 size: 14,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Text(
                                 _getStatusText(reservation['estado']),
                                 style: GoogleFonts.inter(
-                                  color: _getStatusColor(reservation['estado']),
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ],
@@ -1887,20 +1760,39 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                         if (reservation['estado'] == 'en_mesa') ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                            ),
-                            child: Text(
-                              '🔴 OCUPADA',
-                              style: GoogleFonts.inter(
-                                color: Colors.red[700],
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10,
-                                letterSpacing: 0.5,
+                              gradient: LinearGradient(
+                                colors: [Colors.green[400]!, Colors.green[600]!],
                               ),
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.people,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'OCUPADA',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -2166,18 +2058,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           ],
         ],
         if (status == 'en_mesa') ...[
-          _buildActionButton(
+          // Botón principal: Cliente se fue (pagó)
+          _buildPrimaryActionButton(
             icon: Icons.payments,
+            text: 'Pagó',
             color: Colors.green,
             onPressed: () => _showClientLeftDialog(reservation),
             tooltip: 'Cliente pagó y se fue - Liberar mesa',
           ),
           const SizedBox(width: 8),
+          // Botón secundario: Liberar por otras razones
           _buildActionButton(
             icon: Icons.event_available,
             color: Colors.blue,
             onPressed: () => _showMakeTableAvailableDialog(reservation),
-            tooltip: 'Mesa disponible - Otras razones',
+            tooltip: 'Liberar mesa por otras razones',
           ),
         ],
       ],
@@ -2203,6 +2098,41 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon: Icon(icon, size: 18),
           color: color,
           onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+
+  // Botón principal más prominente para acciones importantes
+  Widget _buildPrimaryActionButton({
+    required IconData icon,
+    required String text,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18, color: Colors.white),
+        label: Text(
+          text,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 3,
+          shadowColor: color.withOpacity(0.4),
         ),
       ),
     );
@@ -2418,6 +2348,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             onPressed: () {
               Navigator.pop(context);
               _updateReservationStatus(reservation['id'], 'no_show');
+              // Mostrar confirmación de mesa liberada
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Mesa ${mesa['numero']} liberada - Disponible para nuevas reservas'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Confirmar No-Show', style: TextStyle(color: Colors.white)),
