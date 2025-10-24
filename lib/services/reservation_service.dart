@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../supabase_config.dart';
 
 class ReservationService {
@@ -6,18 +7,17 @@ class ReservationService {
   // Obtener todas las mesas
   static Future<List<Map<String, dynamic>>> getMesas() async {
     try {
-      print('🔍 Cargando mesas desde la base de datos...');
+      debugPrint('🔍 Loading tables from database...');
       final response = await _client
           .from('sodita_mesas')
           .select('*')
           .eq('activa', true)
           .order('numero');
 
-      print('✅ Mesas cargadas: ${response.length} mesas encontradas');
-      print('📋 Datos de mesas: $response');
+      debugPrint('✅ Tables loaded: ${response.length} tables found');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('❌ Error fetching mesas: $e');
+      debugPrint('❌ Error fetching tables: $e');
       return [];
     }
   }
@@ -34,13 +34,7 @@ class ReservationService {
     String? comments,
   }) async {
     try {
-      print('🍽️ Creando reserva:');
-      print('   Mesa: $mesaId');
-      print('   Fecha: ${date.toIso8601String().split('T')[0]}');
-      print('   Hora: $time');
-      print('   Personas: $partySize');
-      print('   Cliente: $customerName');
-      print('   Teléfono: $customerPhone');
+      debugPrint('🍽️ Creating reservation: Mesa $mesaId, Date ${date.toIso8601String().split('T')[0]}, Time $time, Party $partySize');
 
       final reservationData = <String, dynamic>{
         'mesa_id': mesaId,
@@ -66,52 +60,54 @@ class ReservationService {
           .select()
           .single();
 
-      print('✅ Reserva creada exitosamente: ${response['codigo_confirmacion']}');
+      debugPrint('✅ Reservation created successfully: ${response['codigo_confirmacion']}');
       return response;
     } catch (e) {
-      print('❌ Error creating reservation: $e');
+      debugPrint('❌ Error creating reservation: $e');
       return null;
     }
   }
 
-  // Verificar disponibilidad de mesa
+  // Verificar disponibilidad de mesa (un solo turno por noche)
   static Future<bool> isTableAvailable({
     required String mesaId,
     required DateTime date,
-    required String time,
+    required String time, // Mantenido para compatibilidad pero no se usa en verificación
   }) async {
     try {
+      // Verificar si la mesa ya tiene una reserva para esa fecha (cualquier hora)
       final response = await _client
-          .rpc('verificar_disponibilidad_mesa', params: {
-            'p_mesa_id': mesaId,
-            'p_fecha': date.toIso8601String().split('T')[0],
-            'p_hora': time,
-            'p_duracion_minutos': 120,
-          });
+          .from('sodita_reservas')
+          .select('id')
+          .eq('mesa_id', mesaId)
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .or('estado.eq.confirmada,estado.eq.en_mesa,estado.eq.completada');
 
-      return response as bool;
+      bool isAvailable = response.isEmpty;
+      debugPrint('🔍 Table $mesaId available for ${date.toIso8601String().split('T')[0]}: $isAvailable');
+      return isAvailable;
     } catch (e) {
-      print('Error checking table availability: $e');
+      debugPrint('Error checking table availability: $e');
       return false;
     }
   }
 
-  // Obtener mesas ocupadas para una fecha y hora específica
+  // Obtener mesas ocupadas para una fecha (un solo turno por noche)
   static Future<List<String>> getOccupiedTables({
     required DateTime date,
-    required String time,
+    required String time, // Mantenido para compatibilidad pero no se usa
   }) async {
     try {
       final response = await _client
           .from('sodita_reservas')
           .select('mesa_id')
           .eq('fecha', date.toIso8601String().split('T')[0])
-          .eq('hora', time)
-          .or('estado.eq.confirmada,estado.eq.en_mesa'); // Incluir mesas ocupadas
+          .or('estado.eq.confirmada,estado.eq.en_mesa,estado.eq.completada'); // Cualquier reserva de la noche
 
+      debugPrint('🚫 Occupied tables for ${date.toIso8601String().split('T')[0]}: ${response.length} tables');
       return response.map<String>((item) => item['mesa_id'] as String).toList();
     } catch (e) {
-      print('Error fetching occupied tables: $e');
+      debugPrint('Error fetching occupied tables: $e');
       return [];
     }
   }
@@ -129,7 +125,7 @@ class ReservationService {
 
       return response.map<String>((item) => item['mesa_id'] as String).toList();
     } catch (e) {
-      print('Error fetching currently occupied tables: $e');
+      debugPrint('Error fetching currently occupied tables: $e');
       return [];
     }
   }
@@ -166,7 +162,7 @@ class ReservationService {
           return 'available';
       }
     } catch (e) {
-      print('Error getting table status: $e');
+      debugPrint('Error getting table status: $e');
       return 'available';
     }
   }
@@ -186,7 +182,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching reservations: $e');
+      debugPrint('Error fetching reservations: $e');
       return [];
     }
   }
@@ -206,7 +202,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching active reservations: $e');
+      debugPrint('Error fetching active reservations: $e');
       return [];
     }
   }
@@ -225,7 +221,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching all reservations: $e');
+      debugPrint('Error fetching all reservations: $e');
       return [];
     }
   }
@@ -244,7 +240,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching all reservations: $e');
+      debugPrint('Error fetching all reservations: $e');
       return [];
     }
   }
@@ -259,7 +255,7 @@ class ReservationService {
 
       return true;
     } catch (e) {
-      print('Error updating reservation status: $e');
+      debugPrint('Error updating reservation status: $e');
       return false;
     }
   }
@@ -303,7 +299,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching reservations needing check-in: $e');
+      debugPrint('Error fetching reservations needing check-in: $e');
       return [];
     }
   }
@@ -329,10 +325,10 @@ class ReservationService {
       // Marcar cada una como no_show
       for (final reservation in response) {
         await updateReservationStatus(reservation['id'], 'no_show');
-        print('⏰ Marcada como no_show: ${reservation['id']} (hora: ${reservation['hora']})');
+        debugPrint('⏰ Marked as no_show: ${reservation['id']} (time: ${reservation['hora']})');
       }
     } catch (e) {
-      print('Error auto-marking no_show: $e');
+      debugPrint('Error auto-marking no_show: $e');
     }
   }
   
@@ -394,7 +390,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching reservations by date range: $e');
+      debugPrint('Error fetching reservations by date range: $e');
       return [];
     }
   }
@@ -422,7 +418,7 @@ class ReservationService {
         'tasa_no_shows': total > 0 ? (noShows / total * 100).round() : 0,
       };
     } catch (e) {
-      print('Error calculating reservation stats: $e');
+      debugPrint('Error calculating reservation stats: $e');
       return {};
     }
   }
@@ -446,7 +442,7 @@ class ReservationService {
 
       return groupedReservations;
     } catch (e) {
-      print('Error grouping reservations for calendar: $e');
+      debugPrint('Error grouping reservations for calendar: $e');
       return {};
     }
   }
@@ -484,7 +480,7 @@ class ReservationService {
 
       return groupedReservations;
     } catch (e) {
-      print('Error getting future reservations: $e');
+      debugPrint('Error getting future reservations: $e');
       return {};
     }
   }
@@ -503,7 +499,7 @@ class ReservationService {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Error fetching reservations for specific date: $e');
+      debugPrint('Error fetching reservations for specific date: $e');
       return [];
     }
   }
@@ -543,7 +539,7 @@ class ReservationService {
         'reservations': reservations,
       };
     } catch (e) {
-      print('Error calculating date occupancy stats: $e');
+      debugPrint('Error calculating date occupancy stats: $e');
       return {};
     }
   }

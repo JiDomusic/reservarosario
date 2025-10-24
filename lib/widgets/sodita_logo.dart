@@ -22,7 +22,7 @@ class SoditaLogo extends StatelessWidget {
     final logoColor = primaryColor ?? const Color(0xFFE53E3E);
     final defaultShadow = shadowColor ?? const Color(0xFF1E3A8A);
     
-    return Container(
+    return SizedBox(
       width: width,
       height: height,
       child: Stack(

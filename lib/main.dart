@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,8 +9,7 @@ import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
 import 'admin_screen.dart';
-import 'widgets/sodita_logo.dart';
-import 'widgets/animated_card.dart';
+import 'widgets/exact_sodita_logo.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,54 +67,95 @@ class _SoditaAppState extends State<SoditaApp> {
       ],
       theme: ThemeData(
         useMaterial3: true,
-        // Colores exactos de Woki
+        // Sistema de colores premium SODITA
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFE53E3E), // Rojo Woki mejorado
+          seedColor: const Color(0xFFE53E3E),
           brightness: Brightness.light,
-          primary: const Color(0xFFE53E3E),
-          surface: const Color(0xFFFFFBFF),
-          onSurface: const Color(0xFF1C1B1F),
+          primary: const Color(0xFFE53E3E), // SODITA Red
+          secondary: const Color(0xFF1E3A8A), // SODITA Blue 
+          tertiary: const Color(0xFFFF6B35), // Accent Orange
+          surface: const Color(0xFFFFFBFF), // Pure White
+          onSurface: const Color(0xFF0F172A), // Rich Black
+          surfaceContainerHighest: const Color(0xFFF8FAFC), // Light Gray
+          outline: const Color(0xFFE2E8F0), // Border Gray
         ),
-        // Tipografía moderna Woki
-        fontFamily: GoogleFonts.poppins().fontFamily,
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        // Botones estilo Woki 2025
+        // Tipografía premium con jerarquía
+        fontFamily: GoogleFonts.inter().fontFamily,
+        textTheme: GoogleFonts.interTextTheme().copyWith(
+          displayLarge: GoogleFonts.inter(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: const Color(0xFF0F172A),
+          ),
+          headlineLarge: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: const Color(0xFF0F172A),
+          ),
+          titleLarge: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF0F172A),
+          ),
+          bodyLarge: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF475569),
+            height: 1.5,
+          ),
+          labelMedium: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        // Botones premium con gradientes y sombras
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFE53E3E),
             foregroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: Colors.transparent,
+            elevation: 8,
+            shadowColor: const Color(0xFFE53E3E).withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            textStyle: GoogleFonts.poppins(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            textStyle: GoogleFonts.inter(
               fontWeight: FontWeight.w600,
               fontSize: 16,
+              letterSpacing: 0.5,
             ),
-            animationDuration: const Duration(milliseconds: 200),
+            animationDuration: const Duration(milliseconds: 300),
           ),
         ),
-        // Cards estilo Woki
-        cardTheme: const CardThemeData(
+        // Cards premium con glassmorphism
+        cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
-          shadowColor: Color(0x14000000),
+          shadowColor: Colors.black.withValues(alpha: 0.08),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
+            borderRadius: const BorderRadius.all(Radius.circular(24)),
+            side: BorderSide(
+              color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+              width: 1,
+            ),
           ),
         ),
-        // AppBar estilo Woki
+        // AppBar premium con blur effect
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1C1B1F),
+          backgroundColor: Colors.white.withValues(alpha: 0.95),
+          foregroundColor: const Color(0xFF0F172A),
           elevation: 0,
-          scrolledUnderElevation: 1,
-          titleTextStyle: GoogleFonts.poppins(
-            color: const Color(0xFF1C1B1F),
-            fontSize: 20,
+          scrolledUnderElevation: 8,
+          shadowColor: Colors.black.withValues(alpha: 0.1),
+          titleTextStyle: GoogleFonts.inter(
+            color: const Color(0xFF0F172A),
+            fontSize: 18,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
           ),
         ),
       ),
@@ -260,11 +299,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         isLoadingTables = false;
       });
       
-      print('🍽️ Mesas cargadas desde BD: ${tables.length} mesas');
-      print('🚫 Mesas ocupadas: ${occupied.length} mesas');
-      print('📅 Mesas reservadas: ${reservedTableIds.length} mesas');
+      // Production-ready: Table loading completed successfully
     } catch (e) {
-      print('⚠️ Error cargando mesas, usando datos locales: $e');
+      // Graceful fallback to local data due to connectivity issues
       
       if (!mounted) return;
       
@@ -416,33 +453,73 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             floating: true,
             snap: true,
             elevation: 0,
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF1C1B1F),
+            backgroundColor: Colors.white.withValues(alpha: 0.95),
+            foregroundColor: const Color(0xFF0F172A),
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.98),
+                    const Color(0xFFF8FAFC).withValues(alpha: 0.95),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+            ),
             title: Row(
               children: [
-                const SoditaLogoCompact(
-                  size: 36,
-                  color: Color(0xFFE53E3E),
+                // Logo container con efecto glassmorphism
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const ExactSoditaLogo(
+                    width: 100,
+                    height: 40,
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hola! 👋',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
+                        '¡Bienvenido!',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF6B7280),
+                          color: const Color(0xFF64748B),
+                          letterSpacing: 0.3,
                         ),
                       ),
                       Text(
-                        'Reservá tu mesa',
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
+                        'Reservá tu experiencia',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1C1B1F),
+                          color: const Color(0xFF0F172A),
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
@@ -451,36 +528,71 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               ],
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.language),
-                onPressed: () => _showLanguageSelector(context),
-                tooltip: AppLocalizations.of(context).languageSelector,
+              // Botón de idioma premium
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.language_rounded, size: 20),
+                  onPressed: () => _showLanguageSelector(context),
+                  tooltip: AppLocalizations.of(context).languageSelector,
+                  color: const Color(0xFF64748B),
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => const AdminScreen(),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(1.0, 0.0);
-                        const end = Offset.zero;
-                        const curve = Curves.ease;
+              // Botón admin premium
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                      const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE53E3E).withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.admin_panel_settings_rounded, size: 20),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation, secondaryAnimation) => const AdminScreen(),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.easeInOutCubic;
 
-                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
-                        return SlideTransition(
-                          position: animation.drive(tween),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                    ),
-                  );
-                },
-                tooltip: 'Panel de Administración',
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 400),
+                      ),
+                    );
+                  },
+                  tooltip: 'Panel de Administración',
+                  color: const Color(0xFFE53E3E),
+                ),
               ),
+              const SizedBox(width: 8),
             ],
             expandedHeight: 100,
           ),
@@ -496,6 +608,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 const SizedBox(height: 24),
                 _buildDateTimeSelector(),
                 const SizedBox(height: 24),
+                _buildPartySizeSection(),
+                const SizedBox(height: 24),
                 _buildTableSection(),
                 const SizedBox(height: 24),
                 _buildReserveButton(),
@@ -510,12 +624,29 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   Widget _buildRestaurantCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            const Color(0xFFF8FAFC),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
+            color: const Color(0xFFE53E3E).withValues(alpha: 0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -523,99 +654,198 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen del restaurante
+          // Hero image con overlay sofisticado
           Container(
-            height: 200,
+            height: 220,
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              image: DecorationImage(
-                image: const NetworkImage('https://picsum.photos/800/400?random=restaurant'),
-                fit: BoxFit.cover,
-                onError: (exception, stackTrace) {
-                  print('Error cargando imagen del restaurante: $exception');
-                },
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.3),
-                  ],
+            child: Stack(
+              children: [
+                // Imagen de fondo
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    image: DecorationImage(
+                      image: const NetworkImage('https://picsum.photos/800/400?random=restaurant'),
+                      fit: BoxFit.cover,
+                      onError: (exception, stackTrace) {
+                        // Image loading error handled gracefully
+                      },
+                    ),
+                  ),
                 ),
-              ),
+                // Gradiente sofisticado
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.1),
+                        Colors.black.withValues(alpha: 0.4),
+                      ],
+                      stops: const [0.0, 0.6, 1.0],
+                    ),
+                  ),
+                ),
+                // Badge de disponibilidad
+                Positioned(
+                  top: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Disponible',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF065F46),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           
-          // Info del restaurante
+          // Hero section del restaurante
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Logo prominente con mejor jerarquía
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white,
+                          const Color(0xFFF8FAFC),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE53E3E).withValues(alpha: 0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const ExactSoditaLogo(
+                      width: 450,
+                      height: 180,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Rating y descripción
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const SoditaLogo(
-                                width: 80,
-                                height: 32,
-                                showText: false,
-                                primaryColor: Color(0xFFE53E3E),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'SODITA',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1C1B1F),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
                           Text(
-                            'Cocina casera • Ambiente familiar',
-                            style: GoogleFonts.poppins(
+                            'Experiencia Gastronómica',
+                            style: GoogleFonts.inter(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Mixología moderna • Vibes únicos • Estética urbana',
+                            style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF6B7280),
+                              color: const Color(0xFF64748B),
+                              height: 1.4,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    // Rating badge premium
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFFFF6B35),
+                            const Color(0xFFFF8A50),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
-                            Icons.star,
-                            size: 16,
-                            color: Color(0xFFFF6B35),
+                            Icons.star_rounded,
+                            size: 18,
+                            color: Colors.white,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           Text(
                             '4.8',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFF6B35),
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -624,16 +854,16 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   ],
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 
-                // Info adicional
-                Row(
+                // Tags informativos premium
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    _buildInfoChip(Icons.access_time, '30 min'),
-                    const SizedBox(width: 12),
-                    _buildInfoChip(Icons.attach_money, '\$\$'),
-                    const SizedBox(width: 12),
-                    _buildInfoChip(Icons.people, '2-8 personas'),
+                    _buildPremiumInfoChip(Icons.schedule_rounded, '30 min', 'Tiempo promedio'),
+                    _buildPremiumInfoChip(Icons.payments_rounded, '\$\$', 'Precio moderado'),
+                    _buildPremiumInfoChip(Icons.group_rounded, '2-10', 'Capacidad por mesa'),
                   ],
                 ),
               ],
@@ -644,29 +874,69 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String text) {
+
+  Widget _buildPremiumInfoChip(IconData icon, String value, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF8FAFC),
+            Colors.white,
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: const Color(0xFF6B7280),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF6B7280),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: const Color(0xFFE53E3E),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -847,6 +1117,195 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
+  Widget _buildPartySizeSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.group_rounded,
+                  color: const Color(0xFFFF6B35),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¿Cuántas personas?',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1C1B1F),
+                    ),
+                  ),
+                  Text(
+                    'Selecciona el número de comensales',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Selector de personas con estética premium
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFE5E7EB),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Botón menos
+                Container(
+                  decoration: BoxDecoration(
+                    color: partySize <= 2 
+                        ? const Color(0xFFF1F5F9) 
+                        : const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: partySize <= 2 
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: partySize > 2 ? () {
+                        setState(() {
+                          partySize--;
+                        });
+                      } : null,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.remove,
+                          color: partySize <= 2 
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFFFF6B35),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Contador central
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFFFF6B35),
+                        const Color(0xFFE53E3E),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.people,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$partySize',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        partySize == 1 ? 'persona' : 'personas',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Botón más
+                Container(
+                  decoration: BoxDecoration(
+                    color: partySize >= 10 
+                        ? const Color(0xFFF1F5F9) 
+                        : const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: partySize >= 10 
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFFFF6B35).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: partySize < 10 ? () {
+                        setState(() {
+                          partySize++;
+                        });
+                      } : null,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.add,
+                          color: partySize >= 10 
+                              ? const Color(0xFF9CA3AF)
+                              : const Color(0xFFFF6B35),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTableSection() {
     if (isLoadingTables) {
       return const Center(
@@ -938,7 +1397,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   child: Stack(
                     children: [
                       // Imagen de fondo con fallback
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         height: double.infinity,
                         child: Image.network(
@@ -1477,7 +1936,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         }
       }
     } catch (e) {
-      print('Error en reserva: $e');
+      // Reservation error handled with fallback solution
       
       if (mounted) {
         Navigator.pop(context); // Cerrar loading
@@ -1681,7 +2140,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
 
 ¡Te esperamos! 🎉
 
-SODITA - Cocina casera, ambiente familiar
+SODITA
 📍 Rosario, Santa Fe
       ''';
 
@@ -1700,24 +2159,28 @@ SODITA - Cocina casera, ambiente familiar
           },
         );
         
-        // Mostrar mensaje de éxito
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ WhatsApp abierto. Envía el mensaje para confirmar tu reserva.'),
-            backgroundColor: Color(0x0025d366),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        // Verificar que el widget sigue montado antes de usar context
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ WhatsApp abierto. Envía el mensaje para confirmar tu reserva.'),
+              backgroundColor: Color(0x0025d366),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       } else {
         throw 'No se puede abrir WhatsApp';
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error al abrir WhatsApp: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al abrir WhatsApp: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
