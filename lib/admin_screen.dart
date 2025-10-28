@@ -6,6 +6,7 @@ import 'services/reservation_service.dart';
 import 'l10n.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'floor_plan_view.dart';
 
 // Widget de reloj animado personalizado
 class AnimatedClock extends StatefulWidget {
@@ -249,6 +250,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   // Variables para filtros y vista
   int selectedPeriod = 7; // 7, 15, 30 días
   bool showCalendarView = false;
+  bool showFloorPlanView = false;
   bool showFutureView = false;
   DateTime focusedDay = DateTime.now();
   DateTime? selectedDay;
@@ -261,8 +263,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   // Sistema de notificaciones automáticas
   Timer? _notificationTimer;
-  Set<String> _notifiedReservations = {}; // Para evitar duplicados
-  List<String> _criticalAlerts = []; // Lista de alertas activas
+  final Set<String> _notifiedReservations = {}; // Para evitar duplicados
 
   @override
   void initState() {
@@ -312,18 +313,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       }
     });
     
-    // Contador en tiempo real cada segundo para actualizar los tiempos
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Contador optimizado - solo actualizar UI cada 10 segundos
+    _countdownTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted && !showCalendarView && !showFutureView) {
         setState(() {
-          // Forzar reconstrucción para actualizar contadores y filtrar vencidas
-          _checkForExpiredReservations();
+          // Solo actualizar contadores sin recargar datos
         });
-        
-        // Cada 15 segundos, recargar datos para filtrar reservas vencidas
-        if (DateTime.now().second % 15 == 0) {
-          _loadData();
-        }
       }
     });
     
@@ -348,6 +343,16 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           futureReservations = futureData;
           isLoading = false;
         });
+      } else if (showFloorPlanView) {
+        // Cargar datos para vista de plano
+        final today = DateTime.now();
+        final allTodaysReservations = await ReservationService.getAllReservationsByDate(today);
+        final mesas = await ReservationService.getMesas();
+        
+        setState(() {
+          reservations = allTodaysReservations;
+          isLoading = false;
+        });
       } else if (showCalendarView) {
         // Cargar datos para el calendario
         final calendarData = await ReservationService.getReservationsForCalendar(selectedPeriod);
@@ -362,6 +367,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         // Cargar reservas del día actual (solo activas)
         final today = DateTime.now();
         final allTodaysReservations = await ReservationService.getAllReservationsByDate(today);
+        
+        // Debug: Verificar datos cargados
+        debugPrint('🔍 Admin Dashboard: Cargando reservas para ${today.toIso8601String().split('T')[0]}');
+        debugPrint('📊 Total reservas encontradas: ${allTodaysReservations.length}');
         
         // Filtrar solo reservas que el admin necesita ver:
         // - 'confirmada': Esperando llegada del cliente
@@ -542,6 +551,144 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProminentCountdown(Map<String, dynamic> reservation, Duration timeLeft, String urgencyLevel) {
+    final mesa = reservation['sodita_mesas'];
+    final minutes = timeLeft.inMinutes;
+    final seconds = timeLeft.inSeconds % 60;
+    final timeString = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    
+    Color bgColor = Colors.green;
+    Color textColor = Colors.white;
+    IconData icon = Icons.schedule;
+    String label = 'TIEMPO RESTANTE';
+    
+    switch (urgencyLevel) {
+      case 'critical':
+        bgColor = Colors.orange;
+        icon = Icons.warning_amber;
+        label = '¡CRÍTICO!';
+        break;
+      case 'expired':
+        bgColor = Colors.red;
+        icon = Icons.schedule_outlined;
+        label = '¡TIEMPO AGOTADO!';
+        break;
+    }
+    
+    return Container(
+      width: 180,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [bgColor, bgColor.withValues(alpha: 0.8)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: 0.5),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: textColor, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: textColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Tiempo digital grande y prominente 
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Text(
+                  timeString,
+                  style: GoogleFonts.inter(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: bgColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  'MINUTOS RESTANTES',
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: bgColor.withValues(alpha: 0.7),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Barra de progreso visual
+          Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: (timeLeft.inSeconds / (15 * 60)).clamp(0.0, 1.0),
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Mesa ${mesa['numero']}',
+            style: GoogleFonts.inter(
+              color: textColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -733,7 +880,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   void _showCriticalAlert(String title, String message, Color color, Map<String, dynamic> reservation) {
     if (!mounted) return;
     
-    final mesa = reservation['sodita_mesas'];
     final overlay = Overlay.of(context);
     
     late OverlayEntry overlayEntry;
@@ -947,37 +1093,20 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   Color _getStatusColor(String status) {
     switch (status) {
       case 'confirmada':
-        return Colors.orange;
+        return const Color(0xFF2196F3); // Azul Woki - Reservada
       case 'en_mesa':
-        return Colors.green;
+        return const Color(0xFFFF9800); // Naranja Woki - Ocupada
       case 'completada':
-        return Colors.blue;
+        return const Color(0xFF4CAF50); // Verde Woki - Completada
       case 'no_show':
-        return Colors.red;
+        return const Color(0xFFF44336); // Rojo Woki - No vino
       case 'cancelada':
-        return Colors.grey;
+        return const Color(0xFF9E9E9E); // Gris - Cancelada
       default:
-        return Colors.grey;
+        return const Color(0xFF4CAF50); // Verde Woki - Disponible por defecto
     }
   }
 
-  // Colores de fondo para las tarjetas según el estado
-  Color _getCardBackgroundColor(String status) {
-    switch (status) {
-      case 'confirmada':
-        return Colors.orange.withValues(alpha: 0.05); // Fondo naranja muy suave - esperando cliente
-      case 'en_mesa':
-        return Colors.green.withValues(alpha: 0.08); // Fondo verde suave - mesa ocupada
-      case 'completada':
-        return Colors.blue.withValues(alpha: 0.05);
-      case 'no_show':
-        return Colors.red.withValues(alpha: 0.05);
-      case 'cancelada':
-        return Colors.grey.withValues(alpha: 0.05);
-      default:
-        return Colors.white;
-    }
-  }
 
   // Gradientes elegantes para las tarjetas estilo Woki premium
   LinearGradient _getCardGradient(String status) {
@@ -1059,9 +1188,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                 Expanded(
                   child: showFutureView 
                       ? _buildFutureReservationsView(l10n)
-                      : showCalendarView 
-                          ? _buildCalendarView(l10n)
-                          : _buildReservationsList(l10n),
+                      : showFloorPlanView
+                          ? FloorPlanView(
+                              reservations: reservations,
+                              onReservationTap: _showReservationDetails,
+                            )
+                          : showCalendarView 
+                              ? _buildCalendarView(l10n)
+                              : _buildReservationsList(l10n),
                 ),
               ],
             ),
@@ -1070,11 +1204,54 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   PreferredSizeWidget _buildAppBar(AppLocalizations l10n) {
     return AppBar(
-      title: Text(
-        'Panel de Administración SODITA',
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.bold,
-        ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Panel de Administración SODITA',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          // Reloj de Argentina en tiempo real
+          StreamBuilder<DateTime>(
+            stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
+            builder: (context, snapshot) {
+              final now = DateTime.now();
+              // Argentina timezone - usar hora local del sistema
+              final argTime = now;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '🇦🇷 ARG',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '${argTime.hour.toString().padLeft(2, '0')}:${argTime.minute.toString().padLeft(2, '0')}:${argTime.second.toString().padLeft(2, '0')}',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       backgroundColor: const Color(0xFFF86704),
       foregroundColor: Colors.white,
@@ -1094,10 +1271,23 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           tooltip: showFutureView ? 'Vista Hoy' : 'Reservas Futuras',
         ),
         IconButton(
+          icon: Icon(showFloorPlanView ? Icons.list : Icons.grid_view),
+          onPressed: () {
+            setState(() {
+              showFloorPlanView = !showFloorPlanView;
+              showCalendarView = false;
+              showFutureView = false;
+            });
+            _loadData();
+          },
+          tooltip: showFloorPlanView ? 'Vista Lista' : 'Plano del Restaurant',
+        ),
+        IconButton(
           icon: Icon(showCalendarView ? Icons.list : Icons.calendar_month),
           onPressed: () {
             setState(() {
               showCalendarView = !showCalendarView;
+              showFloorPlanView = false;
               showFutureView = false;
             });
             _loadData();
@@ -1812,6 +2002,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final isInCriticalPeriod = ReservationService.isInCriticalPeriod(reservation['hora']);
     final hasExpired = ReservationService.hasExpired(reservation['hora']);
     
+    // Calcular estado visual del contador
+    final isCountdownActive = reservation['estado'] == 'confirmada' && timeLeft != null;
+    final urgencyLevel = hasExpired ? 'expired' : isInCriticalPeriod ? 'critical' : 'normal';
+    
     return AnimationConfiguration.staggeredList(
       position: index,
       duration: const Duration(milliseconds: 375),
@@ -2075,7 +2269,15 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                         ],
                       ),
                     ),
-                    if (!showCalendarView) _buildActionButtons(reservation),
+                    if (!showCalendarView) 
+                      Column(
+                        children: [
+                          // Contador prominente de 15 minutos
+                          if (isCountdownActive) _buildProminentCountdown(reservation, timeLeft, urgencyLevel),
+                          const SizedBox(height: 8),
+                          _buildActionButtons(reservation),
+                        ],
+                      ),
                   ],
                 ),
               ],
@@ -2346,44 +2548,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
   
-  Widget _buildTimeIndicator(String text, Color color, IconData icon, String tooltip) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              text,
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   
   Border? _getBorderForReservation(Map<String, dynamic> reservation, bool isLate, bool hasExpired, bool isInCriticalPeriod) {
     if (reservation['estado'] != 'confirmada') return null;
@@ -2399,7 +2563,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     return null;
   }
   
-  // Widget de reloj animado para indicar tiempo de reserva
+  // CONTADOR ESTILO WOKI - Tiempo restante en MM:SS
   Widget _buildAnimatedTimeIndicator(
     Map<String, dynamic> reservation,
     Duration? timeLeft,
@@ -2407,99 +2571,150 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     bool isInCriticalPeriod,
     bool isLate,
   ) {
-    String clockStatus;
-    String tooltipMessage;
-    
     if (hasExpired) {
-      clockStatus = 'expired';
-      tooltipMessage = 'RESERVA VENCIDA: Mesa disponible para nuevas reservas';
-    } else if (isInCriticalPeriod) {
-      clockStatus = 'critical';
-      tooltipMessage = 'PERÍODO CRÍTICO: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : ""} restantes';
-    } else if (isLate) {
-      clockStatus = 'late';
-      tooltipMessage = 'CLIENTE TARDE: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : ""} para liberar mesa';
-    } else {
-      clockStatus = 'normal';
-      tooltipMessage = 'Tiempo restante: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : ""}';
+      return _buildReleaseButton(reservation);
     }
     
-    return Tooltip(
-      message: tooltipMessage,
-      child: Column(
-        children: [
-          AnimatedClock(
-            timeRemaining: timeLeft,
-            status: clockStatus,
-            size: 60.0,
-            showNumbers: true,
+    if (timeLeft == null) return const SizedBox.shrink();
+    
+    final minutes = timeLeft.inMinutes;
+    final seconds = timeLeft.inSeconds % 60;
+    final timeDisplay = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    
+    // Colores estilo Woki
+    Color bgColor, textColor;
+    if (minutes <= 2) {
+      bgColor = const Color(0xFFF44336).withOpacity(0.1); // Rojo Woki
+      textColor = const Color(0xFFF44336);
+    } else if (minutes <= 5) {
+      bgColor = const Color(0xFFFF9800).withOpacity(0.1); // Naranja Woki
+      textColor = const Color(0xFFFF9800);
+    } else {
+      bgColor = const Color(0xFF4CAF50).withOpacity(0.1); // Verde Woki
+      textColor = const Color(0xFF4CAF50);
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: textColor.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: textColor.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 4),
-          if (timeLeft != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _getClockStatusColor(clockStatus).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                ReservationService.formatTimeRemaining(timeLeft),
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: _getClockStatusColor(clockStatus),
-                ),
-              ),
-            )
-          else if (hasExpired)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'VENCIDA',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.timer, color: textColor, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            timeDisplay,
+            style: GoogleFonts.robotoMono(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: textColor,
             ),
+          ),
         ],
       ),
     );
   }
-  
-  Color _getClockStatusColor(String status) {
-    switch (status) {
-      case 'normal':
-        return const Color(0xFF2E7D32); // Verde más oscuro
-      case 'late':
-        return const Color(0xFFEF6C00); // Naranja más oscuro
-      case 'critical':
-        return const Color(0xFFD32F2F); // Rojo más oscuro
-      case 'expired':
-        return const Color(0xFF212121); // Negro más oscuro
-      default:
-        return const Color(0xFF424242);
+
+  // Botón para liberar mesa manualmente
+  Widget _buildReleaseButton(Map<String, dynamic> reservation) {
+    return ElevatedButton.icon(
+      onPressed: () => _releaseTableManually(reservation),
+      icon: const Icon(Icons.lock_open, size: 16),
+      label: const Text('LIBERAR'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: Size.zero,
+        textStyle: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  // Liberar mesa manualmente
+  Future<void> _releaseTableManually(Map<String, dynamic> reservation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Liberar Mesa'),
+        content: Text('¿Liberar Mesa ${reservation['sodita_mesas']['numero']} de ${reservation['nombre']}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Liberar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await ReservationService.releaseTableManually(
+        reservation['id'], 
+        reservation['nombre']
+      );
+      
+      if (success) {
+        _loadData(); // Recargar datos
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Mesa ${reservation['sodita_mesas']['numero']} liberada manualmente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     }
   }
   
-  // Diálogo de confirmación para no-show
-  void _showNoShowConfirmation(Map<String, dynamic> reservation) {
+  // Mostrar detalles de reserva desde la vista de plano
+  void _showReservationDetails(Map<String, dynamic> reservation) {
     final mesa = reservation['sodita_mesas'];
+    final timeLeft = ReservationService.getTimeUntilNoShow(reservation['hora']);
+    final hasExpired = timeLeft == null;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.no_accounts, color: Colors.red, size: 24),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF86704),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.table_restaurant,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
             const SizedBox(width: 12),
             Text(
-              'Confirmar No-Show',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              'Mesa ${mesa['numero']}',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -2507,66 +2722,87 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '¿Confirmas que el cliente NO vino a la reserva?',
-              style: GoogleFonts.inter(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+            _buildDetailRow(Icons.person, 'Cliente', reservation['nombre']),
+            _buildDetailRow(Icons.access_time, 'Hora', reservation['hora']),
+            _buildDetailRow(Icons.people, 'Personas', '${reservation['personas']}'),
+            _buildDetailRow(Icons.phone, 'Teléfono', reservation['telefono'] ?? 'No disponible'),
+            _buildDetailRow(Icons.info, 'Estado', _getStatusText(reservation['estado'])),
+            if (timeLeft != null && !hasExpired)
+              _buildDetailRow(
+                Icons.timer, 
+                'Tiempo restante', 
+                ReservationService.formatTimeRemaining(timeLeft),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('📋 Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
-                  Text('👤 ${reservation['nombre']}'),
-                  Text('⏰ ${reservation['hora']} - ${reservation['personas']} personas'),
-                  Text('📞 ${reservation['telefono']}'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange[200]!),
-              ),
-              child: Text(
-                '⚠️ La mesa se liberará inmediatamente para nuevas reservas.',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: Colors.orange[800],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+            if (hasExpired)
+              _buildDetailRow(Icons.warning, 'Estado', 'RESERVA VENCIDA', color: Colors.red),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cerrar',
+              style: GoogleFonts.inter(color: Colors.grey[600]),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _updateReservationStatus(reservation['id'], 'no_show');
-              // Mostrar confirmación de mesa liberada
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('✅ Mesa ${mesa['numero']} liberada - Disponible para nuevas reservas'),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Confirmar No-Show', style: TextStyle(color: Colors.white)),
+          if (reservation['estado'] == 'confirmada' && !hasExpired)
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _updateReservationStatus(reservation['id'], 'en_mesa');
+                _loadData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Cliente confirmado en Mesa ${mesa['numero']}'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Check-in'),
+            ),
+          if (reservation['estado'] == 'confirmada')
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _releaseTableManually(reservation);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Liberar'),
+            ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDetailRow(IconData icon, String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color ?? Colors.grey[600]),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                color: color ?? Colors.black87,
+                fontWeight: color != null ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
           ),
         ],
       ),
