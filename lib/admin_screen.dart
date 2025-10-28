@@ -307,14 +307,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   // Iniciar verificación automática y contadores
   void _startAutoCheck() {
     // Auto-marcar no-shows cada 30 segundos para mayor precisión
-    _autoCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+    _autoCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
       if (mounted && !showCalendarView && !showFutureView) {
         _autoMarkNoShows();
       }
     });
     
-    // Contador optimizado - solo actualizar UI cada 10 segundos
-    _countdownTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Contador optimizado - solo actualizar UI cada 30 segundos
+    _countdownTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (mounted && !showCalendarView && !showFutureView) {
         setState(() {
           // Solo actualizar contadores sin recargar datos
@@ -322,8 +322,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       }
     });
     
-    // Timer para notificaciones críticas cada 10 segundos
-    _notificationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Timer para notificaciones críticas cada minuto
+    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted && !showCalendarView && !showFutureView) {
         _checkCriticalReservations();
       }
@@ -1083,7 +1083,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           const SnackBar(
             content: Text('❌ Error al actualizar el estado'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -2584,13 +2584,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     // Colores estilo Woki
     Color bgColor, textColor;
     if (minutes <= 2) {
-      bgColor = const Color(0xFFF44336).withOpacity(0.1); // Rojo Woki
+      bgColor = const Color(0xFFF44336).withValues(alpha: 0.1); // Rojo Woki
       textColor = const Color(0xFFF44336);
     } else if (minutes <= 5) {
-      bgColor = const Color(0xFFFF9800).withOpacity(0.1); // Naranja Woki
+      bgColor = const Color(0xFFFF9800).withValues(alpha: 0.1); // Naranja Woki
       textColor = const Color(0xFFFF9800);
     } else {
-      bgColor = const Color(0xFF4CAF50).withOpacity(0.1); // Verde Woki
+      bgColor = const Color(0xFF4CAF50).withValues(alpha: 0.1); // Verde Woki
       textColor = const Color(0xFF4CAF50);
     }
     
@@ -2599,10 +2599,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withOpacity(0.3)),
+        border: Border.all(color: textColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: textColor.withOpacity(0.2),
+            color: textColor.withValues(alpha: 0.2),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

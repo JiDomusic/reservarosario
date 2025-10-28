@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/user_service.dart';
 import '../services/queue_service.dart';
-import '../services/notification_service.dart';
 import '../services/analytics_service.dart';
-import '../services/reservation_service.dart';
 import '../widgets/exact_sodita_logo.dart';
 
 // PANTALLA PRINCIPAL SODITA - FUNCIONALIDADES ESTILO WOKI
@@ -193,9 +190,9 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -237,8 +234,8 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFF86704).withOpacity(0.1),
-            const Color(0xFF10B981).withOpacity(0.1),
+            const Color(0xFFF86704).withValues(alpha: 0.1),
+            const Color(0xFF10B981).withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -309,7 +306,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFF86704).withOpacity(0.3),
+                    color: const Color(0xFFF86704).withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -339,7 +336,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
                           'Mesas disponibles AHORA MISMO',
                           style: GoogleFonts.inter(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -452,7 +449,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
         border: Border.all(color: const Color(0xFF10B981), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.1),
+            color: const Color(0xFF10B981).withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -465,7 +462,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.1),
+              color: const Color(0xFF10B981).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -609,7 +606,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
                         'Reservá con anticipación',
                         style: GoogleFonts.inter(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -636,7 +633,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -721,7 +718,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
                         'Esperá tu turno sin estar físicamente',
                         style: GoogleFonts.inter(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -748,7 +745,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -839,7 +836,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
                           'Métricas en tiempo real',
                           style: GoogleFonts.inter(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -926,10 +923,10 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -968,7 +965,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1029,7 +1026,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -1053,7 +1050,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -1128,7 +1125,7 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF86704).withOpacity(0.1),
+                color: const Color(0xFFF86704).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1164,9 +1161,9 @@ class _SoditaMainScreenState extends State<SoditaMainScreen> with TickerProvider
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [

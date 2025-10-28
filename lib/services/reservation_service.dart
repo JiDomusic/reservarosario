@@ -262,7 +262,7 @@ class ReservationService {
   }
   
   // Cache para reservas del día
-  static Map<String, List<Map<String, dynamic>>> _reservationsCache = {};
+  static final Map<String, List<Map<String, dynamic>>> _reservationsCache = {};
   static DateTime? _lastCacheUpdate;
 
   // Obtener todas las reservas del día (con caché para velocidad)
@@ -462,6 +462,9 @@ class ReservationService {
         if (hasExpired(reservation['hora'])) {
           await updateReservationStatus(reservation['id'], 'no_show');
           debugPrint('⏰ AUTO-RELEASED: ${reservation['nombre']} - Mesa liberada automáticamente (15min)');
+          
+          // SISTEMA MESA YA! - Notificar mesa disponible
+          await _notifyMesaYaAvailable(reservation['id']);
         }
       }
     } catch (e) {
@@ -709,6 +712,310 @@ class ReservationService {
     } catch (e) {
       debugPrint('Error calculating date occupancy stats: $e');
       return {};
+    }
+  }
+
+  // SISTEMA MESA YA! - Notificar cuando se libera una mesa (SOLO SI ESTÁ TODO LLENO)
+  static Future<void> _notifyMesaYaAvailable(String reservationId) async {
+    try {
+      // PRIMERO: Verificar si el restaurante estaba lleno antes de liberar esta mesa
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      
+      // Obtener total de mesas activas
+      final totalMesas = await _client
+          .from('sodita_mesas')
+          .select('count')
+          .eq('activa', true);
+      
+      final totalMesasCount = totalMesas[0]['count'] ?? 0;
+      
+      // Obtener mesas ocupadas/reservadas DESPUÉS de liberar esta mesa
+      final mesasOcupadas = await _client
+          .from('sodita_reservas')
+          .select('count')
+          .eq('fecha', today)
+          .inFilter('estado', ['confirmada', 'en_mesa']);
+      
+      final mesasOcupadasCount = mesasOcupadas[0]['count'] ?? 0;
+      
+      // SOLO activar Mesa Ya! si había más del 90% de ocupación (estaba casi lleno)
+      final occupancyRate = totalMesasCount > 0 ? (mesasOcupadasCount / totalMesasCount) : 0;
+      
+      if (occupancyRate < 0.9) {
+        debugPrint('🏪 Restaurante no está lleno (${(occupancyRate * 100).round()}% ocupado) - No activar Mesa Ya!');
+        return;
+      }
+
+      // Obtener información de la reserva liberada
+      final reservationData = await _client
+          .from('sodita_reservas')
+          .select('''
+            id, mesa_id, personas,
+            sodita_mesas!inner(numero, ubicacion, capacidad)
+          ''')
+          .eq('id', reservationId)
+          .single();
+
+      final mesaNumero = reservationData['sodita_mesas']['numero'];
+      final mesaUbicacion = reservationData['sodita_mesas']['ubicacion'];
+      final capacidad = reservationData['sodita_mesas']['capacidad'];
+
+      // Crear notificación global de Mesa Ya! (SOLO SI ESTABA LLENO)
+      await _client
+          .from('sodita_notificaciones')
+          .insert({
+            'usuario_id': 'all', // Notificación para todos
+            'tipo': 'mesa_disponible',
+            'titulo': '🔥 ¡Mesa Ya! Restaurante Lleno',
+            'mensaje': 'Mesa $mesaNumero ($mesaUbicacion) liberada en restaurante lleno - Capacidad: $capacidad personas',
+            'data': {
+              'mesa_numero': mesaNumero,
+              'mesa_ubicacion': mesaUbicacion,
+              'capacidad': capacidad,
+              'mesa_id': reservationData['mesa_id'],
+              'timestamp': DateTime.now().toIso8601String(),
+              'tipo_alerta': 'mesa_ya',
+              'restaurante_lleno': true,
+              'occupancy_rate': (occupancyRate * 100).round(),
+            },
+            'leida': false,
+            'fecha': DateTime.now().toIso8601String(),
+          });
+
+      debugPrint('🔥 MESA YA! (Restaurante ${(occupancyRate * 100).round()}% lleno) Mesa $mesaNumero ($mesaUbicacion) disponible - Capacidad: $capacidad personas');
+      
+    } catch (e) {
+      debugPrint('❌ Error notifying Mesa Ya: $e');
+    }
+  }
+
+  // Cache para alertas Mesa Ya!
+  static List<Map<String, dynamic>>? _mesaYaCache;
+  static DateTime? _lastMesaYaCheck;
+
+  // Obtener alertas Mesa Ya! activas con cache
+  static Future<List<Map<String, dynamic>>> getMesaYaAlerts() async {
+    try {
+      final now = DateTime.now();
+      
+      // Usar cache si es reciente (último minuto)
+      if (_mesaYaCache != null && 
+          _lastMesaYaCheck != null && 
+          now.difference(_lastMesaYaCheck!).inMinutes < 1) {
+        return _mesaYaCache!;
+      }
+
+      final alerts = await _client
+          .from('sodita_notificaciones')
+          .select('*')
+          .eq('tipo', 'mesa_disponible')
+          .eq('leida', false)
+          .gte('fecha', DateTime.now().subtract(const Duration(hours: 2)).toIso8601String())
+          .order('fecha', ascending: false);
+
+      _mesaYaCache = List<Map<String, dynamic>>.from(alerts);
+      _lastMesaYaCheck = now;
+
+      return _mesaYaCache!;
+    } catch (e) {
+      debugPrint('❌ Error getting Mesa Ya alerts: $e');
+      return _mesaYaCache ?? [];
+    }
+  }
+
+  // Marcar alerta Mesa Ya! como leída
+  static Future<bool> markMesaYaAlertAsRead(String alertId) async {
+    try {
+      await _client
+          .from('sodita_notificaciones')
+          .update({'leida': true})
+          .eq('id', alertId);
+      
+      // Invalidar cache para forzar actualización
+      _mesaYaCache = null;
+      _lastMesaYaCheck = null;
+      
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error marking Mesa Ya alert as read: $e');
+      return false;
+    }
+  }
+
+  // SISTEMA DE COMBINACIÓN DE MESAS PARA GRUPOS GRANDES (2-50 personas)
+  static Future<List<Map<String, dynamic>>> getSuggestedTablesForGroup({
+    required int groupSize,
+    required DateTime date,
+    required String time,
+  }) async {
+    try {
+      if (groupSize < 2 || groupSize > 50) {
+        return [];
+      }
+
+      // Obtener todas las mesas disponibles
+      final allTables = await getMesas();
+      final occupiedIds = await getOccupiedTables(date: date, time: time);
+      
+      // Filtrar mesas disponibles
+      final availableTables = allTables
+          .where((table) => !occupiedIds.contains(table['id']))
+          .toList();
+      
+      // Ordenar por capacidad (descendente) para optimizar combinaciones
+      availableTables.sort((a, b) => (b['capacidad'] as int).compareTo(a['capacidad'] as int));
+      
+      // Buscar la mejor combinación de mesas
+      final suggestions = _findBestTableCombination(availableTables, groupSize);
+      
+      return suggestions;
+    } catch (e) {
+      debugPrint('❌ Error getting suggested tables for group: $e');
+      return [];
+    }
+  }
+
+  // Algoritmo para encontrar la mejor combinación de mesas
+  static List<Map<String, dynamic>> _findBestTableCombination(
+    List<Map<String, dynamic>> availableTables, 
+    int groupSize,
+  ) {
+    // Estrategia 1: Buscar una sola mesa que sea suficiente
+    for (final table in availableTables) {
+      if (table['capacidad'] >= groupSize) {
+        return [table];
+      }
+    }
+    
+    // Estrategia 2: Combinar mesas para grupos grandes
+    final combinations = <List<Map<String, dynamic>>>[];
+    
+    // Generar todas las combinaciones posibles (máximo 4 mesas para evitar complejidad)
+    for (int i = 0; i < availableTables.length; i++) {
+      for (int j = i + 1; j < availableTables.length; j++) {
+        final combo2 = [availableTables[i], availableTables[j]];
+        final capacity2 = combo2.fold<int>(0, (sum, table) => sum + (table['capacidad'] as int));
+        
+        if (capacity2 >= groupSize) {
+          combinations.add(combo2);
+        }
+        
+        // Combinaciones de 3 mesas
+        for (int k = j + 1; k < availableTables.length; k++) {
+          final combo3 = [availableTables[i], availableTables[j], availableTables[k]];
+          final capacity3 = combo3.fold<int>(0, (sum, table) => sum + (table['capacidad'] as int));
+          
+          if (capacity3 >= groupSize) {
+            combinations.add(combo3);
+          }
+          
+          // Combinaciones de 4 mesas (para grupos muy grandes)
+          for (int l = k + 1; l < availableTables.length; l++) {
+            final combo4 = [availableTables[i], availableTables[j], availableTables[k], availableTables[l]];
+            final capacity4 = combo4.fold<int>(0, (sum, table) => sum + (table['capacidad'] as int));
+            
+            if (capacity4 >= groupSize) {
+              combinations.add(combo4);
+            }
+          }
+        }
+      }
+    }
+    
+    if (combinations.isEmpty) {
+      return []; // No hay combinación disponible
+    }
+    
+    // Elegir la mejor combinación (menor desperdicio de capacidad)
+    combinations.sort((a, b) {
+      final capacityA = a.fold<int>(0, (sum, table) => sum + (table['capacidad'] as int));
+      final capacityB = b.fold<int>(0, (sum, table) => sum + (table['capacidad'] as int));
+      
+      final wasteA = capacityA - groupSize;
+      final wasteB = capacityB - groupSize;
+      
+      // Priorizar menos desperdicio, luego menos mesas
+      if (wasteA != wasteB) {
+        return wasteA.compareTo(wasteB);
+      }
+      return a.length.compareTo(b.length);
+    });
+    
+    return combinations.first;
+  }
+
+  // Crear reserva múltiple para grupos grandes
+  static Future<List<Map<String, dynamic>>?> createGroupReservation({
+    required List<Map<String, dynamic>> suggestedTables,
+    required DateTime date,
+    required String time,
+    required int partySize,
+    required String customerName,
+    required String customerPhone,
+    String? customerEmail,
+    String? comments,
+  }) async {
+    try {
+      final reservations = <Map<String, dynamic>>[];
+      
+      // Crear una reserva por cada mesa sugerida
+      for (int i = 0; i < suggestedTables.length; i++) {
+        final table = suggestedTables[i];
+        final isMainTable = i == 0; // La primera mesa es la principal
+        
+        // Dividir personas entre las mesas proporcionalmente
+        final tableCapacity = table['capacidad'] as int;
+        final totalCapacity = suggestedTables.fold<int>(0, (sum, t) => sum + (t['capacidad'] as int));
+        final personsForThisTable = isMainTable 
+            ? partySize // Todo el grupo se registra en la mesa principal
+            : 0; // Las otras mesas son extensiones
+        
+        final reservationData = {
+          'mesa_id': table['id'],
+          'fecha': date.toIso8601String().split('T')[0],
+          'hora': time,
+          'personas': personsForThisTable,
+          'nombre': isMainTable ? customerName : '$customerName (Mesa ${table['numero']})',
+          'telefono': customerPhone,
+          'estado': 'confirmada',
+          'tipo_reserva': isMainTable ? 'grupo_principal' : 'grupo_extension',
+          'grupo_id': null, // Se llenará después con el ID de la mesa principal
+        };
+
+        if (customerEmail != null && customerEmail.isNotEmpty) {
+          reservationData['email'] = customerEmail;
+        }
+
+        if (comments != null && comments.isNotEmpty) {
+          reservationData['comentarios'] = '$comments (Grupo de $partySize personas)';
+        }
+
+        final response = await _client
+            .from('sodita_reservas')
+            .insert(reservationData)
+            .select()
+            .single();
+
+        reservations.add(response);
+      }
+      
+      // Actualizar las reservas de extensión con el ID del grupo principal
+      if (reservations.length > 1) {
+        final mainReservationId = reservations[0]['id'];
+        
+        for (int i = 1; i < reservations.length; i++) {
+          await _client
+              .from('sodita_reservas')
+              .update({'grupo_id': mainReservationId})
+              .eq('id', reservations[i]['id']);
+        }
+      }
+      
+      debugPrint('✅ Group reservation created: ${reservations.length} tables for $partySize people');
+      return reservations;
+    } catch (e) {
+      debugPrint('❌ Error creating group reservation: $e');
+      return null;
     }
   }
 }

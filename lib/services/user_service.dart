@@ -158,7 +158,7 @@ class UserService {
         _currentUser!['total_no_shows'] = totalNoShows;
       }
 
-      debugPrint('📊 User reputation updated: $currentReputation (${reservationResult})');
+      debugPrint('📊 User reputation updated: $currentReputation ($reservationResult)');
       return true;
     } catch (e) {
       debugPrint('❌ Error updating user reputation: $e');

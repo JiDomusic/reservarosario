@@ -9,7 +9,6 @@ import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
 import 'admin_screen.dart';
-import 'screens/sodita_main_screen.dart';
 import 'widgets/exact_sodita_logo.dart';
 
 void main() async {
@@ -68,94 +67,95 @@ class _SoditaAppState extends State<SoditaApp> {
       ],
       theme: ThemeData(
         useMaterial3: true,
-        // Sistema de colores WOKI - Fondo negro con acentos naranjas
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFF86704), // Naranja Woki principal
-          secondary: Color(0xFFF86704), // Naranja Woki
-          tertiary: Color(0xFFF86704), // Accent Orange
-          surface: Color(0xFF0F172A), // Negro Woki (fondo principal)
-          onSurface: Color(0xFFFFFFFF), // Blanco para texto
-          surfaceContainerHighest: Color(0xFF1E293B), // Gris oscuro para cards
-          outline: Color(0xFF334155), // Border gris oscuro
-          background: Color(0xFF0F172A), // Fondo negro
-          onBackground: Color(0xFFFFFFFF), // Texto blanco
+        // Sistema de colores moderno estilo OpenTable
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFDA3743), // Rojo principal
+          brightness: Brightness.light,
+          primary: const Color(0xFFDA3743), // Rojo principal OpenTable
+          secondary: const Color(0xFF1B262C), // Azul oscuro para contraste
+          tertiary: const Color(0xFFFF8C42), // Naranja accent
+          surface: const Color(0xFFFFFFFF), // Blanco puro
+          onSurface: const Color(0xFF1B262C), // Texto principal
+          surfaceContainerHighest: const Color(0xFFF8FAFB), // Gris muy claro
+          outline: const Color(0xFFE5E7EB), // Bordes suaves
         ),
-        // Tipografía premium con jerarquía
+        // Tipografía moderna estilo OpenTable
         fontFamily: GoogleFonts.inter().fontFamily,
         textTheme: GoogleFonts.interTextTheme().copyWith(
           displayLarge: GoogleFonts.inter(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-            color: const Color(0xFFFFFFFF),
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: const Color(0xFF1B262C),
           ),
           headlineLarge: GoogleFonts.inter(
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.3,
-            color: const Color(0xFFFFFFFF),
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
+            color: const Color(0xFF1B262C),
           ),
           titleLarge: GoogleFonts.inter(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFFFFFFFF),
+            color: const Color(0xFF1B262C),
           ),
           bodyLarge: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFFE2E8F0),
+            color: const Color(0xFF374151),
             height: 1.5,
           ),
           labelMedium: GoogleFonts.inter(
-            fontSize: 12,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
-            letterSpacing: 0.5,
-            color: const Color(0xFF94A3B8),
+            color: const Color(0xFF6B7280),
           ),
         ),
-        // Botones estilo WOKI - simples y limpios
+        // Botones modernos estilo OpenTable
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFF86704),
+            backgroundColor: const Color(0xFFDA3743),
             foregroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             textStyle: GoogleFonts.inter(
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
             ),
           ),
         ),
-        // Cards estilo WOKI - blancas y limpias
+        // Cards modernas estilo OpenTable
         cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
-          shadowColor: Colors.black.withValues(alpha: 0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.04),
           shape: RoundedRectangleBorder(
             borderRadius: const BorderRadius.all(Radius.circular(12)),
-            side: BorderSide.none,
+            side: BorderSide(
+              color: const Color(0xFFE5E7EB),
+              width: 1,
+            ),
           ),
         ),
-        // AppBar estilo WOKI con fondo oscuro
+        // AppBar moderno y limpio
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.95),
-          foregroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1B262C),
           elevation: 0,
-          scrolledUnderElevation: 8,
-          shadowColor: Colors.black.withValues(alpha: 0.3),
+          scrolledUnderElevation: 1,
+          shadowColor: Colors.black.withValues(alpha: 0.05),
           titleTextStyle: GoogleFonts.inter(
-            color: const Color(0xFFFFFFFF),
+            color: const Color(0xFF1B262C),
             fontSize: 18,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.2,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      home: const SoditaMainScreen(), // Nueva pantalla principal con funcionalidades Woki
+      home: SoditaHome(onLanguageChange: _changeLanguage),
     );
   }
 }
@@ -199,7 +199,7 @@ class _SoditaHomeState extends State<SoditaHome> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: const Color(0xFFF86704),
+          selectedItemColor: const Color(0xFFE53E3E),
           unselectedItemColor: const Color(0xFF9CA3AF),
           selectedLabelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
@@ -370,7 +370,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFF86704).withValues(alpha: 0.2),
+          color: const Color(0xFFE53E3E).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -384,12 +384,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF86704).withValues(alpha: 0.2),
+                    color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.info_outline,
-                    color: Color(0xFFF86704),
+                    color: Color(0xFFFF6B35),
                     size: 20,
                   ),
                 ),
@@ -400,7 +400,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFF86704),
+                      color: const Color(0xFFFF6B35),
                     ),
                   ),
                 ),
@@ -420,7 +420,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF86704).withValues(alpha: 0.1),
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -428,7 +428,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFF86704),
+                  color: const Color(0xFFFF6B35),
                 ),
               ),
             ),
@@ -438,10 +438,202 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
+  // Widget de alertas Mesa Ya! - Optimizado con cache
+  Widget _buildMesaYaAlerts() {
+    return StreamBuilder<int>(
+      stream: Stream.periodic(const Duration(minutes: 1), (_) => DateTime.now().millisecondsSinceEpoch ~/ 60000),
+      builder: (context, streamSnapshot) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: ReservationService.getMesaYaAlerts(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            final alerts = snapshot.data!;
+            
+            // Auto-mostrar modal cuando hay nueva alerta (solo si no hay dialogs abiertos)
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (alerts.isNotEmpty && !Navigator.of(context).canPop()) {
+                _showMesaYaModal(alerts.first);
+              }
+            });
+            
+            return const SizedBox.shrink(); // No mostrar banner, solo modal
+          },
+        );
+      },
+    );
+  }
+
+  // Modal flotante para Mesa Ya!
+  void _showMesaYaModal(Map<String, dynamic> alert) {
+    final data = alert['data'] as Map<String, dynamic>?;
+    final mesaNumero = data?['mesa_numero'] ?? 'N/A';
+    final mesaUbicacion = data?['mesa_ubicacion'] ?? 'N/A';
+    final capacidad = data?['capacidad'] ?? 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF10B981), // Verde éxito
+                Color(0xFF059669),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icono y título
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.restaurant,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '🎉 ¡Mesa Ya! Disponible',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Mesa $mesaNumero ($mesaUbicacion)',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Capacidad: $capacidad personas',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '⚡ Mesa liberada automáticamente',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Botones
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () async {
+                        await ReservationService.markMesaYaAlertAsRead(alert['id']);
+                        Navigator.of(context).pop();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cerrar',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await ReservationService.markMesaYaAlertAsRead(alert['id']);
+                        Navigator.of(context).pop();
+                        // Preseleccionar esta mesa y mostrar formulario
+                        setState(() {
+                          selectedTableNumber = mesaNumero;
+                          selectedTime = TimeOfDay.now();
+                        });
+                        _showReservationForm();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF10B981),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        '🍽️ Reservar Ahora',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFFAFBFC),
       body: CustomScrollView(
         slivers: [
           // AppBar estilo Woki
@@ -471,103 +663,75 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               ),
             ),
             title: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo container con efecto glassmorphism
+                // Logo más grande y centrado
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: const Color(0xFFE2E8F0).withValues(alpha: 0.5),
-                      width: 1,
+                      color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
-                        blurRadius: 12,
-                        offset: const Offset(0, 2),
+                        color: const Color(0xFFE53E3E).withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: const ExactSoditaLogo(
-                    width: 100,
-                    height: 40,
+                    width: 140,
+                    height: 56,
                   ),
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '¡Bienvenido!',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                          letterSpacing: 0.3,
+                // Reloj en tiempo real
+                StreamBuilder<DateTime>(
+                  stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
+                  builder: (context, snapshot) {
+                    final now = DateTime.now();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
+                          width: 1,
                         ),
                       ),
-                      Text(
-                        'Reservá tu experiencia',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0F172A),
-                          letterSpacing: -0.2,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '🇦🇷 ARG',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFFE53E3E),
+                            ),
+                          ),
+                          Text(
+                            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
             actions: [
-              // Reloj de Argentina en tiempo real
-              StreamBuilder<DateTime>(
-                stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
-                builder: (context, snapshot) {
-                  final now = DateTime.now();
-                  // Argentina timezone - usar hora local del sistema
-                  final argTime = now;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF0F172A).withValues(alpha: 0.8),
-                          const Color(0xFF334155).withValues(alpha: 0.6),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0).withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0F172A).withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      '${argTime.hour.toString().padLeft(2, '0')}:${argTime.minute.toString().padLeft(2, '0')}',
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        height: 1.0,
-                      ),
-                    ),
-                  );
-                },
-              ),
               // Botón de idioma premium
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -593,12 +757,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   gradient: LinearGradient(
                     colors: [
                       const Color(0xFFE53E3E).withValues(alpha: 0.1),
-                      const Color(0xFFF86704).withValues(alpha: 0.1),
+                      const Color(0xFFFF6B35).withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFFF86704).withValues(alpha: 0.2),
+                    color: const Color(0xFFE53E3E).withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -644,6 +808,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               delegate: SliverChildListDelegate([
                 _buildTableInfoNotice(),
                 const SizedBox(height: 16),
+                _buildMesaYaAlerts(),
+                const SizedBox(height: 16),
                 _buildRestaurantCard(),
                 const SizedBox(height: 24),
                 _buildDateTimeSelector(),
@@ -664,33 +830,50 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   Widget _buildRestaurantCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            const Color(0xFFF8FAFC),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: const Color(0xFFE53E3E).withValues(alpha: 0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Hero image estilo Woki - más simple
+          // Hero image con overlay sofisticado
           Container(
-            height: 180,
+            height: 220,
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
             child: Stack(
               children: [
                 // Imagen de fondo
                 Container(
                   decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                     image: DecorationImage(
-                      image: const NetworkImage('https://picsum.photos/800/300?random=restaurant'),
+                      image: const NetworkImage('https://picsum.photos/800/400?random=restaurant'),
                       fit: BoxFit.cover,
                       onError: (exception, stackTrace) {
                         // Image loading error handled gracefully
@@ -841,14 +1024,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFFF86704),
+                            const Color(0xFFFF6B35),
                             const Color(0xFFFF8A50),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFF86704).withValues(alpha: 0.3),
+                            color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -1013,7 +1196,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       children: [
                         const Icon(
                           Icons.calendar_today,
-                          color: Color(0xFFF86704),
+                          color: Color(0xFFFF6B35),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -1057,7 +1240,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selectedTime == null 
-                            ? const Color(0xFFF86704) 
+                            ? const Color(0xFFFF6B35) 
                             : const Color(0xFFE5E7EB),
                         width: selectedTime == null ? 2 : 1,
                       ),
@@ -1067,8 +1250,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         Icon(
                           Icons.access_time,
                           color: selectedTime == null 
-                              ? const Color(0xFFF86704)
-                              : const Color(0xFFF86704),
+                              ? const Color(0xFFFF6B35)
+                              : const Color(0xFFFF6B35),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -1090,7 +1273,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 color: selectedTime == null 
-                                    ? const Color(0xFFF86704)
+                                    ? const Color(0xFFFF6B35)
                                     : const Color(0xFF1C1B1F),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1110,14 +1293,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF86704).withValues(alpha: 0.1),
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.info_outline,
-                    color: Color(0xFFF86704),
+                    color: Color(0xFFFF6B35),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -1126,7 +1309,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       'Selecciona una hora para continuar',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: const Color(0xFFF86704),
+                        color: const Color(0xFFFF6B35),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1151,12 +1334,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF86704).withValues(alpha: 0.1),
+                  color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.group_rounded,
-                  color: const Color(0xFFF86704),
+                  color: const Color(0xFFFF6B35),
                   size: 20,
                 ),
               ),
@@ -1204,12 +1387,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   decoration: BoxDecoration(
                     color: partySize <= 2 
                         ? const Color(0xFFF1F5F9) 
-                        : const Color(0xFFF86704).withValues(alpha: 0.1),
+                        : const Color(0xFFFF6B35).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: partySize <= 2 
                           ? const Color(0xFFE2E8F0)
-                          : const Color(0xFFF86704).withValues(alpha: 0.3),
+                          : const Color(0xFFFF6B35).withValues(alpha: 0.3),
                     ),
                   ),
                   child: Material(
@@ -1227,7 +1410,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           Icons.remove,
                           color: partySize <= 2 
                               ? const Color(0xFF9CA3AF)
-                              : const Color(0xFFF86704),
+                              : const Color(0xFFFF6B35),
                           size: 20,
                         ),
                       ),
@@ -1243,14 +1426,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        const Color(0xFFF86704),
+                        const Color(0xFFFF6B35),
                         const Color(0xFFE53E3E),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF86704).withValues(alpha: 0.3),
+                        color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -1289,20 +1472,20 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 // Botón más
                 Container(
                   decoration: BoxDecoration(
-                    color: partySize >= 10 
+                    color: partySize >= 50 
                         ? const Color(0xFFF1F5F9) 
-                        : const Color(0xFFF86704).withValues(alpha: 0.1),
+                        : const Color(0xFFFF6B35).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: partySize >= 10 
+                      color: partySize >= 50 
                           ? const Color(0xFFE2E8F0)
-                          : const Color(0xFFF86704).withValues(alpha: 0.3),
+                          : const Color(0xFFFF6B35).withValues(alpha: 0.3),
                     ),
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: partySize < 10 ? () {
+                      onTap: partySize < 50 ? () {
                         setState(() {
                           partySize++;
                         });
@@ -1312,9 +1495,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         padding: const EdgeInsets.all(12),
                         child: Icon(
                           Icons.add,
-                          color: partySize >= 10 
+                          color: partySize >= 50 
                               ? const Color(0xFF9CA3AF)
-                              : const Color(0xFFF86704),
+                              : const Color(0xFFFF6B35),
                           size: 20,
                         ),
                       ),
@@ -1333,7 +1516,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     if (isLoadingTables) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFF86704),
+          color: Color(0xFFFF6B35),
         ),
       );
     }
@@ -1399,7 +1582,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         : isReserved
                             ? Colors.orange.withValues(alpha: 0.5)
                             : isSelected 
-                                ? const Color(0xFFF86704)
+                                ? const Color(0xFFFF6B35)
                                 : Colors.transparent,
                     width: 2,
                   ),
@@ -1432,7 +1615,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               color: const Color(0xFFF1F5F9),
                               child: const Center(
                                 child: CircularProgressIndicator(
-                                  color: Color(0xFFF86704),
+                                  color: Color(0xFFFF6B35),
                                   strokeWidth: 2,
                                 ),
                               ),
@@ -1447,13 +1630,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                   Icon(
                                     Icons.restaurant,
                                     size: 24,
-                                    color: Color(0xFFF86704),
+                                    color: Color(0xFFFF6B35),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
                                     'Mesa',
                                     style: TextStyle(
-                                      color: Color(0xFFF86704),
+                                      color: Color(0xFFFF6B35),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1573,7 +1756,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                     ? Colors.red.withValues(alpha: 0.8)
                                     : isReserved
                                         ? Colors.orange.withValues(alpha: 0.9)
-                                        : const Color(0xFFF86704),
+                                        : const Color(0xFFFF6B35),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -1640,7 +1823,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             width: 32,
                             height: 32,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFF86704),
+                              color: Color(0xFFFF6B35),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -1669,7 +1852,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         borderRadius: BorderRadius.circular(28),
         gradient: (selectedTableNumber != null && selectedTime != null)
             ? const LinearGradient(
-                colors: [Color(0xFFF86704), Color(0xFFFF8A50)],
+                colors: [Color(0xFFFF6B35), Color(0xFFFF8A50)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
@@ -1756,97 +1939,152 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
-              // Sistema de puntuación mejorado
+              // Sistema de calificación prominente - OpenTable Style
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF86704).withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFF86704).withValues(alpha: 0.2),
-                    width: 1,
-                  ),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFDA3743).withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.star_rate,
-                          color: const Color(0xFFF86704),
-                          size: 20,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDA3743).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.star_rounded,
+                            color: const Color(0xFFDA3743),
+                            size: 24,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 16),
                         Expanded(
-                          child: Text(
-                            '¿Cómo calificarías tu experiencia previa?',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFF86704),
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '¿Cómo fue tu experiencia?',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1B262C),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tu opinión nos ayuda a mejorar',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: const Color(0xFF6C7680),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Opcional - Ayúdanos a mejorar',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     StatefulBuilder(
                       builder: (context, setStateDialog) {
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            final isSelected = index < selectedRating;
-                            return GestureDetector(
-                              onTap: () {
-                                setStateDialog(() {
-                                  selectedRating = index + 1;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(
-                                  isSelected ? Icons.star_rounded : Icons.star_border_rounded,
-                                  color: isSelected 
-                                      ? const Color(0xFFF86704)
-                                      : Colors.grey[400],
-                                  size: isSelected ? 36 : 32,
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8F9FA),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: List.generate(5, (index) {
+                                  final isSelected = index < selectedRating;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setStateDialog(() {
+                                        selectedRating = index + 1;
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 300),
+                                      transform: Matrix4.identity()
+                                        ..scale(isSelected ? 1.1 : 1.0),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isSelected 
+                                              ? const Color(0xFFDA3743).withValues(alpha: 0.1)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          isSelected ? Icons.star_rounded : Icons.star_border_rounded,
+                                          color: isSelected 
+                                              ? const Color(0xFFDA3743)
+                                              : const Color(0xFFBDBDBD),
+                                          size: 32,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                            if (selectedRating > 0) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFDA3743).withValues(alpha: 0.1),
+                                      const Color(0xFFDA3743).withValues(alpha: 0.05),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFFDA3743).withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: const Color(0xFFDA3743),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _getRatingText(selectedRating),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFDA3743),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            );
-                          }),
+                            ],
+                          ],
                         );
                       },
                     ),
-                    if (selectedRating > 0) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF86704).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _getRatingText(selectedRating),
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFF86704),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -1900,7 +2138,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                color: Color(0xFFF86704),
+                color: Color(0xFFFF6B35),
               ),
               SizedBox(height: 16),
               Text(
@@ -1945,6 +2183,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               'customer_rating': rating,
             },
           );
+          
+          // Actualizar estado de mesas y mostrar diálogo de éxito
+          setState(() {
+            selectedTableNumber = null;
+            selectedTime = null;
+          });
+          
+          // Recargar mesas para mostrar la nueva reserva
+          _loadTables();
           
           // Mostrar diálogo de éxito
           _showSuccessDialog(reservation['codigo_confirmacion']);
@@ -2016,7 +2263,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF86704).withValues(alpha: 0.1),
+                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -2217,7 +2464,7 @@ SODITA
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFF86704),
+              primary: Color(0xFFFF6B35),
               onPrimary: Colors.white,
               onSurface: Color(0xFF1C1B1F),
             ),
@@ -2542,7 +2789,7 @@ SODITA
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF86704),
+              backgroundColor: const Color(0xFFFF6B35),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -2566,7 +2813,7 @@ class ReservationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFFAFBFC),
       appBar: AppBar(
         title: Text(
           'Mis Reservas',
@@ -2575,8 +2822,8 @@ class ReservationsPage extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: const Color(0xFF0F172A),
-        foregroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1C1B1F),
         elevation: 0,
       ),
       body: const Center(
@@ -2593,7 +2840,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFFAFBFC),
       appBar: AppBar(
         title: Text(
           'Perfil',
@@ -2602,8 +2849,8 @@ class ProfilePage extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: const Color(0xFF0F172A),
-        foregroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1C1B1F),
         elevation: 0,
       ),
       body: const Center(

@@ -153,7 +153,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -482,7 +482,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
       statusText = 'VENCIDA';
     } else if (isCritical) {
       tableColor = const Color(0xFFF44336); // Rojo Woki
-      statusText = timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : '';
+      statusText = ReservationService.formatTimeRemaining(timeLeft);
     } else if (estado == 'en_mesa') {
       tableColor = const Color(0xFFFF9800); // Naranja Woki
       statusText = 'OCUPADA';
@@ -500,12 +500,12 @@ class _FloorPlanViewState extends State<FloorPlanView> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
-          color: tableColor.withOpacity(0.1),
+          color: tableColor.withValues(alpha: 0.1),
           border: Border.all(color: tableColor, width: 2),
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: tableColor.withOpacity(0.2),
+              color: tableColor.withValues(alpha: 0.2),
               blurRadius: 6,
               offset: const Offset(0, 3),
             ),
