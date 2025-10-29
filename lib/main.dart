@@ -217,6 +217,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   // Timer para actualizaciones automáticas
   Timer? _autoUpdateTimer;
   
+  // OPTIMIZACIÓN: Cache para reserva activa
+  Map<String, dynamic>? _cachedActiveReservation;
+  Timer? _reservationCacheTimer;
+  
   // Analytics instance
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
@@ -225,11 +229,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     super.initState();
     _loadTables();
     _startAutoUpdate();
+    _loadActiveReservationCache(); // Cargar reserva activa una vez
+    _startReservationCacheTimer(); // Timer para actualizar cache cada 10 segundos
   }
 
   @override
   void dispose() {
     _autoUpdateTimer?.cancel();
+    _reservationCacheTimer?.cancel();
     super.dispose();
   }
 
@@ -2916,6 +2923,241 @@ SODITA - Cocina casera, ambiente familiar
       }
     } catch (e) {
       return 'Reciente';
+    }
+  }
+
+  // OPTIMIZACIÓN: Cargar reserva activa en cache
+  Future<void> _loadActiveReservationCache() async {
+    final reservation = await _getUserActiveReservation();
+    if (mounted) {
+      setState(() {
+        _cachedActiveReservation = reservation;
+      });
+    }
+  }
+
+  // Timer para actualizar cache cada 10 segundos (no cada segundo!)
+  void _startReservationCacheTimer() {
+    _reservationCacheTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _loadActiveReservationCache();
+    });
+  }
+
+  // MOSTRAR RESERVA ACTIVA DEL USUARIO CON COUNTDOWN OPTIMIZADO
+  Widget _buildUserActiveReservation() {
+    // USAR CACHE EN LUGAR DE FUTUREBUILDER - MUCHO MÁS RÁPIDO
+    if (_cachedActiveReservation == null) {
+      return const SizedBox.shrink(); // No mostrar nada si no hay reserva activa
+    }
+
+    final reservation = _cachedActiveReservation!;
+    final mesa = reservation['sodita_mesas'];
+    
+    return Container(
+          margin: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.restaurant,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '¡Tu Mesa está Reservada!',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Mesa ${mesa['numero']} • ${mesa['ubicacion']}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // INFORMACIÓN DE LA RESERVA
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hora de llegada',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            Text(
+                              reservation['hora'],
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Personas',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            Text(
+                              '${reservation['personas']}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // COUNTDOWN DIGITAL DEL USUARIO
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ReservationCountdown(
+                        reservationTime: reservation['hora'],
+                        isLarge: true,
+                        onExpired: () {
+                          // Cuando expire, actualizar el estado
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // BOTÓN DE CONTACTO
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _launchWhatsApp(),
+                  icon: const Icon(Icons.phone, size: 18),
+                  label: Text(
+                    'Contactar Restaurante',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF2563EB),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+  }
+
+  // BUSCAR RESERVA ACTIVA DEL USUARIO
+  Future<Map<String, dynamic>?> _getUserActiveReservation() async {
+    try {
+      final response = await ReservationService.getReservationsByDate(DateTime.now());
+      
+      // Buscar una reserva activa (confirmada o en mesa) para mostrar al usuario
+      for (final reservation in response) {
+        final estado = reservation['estado'];
+        if (estado == 'confirmada' || estado == 'en_mesa') {
+          return reservation;
+        }
+      }
+      
+      return null; // No hay reservas activas
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // FUNCIÓN PARA CONTACTAR POR WHATSAPP
+  Future<void> _launchWhatsApp() async {
+    const phoneNumber = '5493411234567'; // Número del restaurante
+    const message = '¡Hola! Tengo una consulta sobre mi reserva en SODITA.';
+    final url = Uri.parse('https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}');
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se puede abrir WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al abrir WhatsApp'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
