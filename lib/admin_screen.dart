@@ -1330,7 +1330,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             setState(() {
               showCalendarView = !showCalendarView;
             });
-            _loadData();
+            // No llamar _loadData() para evitar loops
           },
           tooltip: showCalendarView ? 'Vista Lista' : l10n.calendarView,
         ),
