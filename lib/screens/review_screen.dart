@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/star_rating_widget.dart';
-import '../widgets/animated_card.dart';
-import '../services/user_service.dart';
 import '../supabase_config.dart';
 
 // PANTALLA DE CALIFICACIÓN POST-VISITA ESTILO WOKI
@@ -104,11 +102,7 @@ class _ReviewScreenState extends State<ReviewScreen>
         'fecha': DateTime.now().toIso8601String(),
       });
 
-      // Actualizar reputación del usuario (bonificación por reviewar)
-      await UserService.updateUserReputation(
-        userId: widget.userId,
-        reservationResult: 'reviewed', // Bonificación por dejar review
-      );
+      // TODO: Implementar actualización de reputación del usuario
 
       setState(() {
         _isSubmitted = true;
@@ -198,7 +192,11 @@ class _ReviewScreenState extends State<ReviewScreen>
             const SizedBox(height: 32),
             
             // Calificación con estrellas
-            AnimatedCard(
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -231,7 +229,11 @@ class _ReviewScreenState extends State<ReviewScreen>
             const SizedBox(height: 24),
             
             // Campo de comentario opcional
-            AnimatedCard(
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -333,7 +335,11 @@ class _ReviewScreenState extends State<ReviewScreen>
     final hora = widget.reservationData['hora'] ?? '';
     final personas = widget.reservationData['personas'] ?? 0;
 
-    return AnimatedCard(
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(

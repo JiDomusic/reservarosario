@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 // import 'package:animate_do/animate_do.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'services/reservation_service.dart';
+import 'services/rating_service.dart';
+import 'widgets/reservation_countdown.dart';
+import 'widgets/rating_widget.dart';
 import 'l10n.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -125,7 +128,7 @@ class _AnimatedClockState extends State<AnimatedClock>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _getClockColor().withOpacity(0.3),
+                  color: _getClockColor().withValues(alpha: 0.3),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
@@ -195,7 +198,7 @@ class ClockPainter extends CustomPainter {
 
   void _drawHourMarks(Canvas canvas, Offset center, double radius) {
     final paint = Paint()
-      ..color = clockColor.withOpacity(0.6)
+      ..color = clockColor.withValues(alpha: 0.6)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
@@ -270,7 +273,7 @@ class ClockPainter extends CustomPainter {
       secondAngle,
       radius * 0.8,
       1.0,
-      clockColor.withOpacity(0.8),
+      clockColor.withValues(alpha: 0.8),
     );
     
     // Manecilla de horas (basada en tiempo real)
@@ -312,7 +315,7 @@ class ClockPainter extends CustomPainter {
     if (progress <= 0) return;
     
     final paint = Paint()
-      ..color = clockColor.withOpacity(0.3)
+      ..color = clockColor.withValues(alpha: 0.3)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -363,10 +366,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   late Animation<double> _statsAnimation;
   late Animation<double> _tabAnimation;
   
-  // Sistema de notificaciones automáticas
+  // Sistema de notificaciones automáticas y liberación de reservas
   Timer? _notificationTimer;
+  Timer? _autoReleaseTimer;
   Set<String> _notifiedReservations = {}; // Para evitar duplicados
-  List<String> _criticalAlerts = []; // Lista de alertas activas
+  List<OverlayEntry> _activeAlerts = []; // Alertas flotantes activas
 
   @override
   void initState() {
@@ -391,6 +395,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     
     _loadData();
     _startAutoCheck();
+    _startAutoReleaseSystem();
     
     // Iniciar animaciones
     _statsAnimationController.forward();
@@ -402,6 +407,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     _autoCheckTimer?.cancel();
     _countdownTimer?.cancel();
     _notificationTimer?.cancel();
+    _autoReleaseTimer?.cancel();
+    
+    // Limpiar alertas flotantes
+    for (var alert in _activeAlerts) {
+      alert.remove();
+    }
+    _activeAlerts.clear();
+    
     _statsAnimationController.dispose();
     _tabAnimationController.dispose();
     super.dispose();
@@ -425,6 +438,117 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     // Timer para notificaciones críticas cada 30 segundos
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _checkCriticalReservations();
+    });
+  }
+
+  // Sistema de liberación automática de reservas cada 60 segundos
+  void _startAutoReleaseSystem() {
+    _autoReleaseTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      _processExpiredReservations();
+    });
+  }
+
+  // Procesar reservas expiradas y mostrar alertas
+  Future<void> _processExpiredReservations() async {
+    try {
+      final wasRestaurantFull = await ReservationService.isRestaurantFull();
+      final releasedTables = await ReservationService.processExpiredReservations();
+      
+      for (var reservation in releasedTables) {
+        // Mostrar alerta de reserva expirada
+        _showReservationExpiredAlert(reservation);
+        
+        // Si el restaurante estaba lleno, mostrar alerta de mesa liberada
+        if (wasRestaurantFull) {
+          _showTableReleasedAlert(reservation);
+        }
+      }
+      
+      // Recargar datos si se liberaron reservas
+      if (releasedTables.isNotEmpty) {
+        _loadData();
+      }
+    } catch (e) {
+      print('❌ Error in auto release system: $e');
+    }
+  }
+
+  // Mostrar alerta flotante de reserva expirada
+  void _showReservationExpiredAlert(Map<String, dynamic> reservation) {
+    if (!mounted) return;
+    
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 100,
+        left: 0,
+        right: 0,
+        child: ReservationExpiredAlert(
+          reservationData: reservation,
+          onDismiss: () {
+            overlayEntry.remove();
+            _activeAlerts.remove(overlayEntry);
+          },
+        ),
+      ),
+    );
+    
+    overlay.insert(overlayEntry);
+    _activeAlerts.add(overlayEntry);
+    
+    // Auto-remover después de 10 segundos
+    Timer(const Duration(seconds: 10), () {
+      if (_activeAlerts.contains(overlayEntry)) {
+        overlayEntry.remove();
+        _activeAlerts.remove(overlayEntry);
+      }
+    });
+  }
+
+  // Mostrar alerta flotante de mesa liberada (solo cuando estaba lleno)
+  void _showTableReleasedAlert(Map<String, dynamic> reservation) {
+    if (!mounted) return;
+    
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: 100,
+        left: 0,
+        right: 0,
+        child: TableReleasedAlert(
+          tableData: reservation,
+          onDismiss: () {
+            overlayEntry.remove();
+            _activeAlerts.remove(overlayEntry);
+          },
+          onReserveNow: () {
+            overlayEntry.remove();
+            _activeAlerts.remove(overlayEntry);
+            // Aquí podrías implementar navegación rápida a reserva
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('💡 Funcionalidad de reserva rápida por implementar'),
+                backgroundColor: Colors.blue,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    
+    overlay.insert(overlayEntry);
+    _activeAlerts.add(overlayEntry);
+    
+    // Auto-remover después de 15 segundos
+    Timer(const Duration(seconds: 15), () {
+      if (_activeAlerts.contains(overlayEntry)) {
+        overlayEntry.remove();
+        _activeAlerts.remove(overlayEntry);
+      }
     });
   }
 
@@ -575,7 +699,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   void _showCriticalAlert(String title, String message, Color color, Map<String, dynamic> reservation) {
     if (!mounted) return;
     
-    final mesa = reservation['sodita_mesas'];
     final overlay = Overlay.of(context);
     
     late OverlayEntry overlayEntry;
@@ -712,7 +835,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     print('🔔 Notificación crítica enviada');
   }
 
-  Future<void> _updateReservationStatus(String reservationId, String newStatus) async {
+  Future<void> _updateReservationStatus(String reservationId, String newStatus, [Map<String, dynamic>? reservationData]) async {
     bool success = false;
     
     switch (newStatus) {
@@ -721,6 +844,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         break;
       case 'completada':
         success = await ReservationService.completeReservation(reservationId);
+        if (success && reservationData != null) {
+          // Mostrar dialog de rating después de completar
+          _showRatingDialog(reservationData);
+        }
         break;
       case 'no_show':
         success = await ReservationService.markAsNoShow(reservationId);
@@ -932,7 +1059,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             Text('Reservas Críticas (${criticalReservations.length})'),
           ],
         ),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
             shrinkWrap: true,
@@ -945,11 +1072,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  leading: AnimatedClock(
-                    timeRemaining: timeLeft,
-                    status: 'critical',
-                    size: 48,
-                    showNumbers: true,
+                  leading: ReservationCountdown(
+                    reservationTime: reservation['hora'],
+                    onExpired: () {
+                      // Auto-liberar cuando expire
+                      _processExpiredReservations();
+                    },
                   ),
                   title: Text('Mesa ${mesa['numero']} - ${reservation['nombre']}'),
                   subtitle: Text(
@@ -1900,7 +2028,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           _buildActionButton(
             icon: Icons.restaurant_menu,
             color: Colors.blue,
-            onPressed: () => _updateReservationStatus(reservation['id'], 'completada'),
+            onPressed: () => _updateReservationStatus(reservation['id'], 'completada', reservation),
             tooltip: 'Cliente terminó - Completar reserva',
           ),
         ],
@@ -1927,45 +2055,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon: Icon(icon, size: 18),
           color: color,
           onPressed: onPressed,
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildTimeIndicator(String text, Color color, IconData icon, String tooltip) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 12,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              text,
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -2014,18 +2103,19 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       message: tooltipMessage,
       child: Column(
         children: [
-          AnimatedClock(
-            timeRemaining: timeLeft,
-            status: clockStatus,
-            size: 60.0,
-            showNumbers: true,
+          ReservationCountdown(
+            reservationTime: reservation['hora'],
+            isLarge: true,
+            onExpired: () {
+              _processExpiredReservations();
+            },
           ),
           const SizedBox(height: 4),
           if (timeLeft != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getClockStatusColor(clockStatus).withOpacity(0.1),
+                color: _getClockStatusColor(clockStatus).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -2041,7 +2131,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -2325,6 +2415,43 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             child: const Text('Liberar Ahora', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showRatingDialog(Map<String, dynamic> reservation) {
+    final mesa = reservation['sodita_mesas'];
+    showDialog(
+      context: context,
+      builder: (context) => RatingDialog(
+        reservationId: reservation['id'],
+        customerName: reservation['nombre'] ?? 'Cliente',
+        mesaNumero: mesa?['numero'],
+        onRatingSubmitted: (ratingData) async {
+          final success = await RatingService.createRating(
+            reservationId: ratingData['reservation_id'],
+            customerName: ratingData['customer_name'],
+            stars: ratingData['stars'],
+            comment: ratingData['comment'],
+            mesaNumero: ratingData['mesa_numero'],
+          );
+
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ Valoración guardada exitosamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Error al guardar la valoración'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,6 +9,7 @@ import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
+import 'widgets/reservation_countdown.dart';
 import 'admin_screen.dart';
 
 void main() async {
@@ -210,6 +212,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   List<String> reservedTableIds = [];
   bool isLoadingTables = true;
   
+  // Timer para actualizaciones automáticas
+  Timer? _autoUpdateTimer;
+  
   // Analytics instance
   static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
@@ -217,11 +222,50 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   void initState() {
     super.initState();
     _loadTables();
+    _startAutoUpdate();
   }
 
   @override
   void dispose() {
+    _autoUpdateTimer?.cancel();
     super.dispose();
+  }
+
+  // Iniciar actualización automática cada 30 segundos
+  void _startAutoUpdate() {
+    _autoUpdateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _processExpiredReservationsAndLoadTables();
+    });
+  }
+
+  // Procesar reservas expiradas y actualizar mesas
+  Future<void> _processExpiredReservationsAndLoadTables() async {
+    if (!mounted) return;
+    
+    try {
+      // Procesar reservas expiradas automáticamente
+      final releasedTables = await ReservationService.processExpiredReservations();
+      
+      // Si se liberaron mesas y el restaurante está lleno, mostrar alerta
+      if (releasedTables.isNotEmpty) {
+        final isRestaurantFull = await ReservationService.isRestaurantFull();
+        
+        for (var releasedTable in releasedTables) {
+          if (isRestaurantFull) {
+            _showTableReleasedAlert(releasedTable);
+          }
+          
+          print('🔄 Mesa ${releasedTable['sodita_mesas']['numero']} liberada automáticamente en frontend');
+        }
+      }
+      
+      // Recargar mesas después del procesamiento
+      _loadTables();
+    } catch (e) {
+      print('❌ Error procesando reservas expiradas: $e');
+      // Aún así recargar las mesas
+      _loadTables();
+    }
   }
 
   Future<void> _loadTables() async {
@@ -235,12 +279,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       // Cargar mesas, mesas ocupadas y mesas reservadas en paralelo
       final timeString = selectedTime != null 
           ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
-          : '20:00'; // Hora por defecto para mostrar disponibilidad general
+          : null;
       
       final results = await Future.wait([
         ReservationService.getMesas().timeout(const Duration(seconds: 5)),
         ReservationService.getCurrentlyOccupiedTables(date: selectedDate).timeout(const Duration(seconds: 5)),
-        ReservationService.getOccupiedTables(date: selectedDate, time: timeString).timeout(const Duration(seconds: 5)),
+        // Si no hay hora seleccionada, mostrar todas las reservas del día
+        timeString != null 
+            ? ReservationService.getOccupiedTables(date: selectedDate, time: timeString).timeout(const Duration(seconds: 5))
+            : ReservationService.getAllReservedTablesForDay(date: selectedDate).timeout(const Duration(seconds: 5)),
       ]);
       
       final tables = results[0] as List<Map<String, dynamic>>;
@@ -481,8 +528,23 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 const SizedBox(height: 24),
                 _buildDateTimeSelector(),
                 const SizedBox(height: 24),
-                _buildTableSection(),
+                _buildPartySizeSelector(),
                 const SizedBox(height: 24),
+                _buildTableSectionHeader(),
+                const SizedBox(height: 16),
+              ]),
+            ),
+          ),
+          
+          // Grid de mesas como SliverGrid
+          _buildTableGrid(),
+          
+          // Botón de reserva
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const SizedBox(height: 8),
                 _buildReserveButton(),
               ]),
             ),
@@ -508,29 +570,41 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen del restaurante
+          // Logo del restaurante
           Container(
             height: 200,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              image: DecorationImage(
-                image: const NetworkImage('https://picsum.photos/800/400?random=restaurant'),
-                fit: BoxFit.cover,
-                onError: (exception, stackTrace) {
-                  print('Error cargando imagen del restaurante: $exception');
-                },
-              ),
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              color: Colors.white,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.3),
-                  ],
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Image.asset(
+                  'assets/images/logo color.png',
+                  height: 120,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.restaurant,
+                          size: 48,
+                          color: Color(0xFFFF6B35),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'SODITA',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF6B35),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -559,7 +633,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Cocina casera • Ambiente familiar',
+                            'Restaurante Gourmet • Planta Alta',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -821,19 +895,178 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
-  Widget _buildTableSection() {
-    if (isLoadingTables) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFFFF6B35),
-        ),
-      );
-    }
+  Widget _buildPartySizeSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '👥 Cantidad de Personas',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1C1B1F),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          Row(
+            children: [
+              // Botón decrementar
+              Container(
+                decoration: BoxDecoration(
+                  color: partySize <= 2 ? const Color(0xFFE5E7EB) : const Color(0xFFFF6B35),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: partySize <= 2 ? null : () {
+                    setState(() {
+                      partySize--;
+                      selectedTableNumber = null;
+                      selectedTableId = null;
+                    });
+                  },
+                  icon: const Icon(Icons.remove, color: Colors.white),
+                ),
+              ),
+              
+              // Display del número
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFF6B35),
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(
+                    '$partySize personas',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1C1B1F),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Botón incrementar
+              Container(
+                decoration: BoxDecoration(
+                  color: partySize >= 50 ? const Color(0xFFE5E7EB) : const Color(0xFFFF6B35),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: partySize >= 50 ? null : () {
+                    setState(() {
+                      partySize++;
+                      selectedTableNumber = null;
+                      selectedTableId = null;
+                    });
+                  },
+                  icon: const Icon(Icons.add, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Selector rápido de tamaños comunes
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [2, 4, 6, 8, 10, 15, 20, 30, 50].map((size) {
+              final isSelected = partySize == size;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    partySize = size;
+                    selectedTableNumber = null;
+                    selectedTableId = null;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFFF6B35) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFFF6B35) : const Color(0xFFE5E7EB),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '$size',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Info sobre capacidad total
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFFFF6B35),
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Capacidad total: 50 personas en 10 mesas • Se recomiendan mesas según tu grupo',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: const Color(0xFFFF6B35),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildTableSectionHeader() {
+    String recommendationText = _getTableRecommendation();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Título sección
         Text(
           'Elegí tu mesa',
           style: GoogleFonts.poppins(
@@ -842,24 +1075,113 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             color: const Color(0xFF1C1B1F),
           ),
         ),
-        const SizedBox(height: 16),
-        
-        // Grid de mesas estilo Woki
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.2,
+        if (recommendationText.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.lightbulb_outline,
+                  color: Colors.blue,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    recommendationText,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          itemCount: availableTables.length,
-          itemBuilder: (context, index) {
+        ],
+      ],
+    );
+  }
+
+  // Obtener recomendación de mesa según el tamaño del grupo
+  String _getTableRecommendation() {
+    if (partySize <= 2) {
+      return 'Recomendadas: Mesas para 2 personas (1, 2, 7, 10)';
+    } else if (partySize <= 4) {
+      return 'Recomendadas: Mesas para 4 personas (3, 4, 8, 9)';
+    } else if (partySize <= 6) {
+      return 'Recomendada: Mesa para 6 personas (5)';
+    } else if (partySize <= 8) {
+      return 'Recomendada: Mesa para 8 personas (6)';
+    } else if (partySize <= 12) {
+      return 'Sugerencia: Combinar 2 mesas para 4 personas (3+4 o 8+9)';
+    } else if (partySize <= 16) {
+      return 'Sugerencia: Combinar mesa grande + mesa mediana (6+8 o 5+9)';
+    } else {
+      return 'Grupos grandes: Combinar múltiples mesas. Contacta al restaurante para grupos +20';
+    }
+  }
+
+  // Verificar si una mesa es recomendada para el tamaño del grupo
+  bool _isTableRecommended(Map<String, dynamic> table) {
+    final tableNumber = table['numero'];
+    final capacity = table['capacidad'];
+    
+    if (partySize <= 2) {
+      return capacity == 2; // Mesas 1, 2, 7, 10
+    } else if (partySize <= 4) {
+      return capacity == 4; // Mesas 3, 4, 8, 9
+    } else if (partySize <= 6) {
+      return capacity == 6; // Mesa 5
+    } else if (partySize <= 8) {
+      return capacity == 8; // Mesa 6
+    } else if (partySize <= 12) {
+      return capacity == 4; // Mesas para combinar
+    } else if (partySize <= 16) {
+      return capacity >= 6; // Mesas grandes
+    }
+    return false;
+  }
+
+  Widget _buildTableGrid() {
+    if (isLoadingTables) {
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        sliver: SliverToBoxAdapter(
+          child: SizedBox(
+            height: 200,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFFF6B35),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.2,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
             final table = availableTables[index];
             final isSelected = selectedTableNumber == table['numero'];
             final isOccupied = occupiedTableIds.contains(table['id']);
             final isReserved = reservedTableIds.contains(table['id']);
+            final isRecommended = _isTableRecommended(table);
             final l10n = AppLocalizations.of(context);
             
             return GestureDetector(
@@ -892,8 +1214,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ? Colors.orange.withValues(alpha: 0.5)
                             : isSelected 
                                 ? const Color(0xFFFF6B35)
-                                : Colors.transparent,
-                    width: 2,
+                                : isRecommended
+                                    ? Colors.blue.withValues(alpha: 0.8)
+                                    : Colors.transparent,
+                    width: isRecommended && !isSelected ? 3 : 2,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -912,7 +1236,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   child: Stack(
                     children: [
                       // Imagen de fondo con fallback
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         height: double.infinity,
                         child: Image.network(
@@ -1072,16 +1396,51 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                           ),
                         ),
+                      
+                      // Insignia de mesa recomendada
+                      if (isRecommended && !isSelected && !isOccupied && !isReserved)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.thumb_up,
+                                  color: Colors.white,
+                                  size: 10,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'Ideal',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
             );
           },
+          childCount: availableTables.length,
         ),
-      ],
+      ),
     );
   }
+
 
   Widget _buildReserveButton() {
     return Container(
@@ -1313,6 +1672,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             },
           );
           
+          // Actualizar estado de la mesa inmediatamente
+          setState(() {
+            if (selectedTableId != null) {
+              reservedTableIds.add(selectedTableId!);
+            }
+          });
+          
           // Mostrar diálogo de éxito
           _showSuccessDialog(reservation['codigo_confirmacion']);
         } else {
@@ -1403,6 +1769,35 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       color: Colors.orange,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber, width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    color: Colors.amber[800],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tolerancia de 15 minutos. Pasado ese tiempo, la mesa se libera automáticamente.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.amber[800],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1838,6 +2233,42 @@ SODITA - Cocina casera, ambiente familiar
         ],
       ),
     );
+  }
+
+  // Mostrar alerta flotante cuando se libera una mesa
+  void _showTableReleasedAlert(Map<String, dynamic> tableData) {
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 100,
+        left: 20,
+        right: 20,
+        child: TableReleasedAlert(
+          tableData: tableData,
+          onDismiss: () {
+            // Se elimina automáticamente después de 10 segundos
+          },
+          onReserveNow: () {
+            // Navegar a reserva de esta mesa específica
+            final mesa = tableData['sodita_mesas'];
+            if (mesa != null) {
+              setState(() {
+                selectedTableId = mesa['id'];
+                selectedTableNumber = mesa['numero'];
+              });
+            }
+          },
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Auto-remover después de 10 segundos
+    Timer(const Duration(seconds: 10), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+    });
   }
 }
 
