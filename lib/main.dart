@@ -570,9 +570,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo del restaurante
+          // Logo del restaurante - Extra grande
           Container(
-            height: 200,
+            height: 250,
             decoration: const BoxDecoration(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               color: Colors.white,
@@ -582,8 +582,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 padding: const EdgeInsets.all(20),
                 child: Image.asset(
                   'assets/images/logo color.png',
-                  height: 150,
-                  width: 150,
+                  height: 200,
+                  width: 200,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                   isAntiAlias: true,

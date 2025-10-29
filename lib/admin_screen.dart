@@ -979,29 +979,29 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       automaticallyImplyLeading: false,
       title: Row(
         children: [
-          // Logo HD - Más grande y completo
+          // Logo HD - Extra grande y completo
           Container(
-            width: 80,
-            height: 80,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: Image.asset(
                 'assets/images/logo color.png',
-                width: 80,
-                height: 80,
+                width: 120,
+                height: 120,
                 fit: BoxFit.contain, // Mostrar logo completo sin cortar
                 filterQuality: FilterQuality.high,
                 isAntiAlias: true,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    width: 80,
-                    height: 80,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD2B48C),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Center(
                       child: Text(
