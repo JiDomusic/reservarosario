@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bottleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#66BB6A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#388E3C;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="capGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD54F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFC107;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="labelGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#F5F5F5;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fondo circular -->
+  <circle cx="256" cy="256" r="240" fill="#F86704" stroke="#E65100" stroke-width="8"/>
+  
+  <!-- Botella principal -->
+  <ellipse cx="256" cy="320" rx="80" ry="150" fill="url(#bottleGradient)" stroke="#2E7D32" stroke-width="3"/>
+  
+  <!-- Cuello de la botella -->
+  <rect x="236" y="120" width="40" height="80" fill="url(#bottleGradient)" stroke="#2E7D32" stroke-width="2"/>
+  
+  <!-- Tapa/corcho -->
+  <ellipse cx="256" cy="120" rx="25" ry="15" fill="url(#capGradient)" stroke="#F57F17" stroke-width="2"/>
+  <rect x="231" y="105" width="50" height="20" rx="10" fill="url(#capGradient)" stroke="#F57F17" stroke-width="2"/>
+  
+  <!-- Etiqueta -->
+  <ellipse cx="256" cy="300" rx="60" ry="40" fill="url(#labelGradient)" stroke="#E0E0E0" stroke-width="2"/>
+  
+  <!-- Texto SODITA -->
+  <text x="256" y="295" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#F86704">SODITA</text>
+  <text x="256" y="315" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#666">RESERVAS</text>
+  
+  <!-- Burbujas decorativas -->
+  <circle cx="220" cy="250" r="8" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="290" cy="280" r="6" fill="#FFFFFF" opacity="0.5"/>
+  <circle cx="230" cy="350" r="5" fill="#FFFFFF" opacity="0.4"/>
+  <circle cx="280" cy="380" r="7" fill="#FFFFFF" opacity="0.5"/>
+  
+  <!-- Reflejo en la botella -->
+  <ellipse cx="240" cy="280" rx="15" ry="60" fill="#FFFFFF" opacity="0.3"/>
+  
+  <!-- Sombra -->
+  <ellipse cx="256" cy="480" rx="60" ry="12" fill="#000000" opacity="0.2"/>
+</svg>
