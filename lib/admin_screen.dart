@@ -1148,7 +1148,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               child: Column(
                 children: [
                   _buildFilterTabs(l10n),
-                  Expanded(
+                  Flexible(
                     child: RefreshIndicator(
                       onRefresh: () async {
                         print('📱 Manual refresh: Usuario actualizando admin...');
