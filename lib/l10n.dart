@@ -110,6 +110,14 @@ class AppLocalizations {
       'table_reserved': 'Mesa Reservada',
       'table_reserved_message': 'Esta mesa ya está reservada para hoy. Por favor elige otra mesa disponible.',
       'choose_another_table': 'Elegir otra mesa',
+      'analytics': 'Análisis',
+      'ratings': 'Valoraciones',
+      'reservations': 'Reservas',
+      'comments': 'Comentarios',
+      'last_7_days_menu': 'Últimos 7 días',
+      'last_15_days_menu': 'Últimos 15 días',
+      'last_30_days_menu': 'Últimos 30 días',
+      'last_90_days_menu': 'Últimos 90 días',
     },
     'en': {
       'app_title': 'SODITA - Reservations',
@@ -206,6 +214,14 @@ class AppLocalizations {
       'table_reserved': 'Table Reserved',
       'table_reserved_message': 'This table is already reserved for today. Please choose another available table.',
       'choose_another_table': 'Choose another table',
+      'analytics': 'Analytics',
+      'ratings': 'Ratings',
+      'reservations': 'Reservations',
+      'comments': 'Comments',
+      'last_7_days_menu': 'Last 7 days',
+      'last_15_days_menu': 'Last 15 days',
+      'last_30_days_menu': 'Last 30 days',
+      'last_90_days_menu': 'Last 90 days',
     },
     'zh': {
       'app_title': 'SODITA - 预订',
@@ -302,6 +318,14 @@ class AppLocalizations {
       'table_reserved': '餐桌已预订',
       'table_reserved_message': '这张餐桌今天已经被预订了。请选择其他可用餐桌。',
       'choose_another_table': '选择其他餐桌',
+      'analytics': '分析',
+      'ratings': '评分',
+      'reservations': '预订',
+      'comments': '评论',
+      'last_7_days_menu': '最近7天',
+      'last_15_days_menu': '最近15天',
+      'last_30_days_menu': '最近30天',
+      'last_90_days_menu': '最近90天',
     },
   };
 
@@ -385,6 +409,14 @@ class AppLocalizations {
   String get tableReserved => translate('table_reserved');
   String get tableReservedMessage => translate('table_reserved_message');
   String get chooseAnotherTable => translate('choose_another_table');
+  String get analytics => translate('analytics');
+  String get ratings => translate('ratings');
+  String get reservations => translate('reservations');
+  String get comments => translate('comments');
+  String get last7DaysMenu => translate('last_7_days_menu');
+  String get last15DaysMenu => translate('last_15_days_menu');
+  String get last30DaysMenu => translate('last_30_days_menu');
+  String get last90DaysMenu => translate('last_90_days_menu');
 
   // Días de la semana
   String getDayName(int weekday) {

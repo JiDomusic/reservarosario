@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../services/analytics_service.dart';
 import '../services/rating_service.dart';
 import '../services/reservation_service.dart';
 import '../widgets/rating_widget.dart';
+import '../l10n.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -40,14 +42,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     });
 
     try {
-      final ratingStats = await RatingService.getRatingStatistics(_selectedDays);
-      final reservationStats = await ReservationService.getReservationStats(_selectedDays);
-      final recentRatings = await RatingService.getRecentRatings();
+      final realTimeMetrics = await AnalyticsService.getRealTimeMetrics();
+      final trendAnalysis = await AnalyticsService.getTrendAnalysis(days: _selectedDays);
 
       setState(() {
-        _ratingStats = ratingStats;
-        _reservationStats = reservationStats;
-        _recentRatings = recentRatings;
+        _ratingStats = realTimeMetrics['usuarios'] ?? {};
+        _reservationStats = realTimeMetrics['reservas'] ?? {};
+        _recentRatings = [];
         _isLoading = false;
       });
     } catch (e) {
@@ -69,7 +70,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: Text(
-          'Analytics',
+          AppLocalizations.of(context).analytics,
           style: GoogleFonts.poppins(
             fontSize: 24,
             fontWeight: FontWeight.w700,
@@ -89,23 +90,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               _loadAnalytics();
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 7, child: Text('Últimos 7 días')),
-              const PopupMenuItem(value: 15, child: Text('Últimos 15 días')),
-              const PopupMenuItem(value: 30, child: Text('Últimos 30 días')),
-              const PopupMenuItem(value: 90, child: Text('Últimos 90 días')),
+              PopupMenuItem(value: 7, child: Text(AppLocalizations.of(context).last7DaysMenu)),
+              PopupMenuItem(value: 15, child: Text(AppLocalizations.of(context).last15DaysMenu)),
+              PopupMenuItem(value: 30, child: Text(AppLocalizations.of(context).last30DaysMenu)),
+              PopupMenuItem(value: 90, child: Text(AppLocalizations.of(context).last90DaysMenu)),
             ],
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Valoraciones', icon: Icon(Icons.star)),
-            Tab(text: 'Reservas', icon: Icon(Icons.analytics)),
-            Tab(text: 'Comentarios', icon: Icon(Icons.chat_bubble)),
+          tabs: [
+            Tab(text: AppLocalizations.of(context).ratings, icon: const Icon(Icons.star)),
+            Tab(text: AppLocalizations.of(context).reservations, icon: const Icon(Icons.analytics)),
+            Tab(text: AppLocalizations.of(context).comments, icon: const Icon(Icons.chat_bubble)),
           ],
-          labelColor: const Color(0xFFFF6B35),
+          labelColor: const Color(0xFFDC2626),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFFFF6B35),
+          indicatorColor: const Color(0xFFDC2626),
         ),
       ),
       body: _isLoading
@@ -460,7 +461,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                     'Tasa No Show',
                     '$tasaNoShows%',
                     Icons.trending_down,
-                    Colors.orange,
+                    const Color(0xFF2563EB),
                   ),
                 ),
               ],
@@ -578,7 +579,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               children: [
                 Icon(
                   Icons.warning,
-                  color: tasaNoShow > 15 ? Colors.red : tasaNoShow > 10 ? Colors.orange : Colors.green,
+                  color: tasaNoShow > 15 ? Colors.red : tasaNoShow > 10 ? const Color(0xFF2563EB) : Colors.green,
                   size: 32,
                 ),
                 const SizedBox(width: 16),
@@ -591,7 +592,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                         style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: tasaNoShow > 15 ? Colors.red : tasaNoShow > 10 ? Colors.orange : Colors.green,
+                          color: tasaNoShow > 15 ? Colors.red : tasaNoShow > 10 ? const Color(0xFF2563EB) : Colors.green,
                         ),
                       ),
                       Text(

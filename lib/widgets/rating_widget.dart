@@ -52,7 +52,7 @@ class _StarRatingState extends State<StarRating> {
               index < _currentRating ? Icons.star : Icons.star_border,
               size: widget.size,
               color: index < _currentRating
-                  ? (widget.activeColor ?? const Color(0xFFFFC107))
+                  ? (widget.activeColor ?? const Color(0xB3DC0B3F))
                   : (widget.inactiveColor ?? Colors.grey[300]),
             ),
           ),
@@ -89,7 +89,7 @@ class RatingCard extends StatelessWidget {
               children: [
                 if (showCustomerInfo) ...[
                   CircleAvatar(
-                    backgroundColor: const Color(0xFFFF6B35),
+                    backgroundColor: const Color(0xFFA10319),
                     radius: 20,
                     child: Text(
                       (rating['customer_name'] ?? 'A')[0].toUpperCase(),
@@ -245,7 +245,7 @@ class _RatingDialogState extends State<RatingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor selecciona una calificación'),
-          backgroundColor: Colors.orange,
+          backgroundColor: const Color(0xFF2563EB),
         ),
       );
       return;
@@ -330,7 +330,7 @@ class _RatingDialogState extends State<RatingDialog> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFFF6B35)),
+                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
                 ),
               ),
             ),
@@ -355,7 +355,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submitRating,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B35),
+                      backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(

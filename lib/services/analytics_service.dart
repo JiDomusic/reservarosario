@@ -21,9 +21,9 @@ class AnalyticsService {
       final now = DateTime.now();
       final today = now.toIso8601String().split('T')[0];
       
-      // Usar cache si es reciente (último minuto)
+      // Usar cache si es reciente (últimos 30 segundos)
       if (_lastMetricsUpdate != null && 
-          now.difference(_lastMetricsUpdate!).inSeconds < 60) {
+          now.difference(_lastMetricsUpdate!).inSeconds < 30) {
         return _metricsCache;
       }
 

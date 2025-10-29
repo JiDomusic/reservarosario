@@ -72,10 +72,10 @@ class _SoditaAppState extends State<SoditaApp> {
         useMaterial3: true,
         // Colores exactos de Woki
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF6B35), // Naranja Woki
+          seedColor: const Color(0xFF2563EB), // Azul
           brightness: Brightness.light,
-          primary: const Color(0xFFFF6B35),
-          surface: const Color(0xFFFFFBFF),
+          primary: const Color(0xFF2563EB),
+          surface: const Color(0xFFFD0029),
           onSurface: const Color(0xFF1C1B1F),
         ),
         // Tipografía moderna Woki
@@ -84,7 +84,7 @@ class _SoditaAppState extends State<SoditaApp> {
         // Botones estilo Woki 2025
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF6B35),
+            backgroundColor: const Color(0xFFA10319),
             foregroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
@@ -164,7 +164,7 @@ class _SoditaHomeState extends State<SoditaHome> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: const Color(0xFFFF6B35),
+          selectedItemColor: const Color(0xFFDC2626),
           unselectedItemColor: const Color(0xFF9CA3AF),
           selectedLabelStyle: GoogleFonts.poppins(
             fontWeight: FontWeight.w600,
@@ -374,15 +374,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFFFF6B35).withValues(alpha: 0.1),
-            const Color(0xFFFF8A50).withValues(alpha: 0.05),
+            const Color(0xFF2563EB).withValues(alpha: 0.1),
+            const Color(0xFF3B82F6).withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+          color: const Color(0xFF2563EB).withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -396,12 +396,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B35).withValues(alpha: 0.2),
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.info_outline,
-                    color: Color(0xFFFF6B35),
+                    color: Color(0xFF2563EB),
                     size: 20,
                   ),
                 ),
@@ -412,7 +412,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFFF6B35),
+                      color: const Color(0xFF2563EB),
                     ),
                   ),
                 ),
@@ -432,7 +432,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -440,7 +440,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 style: GoogleFonts.poppins(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFFF6B35),
+                  color: const Color(0xFF2563EB),
                 ),
               ),
             ),
@@ -586,10 +586,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 padding: const EdgeInsets.all(20),
                 child: Image.asset(
                   'assets/images/logo color.png',
-                  height: 200,
-                  width: 200,
+                  height: 500,
+                  width: 500,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
+
                   isAntiAlias: true,
                   errorBuilder: (context, error, stackTrace) {
                     return const Column(
@@ -598,7 +599,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         Icon(
                           Icons.restaurant,
                           size: 48,
-                          color: Color(0xFFFF6B35),
+                          color: Color(0xB3DC0B3F),
                         ),
                         SizedBox(height: 8),
                         Text(
@@ -606,7 +607,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF6B35),
+                            color: Color(0xFF2563EB),
                           ),
                         ),
                       ],
@@ -653,7 +654,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -662,7 +663,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           const Icon(
                             Icons.star,
                             size: 16,
-                            color: Color(0xFFFF6B35),
+                            color: Color(0xFF2563EB),
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -670,7 +671,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFF6B35),
+                              color: const Color(0xFF2563EB),
                             ),
                           ),
                         ],
@@ -775,7 +776,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       children: [
                         const Icon(
                           Icons.calendar_today,
-                          color: Color(0xFFFF6B35),
+                          color: Color(0xFF2563EB),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -819,7 +820,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: selectedTime == null 
-                            ? const Color(0xFFFF6B35) 
+                            ? const Color(0xFF2563EB) 
                             : const Color(0xFFE5E7EB),
                         width: selectedTime == null ? 2 : 1,
                       ),
@@ -829,8 +830,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         Icon(
                           Icons.access_time,
                           color: selectedTime == null 
-                              ? const Color(0xFFFF6B35)
-                              : const Color(0xFFFF6B35),
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF2563EB),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -852,7 +853,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 color: selectedTime == null 
-                                    ? const Color(0xFFFF6B35)
+                                    ? const Color(0xFF2563EB)
                                     : const Color(0xFF1C1B1F),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -872,14 +873,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.info_outline,
-                    color: Color(0xFFFF6B35),
+                    color: Color(0xFF2563EB),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -888,7 +889,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                       'Selecciona una hora para continuar',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: const Color(0xFFFF6B35),
+                        color: const Color(0xFF2563EB),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -934,7 +935,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               // Botón decrementar
               Container(
                 decoration: BoxDecoration(
-                  color: partySize <= 2 ? const Color(0xFFE5E7EB) : const Color(0xFFFF6B35),
+                  color: partySize <= 2 ? const Color(0xFFE5E7EB) : const Color(0xFFDC2626),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -958,7 +959,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFFF6B35),
+                      color: const Color(0xFF2563EB),
                       width: 2,
                     ),
                   ),
@@ -977,7 +978,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               // Botón incrementar
               Container(
                 decoration: BoxDecoration(
-                  color: partySize >= 50 ? const Color(0xFFE5E7EB) : const Color(0xFFFF6B35),
+                  color: partySize >= 50 ? const Color(0xFFE5E7EB) : const Color(0xFFDC2626),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -1013,10 +1014,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFFF6B35) : const Color(0xFFF1F5F9),
+                    color: isSelected ? const Color(0xFFDC2626) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFFF6B35) : const Color(0xFFE5E7EB),
+                      color: isSelected ? const Color(0xFFDC2626) : const Color(0xFFE5E7EB),
                       width: 1,
                     ),
                   ),
@@ -1039,14 +1040,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.info_outline,
-                  color: Color(0xFFFF6B35),
+                  color: Color(0xFF2563EB),
                   size: 16,
                 ),
                 const SizedBox(width: 8),
@@ -1055,7 +1056,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     'Capacidad total: 50 personas en 10 mesas • Se recomiendan mesas según tu grupo',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: const Color(0xFFFF6B35),
+                      color: const Color(0xFF2563EB),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1165,7 +1166,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             height: 200,
             child: const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFFFF6B35),
+                color: Color(0xFF2563EB),
               ),
             ),
           ),
@@ -1220,7 +1221,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                         : isReserved
                             ? Colors.orange.withValues(alpha: 0.5)
                             : isSelected 
-                                ? const Color(0xFFFF6B35)
+                                ? const Color(0xB3DC0B3F)
                                 : isRecommended
                                     ? Colors.blue.withValues(alpha: 0.8)
                                     : Colors.transparent,
@@ -1255,7 +1256,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               color: const Color(0xFFF1F5F9),
                               child: const Center(
                                 child: CircularProgressIndicator(
-                                  color: Color(0xFFFF6B35),
+                                  color: Color(0xFF2563EB),
                                   strokeWidth: 2,
                                 ),
                               ),
@@ -1270,13 +1271,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                   Icon(
                                     Icons.restaurant,
                                     size: 24,
-                                    color: Color(0xFFFF6B35),
+                                    color: Color(0xFF2563EB),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
                                     'Mesa',
                                     style: TextStyle(
-                                      color: Color(0xFFFF6B35),
+                                      color: Color(0xFF2563EB),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1326,7 +1327,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                     ? Colors.red.withValues(alpha: 0.8)
                                     : isReserved
                                         ? Colors.orange.withValues(alpha: 0.9)
-                                        : const Color(0xFFFF6B35),
+                                        : const Color(0xFF2563EB),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
@@ -1393,7 +1394,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             width: 32,
                             height: 32,
                             decoration: const BoxDecoration(
-                              color: Color(0xFFFF6B35),
+                              color: Color(0xFF2563EB),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -1457,7 +1458,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         borderRadius: BorderRadius.circular(28),
         gradient: (selectedTableNumber != null && selectedTime != null)
             ? const LinearGradient(
-                colors: [Color(0xFFFF6B35), Color(0xFFFF8A50)],
+                colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               )
@@ -1551,11 +1552,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   Text(
                     '¿Cómo calificarías tu experiencia previa? (opcional)',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   StatefulBuilder(
                     builder: (context, setStateDialog) {
                       return Row(
@@ -1572,7 +1573,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 index < selectedRating 
                                     ? Icons.star 
                                     : Icons.star_border,
-                                color: const Color(0xFFFF6B35),
+                                color: const Color(0xB3DC0B3F),
                                 size: 32,
                               ),
                             ),
@@ -1633,9 +1634,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                color: Color(0xFFFF6B35),
+                color: Color(0xB3DC0B3F),
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 18),
               Text(
                 'Creando tu reserva...',
                 style: TextStyle(color: Colors.white),
@@ -1756,7 +1757,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -2161,7 +2162,7 @@ SODITA - Cocina casera, ambiente familiar
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFFF6B35),
+              primary: Color(0xFFDC2626),
               onPrimary: Colors.white,
               onSurface: Color(0xFF1C1B1F),
             ),
@@ -2477,7 +2478,7 @@ SODITA - Cocina casera, ambiente familiar
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
+              backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

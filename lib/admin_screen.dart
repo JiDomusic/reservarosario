@@ -122,7 +122,7 @@ class _AnimatedClockState extends State<AnimatedClock>
             height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
+              color: Colors.black12,
               border: Border.all(
                 color: _getClockColor(),
                 width: 2,
@@ -364,7 +364,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   // Controladores de animación
   late AnimationController _statsAnimationController;
   late AnimationController _tabAnimationController;
-  late Animation<double> _statsAnimation;
   late Animation<double> _tabAnimation;
   
   // Sistema de notificaciones automáticas y liberación de reservas
@@ -387,9 +386,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       vsync: this,
     );
     
-    _statsAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _statsAnimationController, curve: Curves.easeOutBack),
-    );
     _tabAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _tabAnimationController, curve: Curves.easeInOut),
     );
@@ -487,12 +483,32 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         top: 100,
         left: 0,
         right: 0,
-        child: ReservationExpiredAlert(
-          reservationData: reservation,
-          onDismiss: () {
-            overlayEntry.remove();
-            _activeAlerts.remove(overlayEntry);
-          },
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('⚠️ Reserva Expirada', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                Text('Mesa ${reservation['sodita_mesas']['numero']} - ${reservation['nombre']}'),
+                ElevatedButton(
+                  onPressed: () {
+                    overlayEntry.remove();
+                    _activeAlerts.remove(overlayEntry);
+                  },
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -521,23 +537,54 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         bottom: 100,
         left: 0,
         right: 0,
-        child: TableReleasedAlert(
-          tableData: reservation,
-          onDismiss: () {
-            overlayEntry.remove();
-            _activeAlerts.remove(overlayEntry);
-          },
-          onReserveNow: () {
-            overlayEntry.remove();
-            _activeAlerts.remove(overlayEntry);
-            // Aquí podrías implementar navegación rápida a reserva
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('💡 Funcionalidad de reserva rápida por implementar'),
-                backgroundColor: Colors.blue,
-              ),
-            );
-          },
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('✅ Mesa Liberada', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                Text('Mesa ${reservation['sodita_mesas']['numero']} disponible'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          overlayEntry.remove();
+                          _activeAlerts.remove(overlayEntry);
+                        },
+                        child: const Text('Cerrar'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          overlayEntry.remove();
+                          _activeAlerts.remove(overlayEntry);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('💡 Funcionalidad de reserva rápida por implementar'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
+                        child: const Text('Reservar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -571,17 +618,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           isLoading = false;
         });
       } else {
-        // Cargar TODAS las reservas del día actual
+        // Cargar SOLO las reservas activas del día actual (excluyendo completadas/no_show de días anteriores)
         final today = DateTime.now();
         final todaysReservations = await ReservationService.getReservationsByDate(today);
-        final todayStats = await _calculateTodayStats(todaysReservations);
+        final activeReservations = _filterActiveReservations(todaysReservations, today);
+        final todayStats = await _calculateTodayStats(activeReservations);
         
-        print('🔍 Admin: Cargadas ${todaysReservations.length} reservas para hoy');
-        print('📋 Reservas: ${todaysReservations.map((r) => '${r['nombre']} - Mesa ${r['sodita_mesas']['numero']} - ${r['estado']}').toList()}');
+        print('🔍 Admin: Cargadas ${todaysReservations.length} reservas totales para hoy');
+        print('🔍 Admin: Filtradas ${activeReservations.length} reservas activas');
+        print('📋 Reservas: ${activeReservations.map((r) => '${r['nombre']} - Mesa ${r['sodita_mesas']['numero']} - ${r['estado']}').toList()}');
+        print('⏰ Reservas confirmadas: ${activeReservations.where((r) => r['estado'] == 'confirmada').length}');
+        print('📊 Stats calculadas: $todayStats');
         
         setState(() {
-          reservations = todaysReservations; // TODAS las reservas del día
-          stats = todayStats; // Estadísticas completas del día
+          reservations = activeReservations; // Solo reservas activas del día
+          stats = todayStats; // Estadísticas de reservas activas
           isLoading = false;
         });
       }
@@ -596,6 +647,34 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   Future<void> _autoMarkNoShows() async {
     await ReservationService.autoMarkNoShow();
     _loadData(); // Recargar después de marcar no_shows
+  }
+  
+  /// Filtrar reservas activas para mostrar en la vista de lista del admin
+  /// Solo muestra reservas relevantes para el día actual:
+  /// - Confirmadas (esperando cliente)
+  /// - En mesa (clientes presentes)
+  /// - Completadas del día actual (para seguimiento)
+  /// - No shows del día actual (para estadísticas)
+  List<Map<String, dynamic>> _filterActiveReservations(List<Map<String, dynamic>> allReservations, DateTime today) {
+    final todayStr = today.toIso8601String().split('T')[0];
+    
+    return allReservations.where((reservation) {
+      final reservationDate = reservation['fecha'];
+      final estado = reservation['estado'];
+      
+      // Si es del día actual, mostrar todos los estados
+      if (reservationDate == todayStr) {
+        return true;
+      }
+      
+      // Si es de días anteriores, solo mostrar estados activos (confirmadas, en_mesa)
+      // Las completadas y no_show de días anteriores se ocultan pero quedan en BD para calendario
+      if (estado == 'confirmada' || estado == 'en_mesa') {
+        return true;
+      }
+      
+      return false;
+    }).toList();
   }
   
   Future<Map<String, dynamic>> _calculateTodayStats(List<Map<String, dynamic>> todayReservations) async {
@@ -848,10 +927,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         break;
       case 'completada':
         success = await ReservationService.completeReservation(reservationId);
-        if (success && reservationData != null) {
-          // Mostrar dialog de rating después de completar
-          _showRatingDialog(reservationData);
-        }
+        // Rating removido - no es necesario en admin
         break;
       case 'no_show':
         success = await ReservationService.markAsNoShow(reservationId);
@@ -1006,38 +1082,51 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   Future<void> _testTimezoneAndExpiration() async {
     final now = DateTime.now();
     
-    // Crear una reserva de prueba para dentro de 2 minutos
-    final testTime = now.add(const Duration(minutes: 2));
-    final testTimeString = '${testTime.hour.toString().padLeft(2, '0')}:${testTime.minute.toString().padLeft(2, '0')}';
-    
-    print('🧪 TEST SISTEMA LIBERACIÓN AUTOMÁTICA:');
+    print('🧪 TEST SISTEMA LIBERACIÓN AUTOMÁTICA - RESERVAS REALES:');
     print('⏰ Hora actual Argentina: ${now.toString()}');
     print('🕒 Zona horaria: ${now.timeZoneName} (${now.timeZoneOffset})');
     print('📅 Fecha: ${now.toIso8601String().split('T')[0]}');
-    print('🎯 Simulación: Cliente reserva $testTimeString, no llega');
-    print('⏱️ A las ${testTime.add(const Duration(minutes: 15)).hour}:${testTime.add(const Duration(minutes: 15)).minute.toString().padLeft(2, '0')} se libera automáticamente');
+    print('');
     
-    // Test del sistema de expiración
-    final timeToExpiration = ReservationService.getTimeUntilExpirationSeconds(testTimeString);
-    final statusTest = ReservationService.getReservationStatus(testTimeString);
+    // Verificar reservas reales del día
+    final todayReservations = await ReservationService.getReservationsByDate(now);
+    print('📋 Reservas del día: ${todayReservations.length}');
     
-    print('⏱️ Segundos hasta expiración: $timeToExpiration');
-    print('📊 Estado reserva: $statusTest');
+    for (var reservation in todayReservations) {
+      if (reservation['estado'] == 'confirmada') {
+        final hora = reservation['hora'];
+        final timeToExpiration = ReservationService.getTimeUntilExpirationSeconds(hora);
+        final statusTest = ReservationService.getReservationStatus(hora);
+        
+        print('👤 ${reservation['nombre']} - Mesa ${reservation['sodita_mesas']['numero']}');
+        print('⏰ Hora reserva: $hora');
+        print('⏱️ Tiempo restante: ${timeToExpiration != null ? '${(timeToExpiration / 60).floor()} min ${timeToExpiration % 60} seg' : 'No iniciado/Expirado'}');
+        print('📊 Estado: $statusTest');
+        print('---');
+      }
+    }
     
-    // Verificar sistema automático
+    // Verificar sistema automático de liberación
     final expiredReservations = await ReservationService.getExpiredReservations();
     print('🔍 Reservas expiradas encontradas: ${expiredReservations.length}');
+    
+    if (expiredReservations.isNotEmpty) {
+      print('🚨 RESERVAS EXPIRADAS:');
+      for (var expired in expiredReservations) {
+        print('💀 ${expired['nombre']} - Mesa ${expired['sodita_mesas']['numero']} - Hora: ${expired['hora']}');
+      }
+    }
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '🇦🇷 HORA ARGENTINA TEST:\n'
+            '🇦🇷 TEST SISTEMA REAL:\n'
             '⏰ ${now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.timeZoneName}\n'
             '📅 ${now.day}/${now.month}/${now.year}\n'
-            '🎯 Test: $testTimeString (en 2 min)\n'
-            '⏱️ Sistema expiración: ${timeToExpiration != null ? 'OK' : 'ERROR'}\n'
-            '🔍 Reservas expiradas: ${expiredReservations.length}'
+            '📋 Reservas del día: ${todayReservations.length}\n'
+            '🔍 Reservas expiradas: ${expiredReservations.length}\n'
+            '✅ Sistema funcionando con HORA REAL'
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 8),
@@ -1077,11 +1166,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(12.0),
                           child: Column(
                             children: [
                               _buildStatsCard(l10n),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               showCalendarView 
                                   ? _buildCalendarView(l10n)
                                   : _buildReservationsList(l10n),
@@ -1100,12 +1189,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   PreferredSizeWidget _buildAppBar(AppLocalizations l10n) {
     return AppBar(
       backgroundColor: const Color(0xFFF5F2E8),
-      foregroundColor: const Color(0xFF6B4E3D),
+      foregroundColor: const Color(0xFF1C1B1F),
       elevation: 0,
       leading: IconButton(
         icon: const Icon(
           Icons.arrow_back,
-          color: Color(0xFF8B4513),
+          color: Color(0xFFC1263C),
           size: 24,
         ),
         onPressed: () {
@@ -1126,8 +1215,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
                 'assets/images/logo color.png',
-                width: 50,
-                height: 50,
+                width: 80,
+                height: 80,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 isAntiAlias: true,
@@ -1143,7 +1232,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                       child: Text(
                         'S',
                         style: TextStyle(
-                          color: Color(0xFF8B4513),
+                          color: Color(0xFFA10319),
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1161,7 +1250,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF8B4513),
+                color: const Color(0xFFA10319),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -1178,7 +1267,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             },
             icon: const Icon(
               Icons.home,
-              color: Color(0xFF8B4513),
+              color: Color(0xFFA10319),
               size: 20,
             ),
             label: Text(
@@ -1190,7 +1279,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               ),
             ),
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFD2B48C).withOpacity(0.3),
+              backgroundColor: const Color(0xB3DC0B3F),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1214,7 +1303,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               size: 20,
             ),
             label: Text(
-              'Analytics',
+              l10n.analytics,
               style: GoogleFonts.poppins(
                 color: const Color(0xFF8B4513),
                 fontWeight: FontWeight.w600,
@@ -1222,7 +1311,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               ),
             ),
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFD2B48C).withOpacity(0.3),
+              backgroundColor: const Color(0xB3DC0B3F).withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1263,7 +1352,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           tooltip: 'Test Timezone Argentina',
         ),
         IconButton(
-          icon: const Icon(Icons.schedule),
+          icon: const Icon(Icons.person_off),
           onPressed: _autoMarkNoShows,
           tooltip: 'Marcar No-Shows',
         ),
@@ -1483,52 +1572,54 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
   
   Widget _buildStatsCard(AppLocalizations l10n) {
+    print('🔍 STATS DEBUG: $stats');
+    print('🔍 RESERVATIONS DEBUG: ${reservations.length}');
     return Container(
       margin: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Dashboard Overview',
+            'Reservas de Hoy',
             style: GoogleFonts.poppins(
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF8B4513),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 2.5,
+            crossAxisCount: 4,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1.2,
             children: [
               _buildDashboardCard(
-                'Reservas Totales',
-                '${stats['total_reservations'] ?? 0}',
+                'Reservas Hoy',
+                '${stats['total'] ?? reservations.length}',
                 Icons.event_note,
                 const Color(0xFFE6F3FF),
                 const Color(0xFF4A90E2),
               ),
               _buildDashboardCard(
-                'Clientes Atendidos',
-                '${stats['completed_reservations'] ?? 0}',
+                'Completadas',
+                '${stats['completadas'] ?? reservations.where((r) => r['estado'] == 'completada').length}',
                 Icons.people,
                 const Color(0xFFE8F5E8),
                 const Color(0xFF4CAF50),
               ),
               _buildDashboardCard(
                 'Mesas Ocupadas',
-                '${stats['occupied_tables'] ?? 0}',
+                '${stats['occupied_tables'] ?? reservations.where((r) => r['estado'] == 'en_mesa').length}',
                 Icons.table_restaurant,
                 const Color(0xFFFFF3E0),
                 const Color(0xFFFF9800),
               ),
               _buildDashboardCard(
-                'Valoración Promedio',
-                '${(stats['average_rating'] ?? 0.0).toStringAsFixed(1)}⭐',
+                'En Mesa',
+                '${stats['en_mesa'] ?? reservations.where((r) => r['estado'] == 'en_mesa').length}',
                 Icons.star,
                 const Color(0xFFFFF8E1),
                 const Color(0xFFFFD700),
@@ -1542,43 +1633,25 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
 
   Widget _buildDashboardCard(String title, String value, IconData icon, Color bgColor, Color iconColor) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: iconColor.withOpacity(0.2)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(
-                icon,
-                color: iconColor,
-                size: 24,
-              ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  Icons.trending_up,
-                  color: iconColor,
-                  size: 12,
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            color: iconColor,
+            size: 16,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 24,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
               color: iconColor,
             ),
@@ -1586,188 +1659,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           Text(
             title,
             style: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 8,
               fontWeight: FontWeight.w500,
               color: const Color(0xFF8B4513),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildTodayStats(AppLocalizations l10n) {
-    return Column(
-      children: [
-        // Estadísticas de mesas
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
-                'Total Mesas',
-                '${stats['total_tables'] ?? 0}',
-                Colors.white,
-                Icons.restaurant,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatItem(
-                'Reservadas',
-                '${stats['reserved_tables'] ?? 0}',
-                Colors.orange[300]!,
-                Icons.schedule,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatItem(
-                'Ocupadas',
-                '${stats['occupied_tables'] ?? 0}',
-                Colors.red[300]!,
-                Icons.people,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatItem(
-                'Canceladas',
-                '${stats['cancelled_tables'] ?? 0}',
-                Colors.grey[300]!,
-                Icons.cancel,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildStatItem(
-                'Libres',
-                '${stats['free_tables'] ?? 0}',
-                Colors.green[300]!,
-                Icons.event_available,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Estadísticas de reservas
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
-                'Total',
-                '${stats['total'] ?? 0}',
-                Colors.white,
-                Icons.groups,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatItem(
-                'Confirmadas',
-                '${stats['confirmadas'] ?? 0}',
-                Colors.orange[200]!,
-                Icons.schedule,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatItem(
-                'En Mesa',
-                '${stats['en_mesa'] ?? 0}',
-                Colors.green[200]!,
-                Icons.restaurant_menu,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatItem(
-                'Completadas',
-                '${stats['completadas'] ?? 0}',
-                Colors.blue[200]!,
-                Icons.check_circle,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatItem(
-                'Canceladas',
-                '${stats['canceladas'] ?? 0}',
-                Colors.red[200]!,
-                Icons.cancel,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildPeriodStats(AppLocalizations l10n) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatItem(
-            l10n.totalReservations,
-            '${stats['total'] ?? 0}',
-            Colors.white,
-            Icons.analytics,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatItem(
-            l10n.completionRate,
-            '${stats['tasa_completadas'] ?? 0}%',
-            Colors.green[300]!,
-            Icons.trending_up,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatItem(
-            l10n.noShowRate,
-            '${stats['tasa_no_shows'] ?? 0}%',
-            Colors.red[300]!,
-            Icons.trending_down,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, Color color, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),
         ],
@@ -1775,6 +1672,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
   
+
+
+
   Widget _buildCalendarView(AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -1823,7 +1723,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                 decoration: BoxDecoration(
                   gradient: isToday 
                       ? const LinearGradient(
-                          colors: [Color(0xFFF86704), Color(0xFFFF8A33)],
+                          colors: [Color(0xB3DC0B3F), Color(0xFFFF8A33)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
@@ -1963,7 +1863,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFFF86704), Color(0xFFFF8A33)],
+          colors: [Color(0xFFAC2828), Color(0xFFFF8A33)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -2080,31 +1980,33 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                             ),
                           ],
                         ),
-                        // Reloj animado para indicar tiempo
-                        if (reservation['estado'] == 'confirmada') ...[
-                          const SizedBox(width: 12),
-                          _buildAnimatedTimeIndicator(reservation, timeLeft, hasExpired, isInCriticalPeriod, isLate),
-                        ],
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _getStatusColor(reservation['estado']),
-                          width: 1,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(reservation['estado']).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _getStatusColor(reservation['estado']),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            _getStatusText(reservation['estado']),
+                            style: GoogleFonts.inter(
+                              color: _getStatusColor(reservation['estado']),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        _getStatusText(reservation['estado']),
-                        style: GoogleFonts.inter(
-                          color: _getStatusColor(reservation['estado']),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
+                        const SizedBox(width: 12),
+                        // MI CONTADOR DIGITAL EN VIVO
+                        _buildDigitalCounter(reservation['hora']),
+                      ],
                     ),
                   ],
                 ),
@@ -2220,7 +2122,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                   children: [
                     Icon(
                       Icons.calendar_today,
-                      color: const Color(0xFFF86704),
+                      color: const Color(0xFFB80821),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -2383,8 +2285,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     return Tooltip(
       message: tooltip,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 26,
+        height: 26,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
@@ -2398,20 +2300,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
   
-  Border? _getBorderForReservation(Map<String, dynamic> reservation, bool isLate, bool hasExpired, bool isInCriticalPeriod) {
-    if (reservation['estado'] != 'confirmada') return null;
-    
-    if (hasExpired) {
-      return Border.all(color: Colors.red, width: 3);
-    } else if (isInCriticalPeriod) {
-      return Border.all(color: Colors.red, width: 2);
-    } else if (isLate) {
-      return Border.all(color: Colors.orange, width: 2);
-    }
-    
-    return null;
-  }
-  
+
   // Widget de reloj animado para indicar tiempo de reserva
   Widget _buildAnimatedTimeIndicator(
     Map<String, dynamic> reservation,
@@ -2637,7 +2526,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                     '🔄 OPCIONES:',
                     style: GoogleFonts.inter(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 7),
                   Text('• Liberar Mesa: Marcar como no-show'),
                   Text('• El sistema lo hará automáticamente'),
                 ],
@@ -2699,7 +2588,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange[50],
+                color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange[200]!),
               ),
@@ -2718,7 +2607,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red[50],
+                color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red[200]!),
               ),
@@ -2757,6 +2646,102 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
 
+
+  /// Contador digital EN VIVO - Cuenta desde hora de reserva hasta 15 min después
+  Widget _buildDigitalCounter(String hora) {
+    return StreamBuilder<int>(
+      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+      builder: (context, snapshot) {
+        final now = DateTime.now();
+        final reservationTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(hora.split(':')[0]),
+          int.parse(hora.split(':')[1]),
+        );
+        
+        final difference = now.difference(reservationTime);
+        final totalSecondsElapsed = difference.inSeconds;
+        
+        // Total de 15 minutos = 900 segundos
+        const totalToleranceSeconds = 15 * 60;
+        final remainingSeconds = totalToleranceSeconds - totalSecondsElapsed;
+        
+        Color color;
+        String timeText;
+        IconData icon;
+        
+        if (totalSecondsElapsed < 0) {
+          // Aún no es hora de la reserva
+          final timeUntilStart = -totalSecondsElapsed;
+          final minutes = timeUntilStart ~/ 60;
+          final seconds = timeUntilStart % 60;
+          timeText = 'En ${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+          color = Colors.blue[600]!;
+          icon = Icons.schedule;
+        } else if (remainingSeconds > 0) {
+          // En período de tolerancia (contando hacia abajo)
+          final minutes = remainingSeconds ~/ 60;
+          final seconds = remainingSeconds % 60;
+          timeText = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+          icon = Icons.timer;
+          
+          // Colores según tiempo restante
+          if (remainingSeconds <= 120) { // Últimos 2 minutos
+            color = Colors.red[700]!;
+          } else if (remainingSeconds <= 300) { // Últimos 5 minutos
+            color = Colors.orange[700]!;
+          } else if (remainingSeconds <= 600) { // Últimos 10 minutos
+            color = Colors.yellow[700]!;
+          } else {
+            color = Colors.green[600]!;
+          }
+        } else {
+          // Tiempo agotado
+          timeText = "VENCIDA";
+          color = Colors.red[800]!;
+          icon = Icons.warning;
+        }
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.2),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                timeText,
+                style: GoogleFonts.robotoMono(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _showRatingDialog(Map<String, dynamic> reservation) {
     final mesa = reservation['sodita_mesas'];

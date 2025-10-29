@@ -81,7 +81,7 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
   Color _getCountdownColor() {
     if (_isExpired) return Colors.red;
     if (_isPending) return Colors.blue; // Esperando hora de reserva
-    if (_secondsRemaining <= 300) return Colors.orange; // Últimos 5 minutos
+    if (_secondsRemaining <= 300) return const Color(0xFF2563EB); // Últimos 5 minutos
     if (_secondsRemaining <= 600) return Colors.yellow.shade700; // Últimos 10 minutos
     return Colors.green;
   }
@@ -315,7 +315,7 @@ class TableReleasedAlert extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onReserveNow,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B35),
+                      backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -384,12 +384,12 @@ class ReservationExpiredAlert extends StatelessWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.access_time,
-                      color: Colors.orange,
+                      color: const Color(0xFF2563EB),
                       size: 32,
                     ),
                   ),
@@ -404,7 +404,7 @@ class ReservationExpiredAlert extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: Colors.orange,
+                color: const Color(0xFF2563EB),
               ),
             ),
             
@@ -449,7 +449,7 @@ class ReservationExpiredAlert extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onDismiss,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(

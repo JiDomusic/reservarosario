@@ -486,13 +486,23 @@ class ReservationService {
       
       List<Map<String, dynamic>> expiredReservations = [];
       
+      print('🔍 Verificando ${response.length} reservas confirmadas para expiración...');
+      
       for (var reservation in response) {
         final timeString = reservation['hora'].toString();
         final cleanTimeString = timeString.contains(':00:00') ? timeString.substring(0, 5) : timeString;
         final reservationTime = DateTime.parse('${reservation['fecha']} $cleanTimeString:00');
         final toleranceTime = reservationTime.add(const Duration(minutes: 15));
         
+        print('📋 Reserva: ${reservation['nombre']} - Mesa ${reservation['sodita_mesas']['numero']}');
+        print('⏰ Hora reserva: $reservationTime');
+        print('⏱️ Expira a las: $toleranceTime');
+        print('🕒 Hora actual: $now');
+        print('❓ ¿Expiró? ${now.isAfter(toleranceTime)}');
+        print('---');
+        
         if (now.isAfter(toleranceTime)) {
+          print('🚨 RESERVA EXPIRADA: ${reservation['nombre']} - Mesa ${reservation['sodita_mesas']['numero']}');
           expiredReservations.add(reservation);
         }
       }
