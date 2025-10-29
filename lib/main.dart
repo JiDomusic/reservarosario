@@ -10,8 +10,6 @@ import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
-import 'services/rating_service.dart';
-import 'widgets/rating_widget.dart';
 import 'admin_screen.dart';
 
 void main() async {
@@ -584,8 +582,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 padding: const EdgeInsets.all(20),
                 child: Image.asset(
                   'assets/images/logo color.png',
-                  height: 120,
+                  height: 150,
+                  width: 150,
                   fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
                   errorBuilder: (context, error, stackTrace) {
                     return const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1978,13 +1979,19 @@ SODITA - Cocina casera, ambiente familiar
             const SizedBox(height: 20),
             
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 2.5,
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  int crossAxisCount = 3;
+                  if (constraints.maxWidth > 600) crossAxisCount = 4;
+                  if (constraints.maxWidth < 400) crossAxisCount = 2;
+                  
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 2.5,
+                    ),
                 itemCount: availableTimes.length,
                 itemBuilder: (context, index) {
                   final time = availableTimes[index];

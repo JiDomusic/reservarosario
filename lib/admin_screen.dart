@@ -6,6 +6,7 @@ import 'services/reservation_service.dart';
 import 'services/rating_service.dart';
 import 'widgets/reservation_countdown.dart';
 import 'widgets/rating_widget.dart';
+import 'screens/analytics_screen.dart';
 import 'l10n.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -892,6 +893,25 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
   }
 
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'confirmada':
+        return Icons.schedule;
+      case 'en_mesa':
+        return Icons.restaurant;
+      case 'completada':
+        return Icons.check_circle;
+      case 'no_show':
+        return Icons.person_off;
+      case 'cancelada':
+        return Icons.cancel;
+      case 'expirada':
+        return Icons.access_time;
+      default:
+        return Icons.table_restaurant;
+    }
+  }
+
   String _getStatusText(String status) {
     switch (status) {
       case 'confirmada':
@@ -927,18 +947,24 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final l10n = AppLocalizations.of(context);
     
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFFAF7F0),
       appBar: _buildAppBar(l10n),
       body: isLoading
           ? _buildLoadingIndicator()
           : Column(
               children: [
                 _buildFilterTabs(l10n),
-                _buildStatsCard(l10n),
                 Expanded(
-                  child: showCalendarView 
-                      ? _buildCalendarView(l10n)
-                      : _buildReservationsList(l10n),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildStatsCard(l10n),
+                        showCalendarView 
+                            ? _buildCalendarView(l10n)
+                            : _buildReservationsList(l10n),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -947,20 +973,102 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   PreferredSizeWidget _buildAppBar(AppLocalizations l10n) {
     return AppBar(
-      title: Text(
-        'Panel de Administración SODITA',
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      backgroundColor: const Color(0xFFF86704),
-      foregroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F2E8),
+      foregroundColor: const Color(0xFF6B4E3D),
       elevation: 0,
+      automaticallyImplyLeading: false,
+      title: Row(
+        children: [
+          // Logo HD
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/logo color.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD2B48C),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'S',
+                        style: TextStyle(
+                          color: Color(0xFF8B4513),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'SODITA Admin',
+            style: GoogleFonts.poppins(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF8B4513),
+            ),
+          ),
+        ],
+      ),
       actions: [
+        // Analytics button
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AnalyticsScreen()),
+              );
+            },
+            icon: const Icon(
+              Icons.analytics,
+              color: Color(0xFF8B4513),
+              size: 20,
+            ),
+            label: Text(
+              'Analytics',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF8B4513),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFD2B48C).withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+        ),
         // Indicador de alertas críticas
         _buildCriticalAlertsIndicator(),
         IconButton(
-          icon: Icon(showCalendarView ? Icons.list : Icons.calendar_month),
+          icon: Icon(
+            showCalendarView ? Icons.view_list : Icons.calendar_month,
+            color: const Color(0xFF6B7280),
+          ),
           onPressed: () {
             setState(() {
               showCalendarView = !showCalendarView;
@@ -1194,67 +1302,116 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
   
   Widget _buildStatsCard(AppLocalizations l10n) {
-    return AnimatedBuilder(
-      animation: _statsAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _statsAnimation.value,
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFF86704), Color(0xFFFF8A33)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFF86704).withValues(alpha: 0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      showCalendarView ? l10n.statistics : 'Resumen del Día',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        showCalendarView ? 'Últimos $selectedPeriod días' : 'Hoy',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                if (!showCalendarView) _buildTodayStats(l10n) else _buildPeriodStats(l10n),
-              ],
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Dashboard Overview',
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF8B4513),
             ),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.5,
+            children: [
+              _buildDashboardCard(
+                'Reservas Totales',
+                '${stats['total_reservations'] ?? 0}',
+                Icons.event_note,
+                const Color(0xFFE6F3FF),
+                const Color(0xFF4A90E2),
+              ),
+              _buildDashboardCard(
+                'Clientes Atendidos',
+                '${stats['completed_reservations'] ?? 0}',
+                Icons.people,
+                const Color(0xFFE8F5E8),
+                const Color(0xFF4CAF50),
+              ),
+              _buildDashboardCard(
+                'Mesas Ocupadas',
+                '${stats['occupied_tables'] ?? 0}',
+                Icons.table_restaurant,
+                const Color(0xFFFFF3E0),
+                const Color(0xFFFF9800),
+              ),
+              _buildDashboardCard(
+                'Valoración Promedio',
+                '${(stats['average_rating'] ?? 0.0).toStringAsFixed(1)}⭐',
+                Icons.star,
+                const Color(0xFFFFF8E1),
+                const Color(0xFFFFD700),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard(String title, String value, IconData icon, Color bgColor, Color iconColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: iconColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                icon,
+                color: iconColor,
+                size: 24,
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.trending_up,
+                  color: iconColor,
+                  size: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: iconColor,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8B4513),
+            ),
+          ),
+        ],
+      ),
     );
   }
   
@@ -1689,11 +1846,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: _getBorderForReservation(reservation, isLate, hasExpired, isInCriticalPeriod),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _getStatusColor(reservation['estado']).withOpacity(0.2),
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -1710,12 +1870,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF86704).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: _getStatusColor(reservation['estado']).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
-                            Icons.table_restaurant,
-                            color: const Color(0xFFF86704),
+                            _getStatusIcon(reservation['estado']),
+                            color: _getStatusColor(reservation['estado']),
                             size: 20,
                           ),
                         ),
@@ -2455,4 +2615,5 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       ),
     );
   }
+
 }
