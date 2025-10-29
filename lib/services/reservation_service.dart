@@ -645,4 +645,181 @@ class ReservationService {
       return [];
     }
   }
+
+  // Obtener reservas que han pasado los 15 minutos de tolerancia
+  static Future<List<Map<String, dynamic>>> getExpiredReservations() async {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      
+      final response = await _client
+          .from('sodita_reservas')
+          .select('*, sodita_mesas(*)')
+          .eq('fecha', today)
+          .eq('estado', 'confirmada');
+      
+      List<Map<String, dynamic>> expiredReservations = [];
+      
+      for (var reservation in response) {
+        final reservationTime = DateTime.parse('${reservation['fecha']} ${reservation['hora']}:00');
+        final toleranceTime = reservationTime.add(const Duration(minutes: 15));
+        
+        if (now.isAfter(toleranceTime)) {
+          expiredReservations.add(reservation);
+        }
+      }
+      
+      return expiredReservations;
+    } catch (e) {
+      print('❌ Error getting expired reservations: $e');
+      return [];
+    }
+  }
+
+  // Liberar automáticamente una reserva
+  static Future<bool> releaseExpiredReservation(String reservationId) async {
+    try {
+      await _client
+          .from('sodita_reservas')
+          .update({
+            'estado': 'expirada',
+            'comentario_admin': 'Liberada automáticamente - Cliente no se presentó en 15 minutos'
+          })
+          .eq('id', reservationId);
+      
+      print('✅ Reserva $reservationId liberada automáticamente');
+      return true;
+    } catch (e) {
+      print('❌ Error releasing reservation: $e');
+      return false;
+    }
+  }
+
+  // Obtener tiempo restante para que expire una reserva (en minutos)
+  static int? getTimeUntilExpiration(String hora) {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      final reservationTime = DateTime.parse('$today $hora:00');
+      final expirationTime = reservationTime.add(const Duration(minutes: 15));
+      
+      if (now.isAfter(expirationTime)) {
+        return 0; // Ya expiró
+      }
+      
+      final difference = expirationTime.difference(now);
+      return difference.inMinutes;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Obtener tiempo restante en segundos para countdown preciso
+  static int? getTimeUntilExpirationSeconds(String hora) {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      final reservationTime = DateTime.parse('$today $hora:00');
+      final expirationTime = reservationTime.add(const Duration(minutes: 15));
+      
+      // Si aún no ha llegado la hora de la reserva, mostrar tiempo hasta que inicie el countdown
+      if (now.isBefore(reservationTime)) {
+        // Mostrar que falta tiempo para que inicie la reserva
+        return null; // No mostrar countdown aún
+      }
+      
+      if (now.isAfter(expirationTime)) {
+        return 0; // Ya expiró
+      }
+      
+      final difference = expirationTime.difference(now);
+      return difference.inSeconds;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Obtener estado de la reserva (antes de la hora, en tolerancia, expirada)
+  static String getReservationStatus(String hora) {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      final reservationTime = DateTime.parse('$today $hora:00');
+      final expirationTime = reservationTime.add(const Duration(minutes: 15));
+      
+      if (now.isBefore(reservationTime)) {
+        return 'pending'; // Esperando hora de reserva
+      } else if (now.isAfter(expirationTime)) {
+        return 'expired'; // Expirada
+      } else {
+        return 'active'; // En período de tolerancia
+      }
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
+  // Obtener tiempo hasta que inicie la reserva (si es en el futuro)
+  static int? getTimeUntilReservationStart(String hora) {
+    try {
+      final now = DateTime.now();
+      final today = now.toIso8601String().split('T')[0];
+      final reservationTime = DateTime.parse('$today $hora:00');
+      
+      if (now.isBefore(reservationTime)) {
+        final difference = reservationTime.difference(now);
+        return difference.inSeconds;
+      }
+      
+      return null; // Ya es hora o ya pasó
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Verificar si el restaurante está lleno (todas las mesas ocupadas o reservadas)
+  static Future<bool> isRestaurantFull() async {
+    try {
+      final now = DateTime.now();
+      final currentHour = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      
+      // Obtener todas las mesas activas
+      final allTables = await getMesas();
+      
+      // Obtener mesas ocupadas actualmente
+      final occupiedTables = await getCurrentlyOccupiedTables(date: now);
+      
+      // Obtener mesas reservadas para la hora actual
+      final reservedTables = await getOccupiedTables(date: now, time: currentHour);
+      
+      // Combinar mesas ocupadas y reservadas
+      final unavailableTables = {...occupiedTables, ...reservedTables};
+      
+      // Si todas las mesas están ocupadas o reservadas, el restaurante está lleno
+      return unavailableTables.length >= allTables.length;
+    } catch (e) {
+      print('❌ Error checking if restaurant is full: $e');
+      return false;
+    }
+  }
+
+  // Procesar liberación automática de reservas expiradas
+  static Future<List<Map<String, dynamic>>> processExpiredReservations() async {
+    try {
+      final expiredReservations = await getExpiredReservations();
+      List<Map<String, dynamic>> releasedTables = [];
+      
+      for (var reservation in expiredReservations) {
+        final success = await releaseExpiredReservation(reservation['id']);
+        if (success) {
+          releasedTables.add(reservation);
+        }
+      }
+      
+      return releasedTables;
+    } catch (e) {
+      print('❌ Error processing expired reservations: $e');
+      return [];
+    }
+  }
 }
