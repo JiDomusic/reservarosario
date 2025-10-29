@@ -1303,7 +1303,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   Widget _buildStatsCard(AppLocalizations l10n) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1315,14 +1315,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               color: const Color(0xFF8B4513),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            childAspectRatio: 2.5,
             children: [
               _buildDashboardCard(
                 'Reservas Totales',
