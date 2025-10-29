@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:reservarosario/widgets/reservation_countdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -9,7 +10,8 @@ import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
-import 'widgets/reservation_countdown.dart';
+import 'services/rating_service.dart';
+import 'widgets/rating_widget.dart';
 import 'admin_screen.dart';
 
 void main() async {
