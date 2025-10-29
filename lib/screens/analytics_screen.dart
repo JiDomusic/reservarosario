@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../services/analytics_service.dart';
-import '../services/rating_service.dart';
-import '../services/reservation_service.dart';
 import '../widgets/rating_widget.dart';
 import '../l10n.dart';
 

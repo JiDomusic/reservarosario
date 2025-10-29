@@ -1151,7 +1151,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                   Flexible(
                     child: RefreshIndicator(
                       onRefresh: () async {
-                        print('📱 Manual refresh: Usuario actualizando admin...');
+                        // print('📱 Manual refresh: Usuario actualizando admin...');
                         setState(() => isLoading = true);
                         await _loadData();
                         setState(() => isLoading = false);

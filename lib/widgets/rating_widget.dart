@@ -245,7 +245,7 @@ class _RatingDialogState extends State<RatingDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor selecciona una calificación'),
-          backgroundColor: const Color(0xFF2563EB),
+          backgroundColor: Color(0xFF2563EB),
         ),
       );
       return;

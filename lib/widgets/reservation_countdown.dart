@@ -389,7 +389,7 @@ class ReservationExpiredAlert extends StatelessWidget {
                     ),
                     child: const Icon(
                       Icons.access_time,
-                      color: const Color(0xFF2563EB),
+                      color: Color(0xFF2563EB),
                       size: 32,
                     ),
                   ),

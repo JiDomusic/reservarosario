@@ -2809,7 +2809,7 @@ SODITA - Cocina casera, ambiente familiar
               ],
             ),
             const SizedBox(height: 16),
-            ...reviews.take(3).map((review) => _buildReviewCard(review)).toList(),
+            ...reviews.take(3).map((review) => _buildReviewCard(review)),
           ],
         );
       },
@@ -3484,7 +3484,7 @@ class ProfilePage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            ...reviews.take(3).map((review) => _buildReviewCard(review)).toList(),
+            ...reviews.take(3).map((review) => _buildReviewCard(review)),
           ],
         );
       },
