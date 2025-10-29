@@ -1002,6 +1002,50 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
   }
 
+  // Test específico para verificar hora argentina y sistema de expiración
+  Future<void> _testTimezoneAndExpiration() async {
+    final now = DateTime.now();
+    
+    // Crear una reserva de prueba para dentro de 2 minutos
+    final testTime = now.add(const Duration(minutes: 2));
+    final testTimeString = '${testTime.hour.toString().padLeft(2, '0')}:${testTime.minute.toString().padLeft(2, '0')}';
+    
+    print('🧪 TEST SISTEMA LIBERACIÓN AUTOMÁTICA:');
+    print('⏰ Hora actual Argentina: ${now.toString()}');
+    print('🕒 Zona horaria: ${now.timeZoneName} (${now.timeZoneOffset})');
+    print('📅 Fecha: ${now.toIso8601String().split('T')[0]}');
+    print('🎯 Simulación: Cliente reserva $testTimeString, no llega');
+    print('⏱️ A las ${testTime.add(const Duration(minutes: 15)).hour}:${testTime.add(const Duration(minutes: 15)).minute.toString().padLeft(2, '0')} se libera automáticamente');
+    
+    // Test del sistema de expiración
+    final timeToExpiration = ReservationService.getTimeUntilExpirationSeconds(testTimeString);
+    final statusTest = ReservationService.getReservationStatus(testTimeString);
+    
+    print('⏱️ Segundos hasta expiración: $timeToExpiration');
+    print('📊 Estado reserva: $statusTest');
+    
+    // Verificar sistema automático
+    final expiredReservations = await ReservationService.getExpiredReservations();
+    print('🔍 Reservas expiradas encontradas: ${expiredReservations.length}');
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '🇦🇷 HORA ARGENTINA TEST:\n'
+            '⏰ ${now.hour}:${now.minute.toString().padLeft(2, '0')} ${now.timeZoneName}\n'
+            '📅 ${now.day}/${now.month}/${now.year}\n'
+            '🎯 Test: $testTimeString (en 2 min)\n'
+            '⏱️ Sistema expiración: ${timeToExpiration != null ? 'OK' : 'ERROR'}\n'
+            '🔍 Reservas expiradas: ${expiredReservations.length}'
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -1212,6 +1256,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon: const Icon(Icons.bug_report),
           onPressed: _debugDatabaseConnection,
           tooltip: 'Debug DB Connection',
+        ),
+        IconButton(
+          icon: const Icon(Icons.access_time),
+          onPressed: _testTimezoneAndExpiration,
+          tooltip: 'Test Timezone Argentina',
         ),
         IconButton(
           icon: const Icon(Icons.schedule),

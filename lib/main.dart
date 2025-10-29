@@ -10,6 +10,8 @@ import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
 import 'services/reservation_service.dart';
+import 'services/rating_service.dart';
+import 'widgets/rating_widget.dart';
 import 'admin_screen.dart';
 
 void main() async {
@@ -545,6 +547,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: 8),
+                _buildRatingsSection(),
+                const SizedBox(height: 24),
                 _buildReserveButton(),
               ]),
             ),
@@ -1830,6 +1834,249 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             child: const Text('Cerrar'),
           ),
         ],
+      ),
+    );
+  }
+
+  // Sección de valoraciones
+  Widget _buildRatingsSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.star,
+                color: Colors.amber[600],
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Valoraciones de SODITA',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1C1B1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Rating promedio y estadísticas
+          FutureBuilder<Map<String, dynamic>>(
+            future: RatingService.getRatingStatistics(30), // Últimos 30 días
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (!snapshot.hasData || snapshot.data!['total_ratings'] == 0) {
+                return Column(
+                  children: [
+                    Text(
+                      '¡Sé el primero en valorar SODITA!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _showRatingDialog(),
+                      icon: const Icon(Icons.star_border),
+                      label: const Text('Valorar Restaurante'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber[600],
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              
+              final avgRating = snapshot.data!['average_rating'] ?? 0.0;
+              final totalRatings = snapshot.data!['total_ratings'] ?? 0;
+              
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        avgRating.toStringAsFixed(1),
+                        style: GoogleFonts.poppins(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.amber[600],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: List.generate(5, (index) {
+                              return Icon(
+                                index < avgRating.round() ? Icons.star : Icons.star_border,
+                                color: Colors.amber[600],
+                                size: 20,
+                              );
+                            }),
+                          ),
+                          Text(
+                            '$totalRatings valoraciones',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: () => _showRatingDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Valorar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Últimas valoraciones
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: RatingService.getRecentRatings(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              
+              final recentRatings = snapshot.data!.take(3).toList();
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Comentarios recientes:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF374151),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...recentRatings.map((rating) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Row(
+                                children: List.generate(5, (index) {
+                                  return Icon(
+                                    index < rating['stars'] ? Icons.star : Icons.star_border,
+                                    color: Colors.amber[600],
+                                    size: 16,
+                                  );
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                rating['customer_name'] ?? 'Cliente',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (rating['comment'] != null && rating['comment'].isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              rating['comment'],
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: const Color(0xFF6B7280),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mostrar diálogo de valoración para usuarios
+  void _showRatingDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => RatingDialog(
+        reservationId: 'user_rating_${DateTime.now().millisecondsSinceEpoch}',
+        customerName: 'Cliente',
+        onRatingSubmitted: (ratingData) async {
+          final success = await RatingService.createRating(
+            reservationId: ratingData['reservation_id'],
+            customerName: ratingData['customer_name'],
+            stars: ratingData['stars'],
+            comment: ratingData['comment'],
+          );
+
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✅ ¡Gracias por tu valoración!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            setState(() {}); // Refresh para mostrar la nueva valoración
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Error al guardar la valoración'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
       ),
     );
   }

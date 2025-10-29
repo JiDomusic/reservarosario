@@ -181,6 +181,7 @@ class ReservationService {
         case 'completada':
         case 'no_show':
         case 'cancelada':
+        case 'expirada':
           return 'available';
         default:
           return 'available';
@@ -544,10 +545,14 @@ class ReservationService {
   // Obtener tiempo restante en segundos para countdown preciso
   static int? getTimeUntilExpirationSeconds(String hora) {
     try {
-      final now = DateTime.now();
+      // Usar hora de Argentina específicamente
+      final now = DateTime.now(); // Ya configurado en America/Argentina/Buenos_Aires
       final today = now.toIso8601String().split('T')[0];
       final reservationTime = DateTime.parse('$today $hora:00');
       final expirationTime = reservationTime.add(const Duration(minutes: 15));
+      
+      print('🕒 TIMEZONE CHECK: Hora actual Argentina: ${now.toString()}');
+      print('📅 Reserva: $reservationTime | Expira: $expirationTime');
       
       // Si aún no ha llegado la hora de la reserva, mostrar tiempo hasta que inicie el countdown
       if (now.isBefore(reservationTime)) {
