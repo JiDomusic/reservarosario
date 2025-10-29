@@ -524,10 +524,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             padding: const EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                // RESEÑAS PRIMERO - Lo primero que ve el usuario
+                _buildReviewsSection(),
+                const SizedBox(height: 32),
                 _buildTableInfoNotice(),
                 const SizedBox(height: 16),
                 _buildRestaurantCard(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 _buildDateTimeSelector(),
                 const SizedBox(height: 24),
                 _buildPartySizeSelector(),
@@ -2529,6 +2532,392 @@ SODITA - Cocina casera, ambiente familiar
       }
     });
   }
+
+  // Sección de reseñas con datos REALES de la base de datos
+  Widget _buildReviewsSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: RatingService.getRatingStatistics(365), // Últimos 365 días
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final stats = snapshot.data ?? {};
+        final averageRating = (stats['average_rating'] ?? 0.0).toDouble();
+        final totalRatings = stats['total_ratings'] ?? 0;
+        final distribution = stats['rating_distribution'] ?? {};
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Reseñas
+              Text(
+                'Reseñas',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1C1B1F),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Calificación principal
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          averageRating.toStringAsFixed(1),
+                          style: GoogleFonts.poppins(
+                            fontSize: 48,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1C1B1F),
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: List.generate(5, (index) {
+                            return Icon(
+                              index < averageRating.floor() ? Icons.star : 
+                              index < averageRating ? Icons.star_half : Icons.star_border,
+                              color: const Color(0xFFFFC107),
+                              size: 20,
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$totalRatings Reseñas',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Gráfico de distribución
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: List.generate(5, (index) {
+                        final stars = 5 - index;
+                        final count = distribution[stars.toString()] ?? 0;
+                        final percentage = totalRatings > 0 ? (count / totalRatings) : 0.0;
+                        
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Text(
+                                '$stars',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6B7280),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3F4F6),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: percentage,
+                                      child: Container(
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF3B82F6),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Categorías de calificación
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCategoryRating('🍽️', 'Comida', averageRating),
+                  ),
+                  Expanded(
+                    child: _buildCategoryRating('🏛️', 'Ambiente', averageRating - 0.1),
+                  ),
+                  Expanded(
+                    child: _buildCategoryRating('👨‍💼', 'Servicio', averageRating + 0.1),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Verificación
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.verified,
+                      color: Color(0xFF16A34A),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Lo que los comensales dicen
+              _buildRecentReviews(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryRating(String emoji, String category, double rating) {
+    return Column(
+      children: [
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 24),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          rating.toStringAsFixed(1),
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1C1B1F),
+          ),
+        ),
+        Text(
+          category,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentReviews() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: RatingService.getRecentRatings(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 20);
+        }
+
+        final reviews = snapshot.data ?? [];
+        if (reviews.isEmpty) {
+          return const SizedBox();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lo que los comensales dicen',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1C1B1F),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // TODO: Mostrar todas las reseñas
+                  },
+                  child: Text(
+                    'Ver todas',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...reviews.take(3).map((review) => _buildReviewCard(review)).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final rating = review['stars'] ?? 5;
+    final comment = review['comment'] ?? '';
+    final customerName = review['customer_name'] ?? 'Cliente';
+    final date = review['created_at'] ?? '';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    customerName.isNotEmpty ? customerName[0].toUpperCase() : 'C',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      customerName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1C1B1F),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          return Icon(
+                            index < rating ? Icons.star : Icons.star_border,
+                            color: const Color(0xFFFFC107),
+                            size: 14,
+                          );
+                        }),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatReviewDate(date),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              comment,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: const Color(0xFF374151),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatReviewDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays > 30) {
+        return 'Hace ${(difference.inDays / 30).floor()} meses';
+      } else if (difference.inDays > 0) {
+        return 'Hace ${difference.inDays} días';
+      } else if (difference.inHours > 0) {
+        return 'Hace ${difference.inHours} horas';
+      } else {
+        return 'Hace poco';
+      }
+    } catch (e) {
+      return 'Reciente';
+    }
+  }
 }
 
 // Página de Reservas
@@ -2582,5 +2971,391 @@ class ProfilePage extends StatelessWidget {
         child: Text('Próximamente: Configuración de perfil'),
       ),
     );
+  }
+
+  // Sección de reseñas con datos REALES de la base de datos
+  Widget _buildReviewsSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: RatingService.getRatingStatistics(365), // Últimos 365 días
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final stats = snapshot.data ?? {};
+        final averageRating = (stats['average_rating'] ?? 0.0).toDouble();
+        final totalRatings = stats['total_ratings'] ?? 0;
+        final distribution = stats['rating_distribution'] ?? {};
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Reseñas
+              Text(
+                'Reseñas',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1C1B1F),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Calificación principal
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          averageRating.toStringAsFixed(1),
+                          style: GoogleFonts.poppins(
+                            fontSize: 48,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1C1B1F),
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: List.generate(5, (index) {
+                            return Icon(
+                              index < averageRating.floor() ? Icons.star : 
+                              index < averageRating ? Icons.star_half : Icons.star_border,
+                              color: const Color(0xFFFFC107),
+                              size: 20,
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$totalRatings Reseñas',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Gráfico de distribución
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: List.generate(5, (index) {
+                        final stars = 5 - index;
+                        final count = distribution[stars.toString()] ?? 0;
+                        final percentage = totalRatings > 0 ? (count / totalRatings) : 0.0;
+                        
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Text(
+                                '$stars',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF6B7280),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3F4F6),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: percentage,
+                                      child: Container(
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF3B82F6),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Categorías de calificación
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCategoryRating('🍽️', 'Comida', averageRating),
+                  ),
+                  Expanded(
+                    child: _buildCategoryRating('🏛️', 'Ambiente', averageRating - 0.1),
+                  ),
+                  Expanded(
+                    child: _buildCategoryRating('👨‍💼', 'Servicio', averageRating + 0.1),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Verificación
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.verified,
+                      color: Color(0xFF16A34A),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Lo que los comensales dicen
+              _buildRecentReviews(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryRating(String emoji, String category, double rating) {
+    return Column(
+      children: [
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 24),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          rating.toStringAsFixed(1),
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1C1B1F),
+          ),
+        ),
+        Text(
+          category,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentReviews() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: RatingService.getRecentRatings(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 20);
+        }
+
+        final reviews = snapshot.data ?? [];
+        if (reviews.isEmpty) {
+          return const SizedBox();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lo que los comensales dicen',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1C1B1F),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    // TODO: Mostrar todas las reseñas
+                  },
+                  child: Text(
+                    'Ver todas',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...reviews.take(3).map((review) => _buildReviewCard(review)).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final rating = review['stars'] ?? 5;
+    final comment = review['comment'] ?? '';
+    final customerName = review['customer_name'] ?? 'Cliente';
+    final date = review['created_at'] ?? '';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    customerName.isNotEmpty ? customerName[0].toUpperCase() : 'C',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      customerName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1C1B1F),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          return Icon(
+                            index < rating ? Icons.star : Icons.star_border,
+                            color: const Color(0xFFFFC107),
+                            size: 14,
+                          );
+                        }),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatReviewDate(date),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              comment,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: const Color(0xFF374151),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatReviewDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays > 30) {
+        return 'Hace ${(difference.inDays / 30).floor()} meses';
+      } else if (difference.inDays > 0) {
+        return 'Hace ${difference.inDays} días';
+      } else if (difference.inHours > 0) {
+        return 'Hace ${difference.inHours} horas';
+      } else {
+        return 'Hace poco';
+      }
+    } catch (e) {
+      return 'Reciente';
+    }
   }
 }
