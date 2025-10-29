@@ -67,6 +67,8 @@ class ReservationService {
           .single();
 
       print('✅ Reserva creada exitosamente: ${response['codigo_confirmacion']}');
+      print('📊 Reserva ID: ${response['id']}, Estado: ${response['estado']}');
+      print('📅 Fecha: ${response['fecha']}, Hora: ${response['hora']}');
       return response;
     } catch (e) {
       print('❌ Error creating reservation: $e');
@@ -199,7 +201,7 @@ class ReservationService {
             sodita_mesas!inner(numero, capacidad, ubicacion)
           ''')
           .eq('fecha', date.toIso8601String().split('T')[0])
-          .eq('estado', 'confirmada') // Solo mostrar las que esperan check-in
+          // Mostrar TODAS las reservas del día, no solo confirmadas
           .order('hora');
 
       return List<Map<String, dynamic>>.from(response);
@@ -484,7 +486,9 @@ class ReservationService {
       List<Map<String, dynamic>> expiredReservations = [];
       
       for (var reservation in response) {
-        final reservationTime = DateTime.parse('${reservation['fecha']} ${reservation['hora']}:00');
+        final timeString = reservation['hora'].toString();
+        final cleanTimeString = timeString.contains(':00:00') ? timeString.substring(0, 5) : timeString;
+        final reservationTime = DateTime.parse('${reservation['fecha']} $cleanTimeString:00');
         final toleranceTime = reservationTime.add(const Duration(minutes: 15));
         
         if (now.isAfter(toleranceTime)) {

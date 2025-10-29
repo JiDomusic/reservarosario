@@ -31,7 +31,15 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+build/
+**/build/
 /coverage/
+**/flutter_export_environment.sh
+**/Generated.xcconfig
+**/flutter_lldbinit
+**/flutter_lldb_helper.py
+**/ephemeral/
+flutter_assets
 
 # Symbolication related
 app.*.symbols
@@ -60,6 +68,19 @@ gradle-wrapper.jar
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
+
+# Kotlin compiler cache files (CAUSING CONFLICTS)
+**/*.kotlin_cache
+**/*.salive
+**/kotlin-compiler-*.salive
+.kotlin/
+kotlin-daemon.jar.lock
+
+# Flutter web build cache
+.firebase/
+hosting.*.cache
+**/hosting.*.cache
+firebase-debug.log
 
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore

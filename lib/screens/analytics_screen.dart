@@ -405,7 +405,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'KPIs de Reservas (${_selectedDays} días)',
+              'KPIs de Reservas ($_selectedDays días)',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,

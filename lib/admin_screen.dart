@@ -370,8 +370,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   // Sistema de notificaciones automáticas y liberación de reservas
   Timer? _notificationTimer;
   Timer? _autoReleaseTimer;
-  Set<String> _notifiedReservations = {}; // Para evitar duplicados
-  List<OverlayEntry> _activeAlerts = []; // Alertas flotantes activas
+  final Set<String> _notifiedReservations = {}; // Para evitar duplicados
+  final List<OverlayEntry> _activeAlerts = []; // Alertas flotantes activas
 
   @override
   void initState() {
@@ -421,10 +421,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Iniciar verificación automática cada 5 minutos y contador cada segundo
+  // Iniciar verificación automática cada 30 segundos para nuevas reservas
   void _startAutoCheck() {
-    _autoCheckTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-      _autoMarkNoShows();
+    _autoCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      print('🔄 Auto-refresh: Verificando nuevas reservas...');
+      _loadData(); // Recargar datos cada 30 segundos
     });
     
     // Contador en tiempo real cada segundo para actualizar los tiempos
@@ -570,14 +571,16 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           isLoading = false;
         });
       } else {
-        // Cargar reservas del día actual (solo pendientes)
+        // Cargar TODAS las reservas del día actual
         final today = DateTime.now();
         final todaysReservations = await ReservationService.getReservationsByDate(today);
-        final allTodaysReservations = await ReservationService.getAllReservationsByDate(today);
-        final todayStats = await _calculateTodayStats(allTodaysReservations);
+        final todayStats = await _calculateTodayStats(todaysReservations);
+        
+        print('🔍 Admin: Cargadas ${todaysReservations.length} reservas para hoy');
+        print('📋 Reservas: ${todaysReservations.map((r) => '${r['nombre']} - Mesa ${r['sodita_mesas']['numero']} - ${r['estado']}').toList()}');
         
         setState(() {
-          reservations = todaysReservations; // Solo las pendientes para la vista
+          reservations = todaysReservations; // TODAS las reservas del día
           stats = todayStats; // Estadísticas completas del día
           isLoading = false;
         });
@@ -942,6 +945,63 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     return now.isAfter(reservationTime.add(const Duration(minutes: 15)));
   }
 
+  // Función de debug para verificar conexión a la base de datos
+  Future<void> _debugDatabaseConnection() async {
+    try {
+      print('🔍 DEBUG: Iniciando verificación de conexión...');
+      
+      // Test 1: Verificar mesas
+      final mesas = await ReservationService.getMesas();
+      print('📋 DEBUG: Mesas encontradas: ${mesas.length}');
+      
+      // Test 2: Verificar todas las reservas
+      final allReservations = await ReservationService.getAllReservations();
+      print('📅 DEBUG: Total reservas en DB: ${allReservations.length}');
+      
+      // Test 3: Verificar reservas de hoy específicamente
+      final today = DateTime.now();
+      final todayReservations = await ReservationService.getReservationsByDate(today);
+      print('📅 DEBUG: Reservas de hoy: ${todayReservations.length}');
+      
+      // Test 4: Verificar todas las reservas de hoy sin filtros
+      final allTodayReservations = await ReservationService.getAllReservationsByDate(today);
+      print('📅 DEBUG: Todas las reservas de hoy: ${allTodayReservations.length}');
+      
+      // Mostrar detalles de cada reserva de hoy
+      for (var reservation in todayReservations) {
+        print('👤 ${reservation['nombre']} - Mesa ${reservation['sodita_mesas']['numero']} - Estado: ${reservation['estado']} - Hora: ${reservation['hora']}');
+      }
+      
+      // Mostrar resultado en UI
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🔍 DEBUG:\n'
+              '• Mesas: ${mesas.length}\n'
+              '• Total reservas: ${allReservations.length}\n'
+              '• Reservas hoy: ${todayReservations.length}/${allTodayReservations.length}'
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      print('❌ DEBUG ERROR: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error de conexión: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -951,22 +1011,44 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       appBar: _buildAppBar(l10n),
       body: isLoading
           ? _buildLoadingIndicator()
-          : Column(
-              children: [
-                _buildFilterTabs(l10n),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        _buildStatsCard(l10n),
-                        showCalendarView 
-                            ? _buildCalendarView(l10n)
-                            : _buildReservationsList(l10n),
-                      ],
+          : SafeArea(
+              child: Column(
+                children: [
+                  _buildFilterTabs(l10n),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        print('📱 Manual refresh: Usuario actualizando admin...');
+                        setState(() => isLoading = true);
+                        await _loadData();
+                        setState(() => isLoading = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🔄 Datos actualizados - ${reservations.length} reservas cargadas'),
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              _buildStatsCard(l10n),
+                              const SizedBox(height: 16),
+                              showCalendarView 
+                                  ? _buildCalendarView(l10n)
+                                  : _buildReservationsList(l10n),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
     );
   }
@@ -976,39 +1058,49 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       backgroundColor: const Color(0xFFF5F2E8),
       foregroundColor: const Color(0xFF6B4E3D),
       elevation: 0,
-      automaticallyImplyLeading: false,
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back,
+          color: Color(0xFF8B4513),
+          size: 24,
+        ),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+        tooltip: 'Volver al Home',
+      ),
       title: Row(
         children: [
-          // Logo HD - Extra grande y completo
+          // Logo HD - Fijo 50px
           Container(
-            width: 120,
-            height: 120,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               child: Image.asset(
                 'assets/images/logo color.png',
-                width: 120,
-                height: 120,
-                fit: BoxFit.contain, // Mostrar logo completo sin cortar
+                width: 50,
+                height: 50,
+                fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 isAntiAlias: true,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    width: 120,
-                    height: 120,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD2B48C),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Center(
                       child: Text(
                         'S',
                         style: TextStyle(
                           color: Color(0xFF8B4513),
-                          fontSize: 24,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1019,17 +1111,49 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            'SODITA Admin',
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF8B4513),
+          Expanded(
+            child: Text(
+              'SODITA Admin',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF8B4513),
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
       actions: [
+        // Home button
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: TextButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.home,
+              color: Color(0xFF8B4513),
+              size: 20,
+            ),
+            label: Text(
+              'Home',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF8B4513),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFD2B48C).withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+        ),
         // Analytics button
         Container(
           margin: const EdgeInsets.only(right: 8),
@@ -1079,7 +1203,15 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ),
         IconButton(
           icon: const Icon(Icons.refresh),
-          onPressed: _loadData,
+          onPressed: () {
+            print('🔄 Manual refresh button pressed');
+            _loadData();
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.bug_report),
+          onPressed: _debugDatabaseConnection,
+          tooltip: 'Debug DB Connection',
         ),
         IconButton(
           icon: const Icon(Icons.schedule),
@@ -2126,14 +2258,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       );
     }
 
-    return AnimationLimiter(
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: reservations.length,
-        itemBuilder: (context, index) {
-          return _buildReservationCard(reservations[index], index);
-        },
-      ),
+    return Column(
+      children: [
+        for (int index = 0; index < reservations.length; index++)
+          _buildReservationCard(reservations[index], index),
+      ],
     );
   }
 
@@ -2578,6 +2707,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       ),
     );
   }
+
 
   void _showRatingDialog(Map<String, dynamic> reservation) {
     final mesa = reservation['sodita_mesas'];
