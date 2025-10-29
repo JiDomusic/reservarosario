@@ -1637,8 +1637,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             verticalOffset: 50.0,
             child: FadeInAnimation(
               child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: isToday 
                       ? const LinearGradient(
@@ -1779,7 +1779,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   Widget _buildCalendarHeader(AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFFF86704), Color(0xFFFF8A33)],
@@ -1842,8 +1842,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         verticalOffset: 50.0,
         child: FadeInAnimation(
           child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -2034,7 +2034,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     Icon(
