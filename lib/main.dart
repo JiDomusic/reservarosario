@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 import 'package:reservarosario/widgets/reservation_countdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -12,6 +13,9 @@ import 'l10n.dart';
 import 'services/reservation_service.dart';
 import 'services/rating_service.dart';
 import 'widgets/rating_widget.dart';
+import 'providers/review_provider.dart';
+import 'widgets/optimized_review_widget.dart';
+import 'widgets/public_reviews_section.dart';
 import 'admin_screen.dart';
 
 void main() async {
@@ -28,7 +32,14 @@ void main() async {
   // Inicializar Supabase
   await SupabaseConfig.initialize();
   
-  runApp(const SoditaApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
+      ],
+      child: const SoditaApp(),
+    ),
+  );
 }
 
 class SoditaApp extends StatefulWidget {
@@ -1887,169 +1898,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ),
           const SizedBox(height: 16),
           
-          // Rating promedio y estadísticas
-          FutureBuilder<Map<String, dynamic>>(
-            future: RatingService.getRatingStatistics(30), // Últimos 30 días
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              if (!snapshot.hasData || snapshot.data!['total_ratings'] == 0) {
-                return Column(
-                  children: [
-                    Text(
-                      '¡Sé el primero en valorar SODITA!',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF6B7280),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _showRatingDialog(),
-                      icon: const Icon(Icons.star_border),
-                      label: const Text('Valorar Restaurante'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber[600],
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                );
-              }
-              
-              final avgRating = snapshot.data!['average_rating'] ?? 0.0;
-              final totalRatings = snapshot.data!['total_ratings'] ?? 0;
-              
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        avgRating.toStringAsFixed(1),
-                        style: GoogleFonts.poppins(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.amber[600],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: List.generate(5, (index) {
-                              return Icon(
-                                index < avgRating.round() ? Icons.star : Icons.star_border,
-                                color: Colors.amber[600],
-                                size: 20,
-                              );
-                            }),
-                          ),
-                          Text(
-                            '$totalRatings valoraciones',
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              color: const Color(0xFF6B7280),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      ElevatedButton.icon(
-                        onPressed: () => _showRatingDialog(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Valorar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber[600],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Últimas valoraciones
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: RatingService.getRecentRatings(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              
-              final recentRatings = snapshot.data!.take(3).toList();
-              
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Comentarios recientes:',
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF374151),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...recentRatings.map((rating) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Row(
-                                children: List.generate(5, (index) {
-                                  return Icon(
-                                    index < rating['stars'] ? Icons.star : Icons.star_border,
-                                    color: Colors.amber[600],
-                                    size: 16,
-                                  );
-                                }),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                rating['customer_name'] ?? 'Cliente',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (rating['comment'] != null && rating['comment'].isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              rating['comment'],
-                              style: GoogleFonts.poppins(
-                                fontSize: 12,
-                                color: const Color(0xFF6B7280),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  )),
-                ],
-              );
-            },
+          // Optimized reviews section
+          const OptimizedReviewWidget(
+            days: 30,
+            showStatistics: true,
+            reviewLimit: 3,
           ),
         ],
       ),
@@ -2540,202 +2393,17 @@ SODITA - Cocina casera, ambiente familiar
     });
   }
 
-  // Sección de reseñas con datos REALES de la base de datos
+  // Sección de reseñas PÚBLICAS - Visible para todos sin login
   Widget _buildReviewsSection() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: RatingService.getRatingStatistics(365), // Últimos 365 días
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final stats = snapshot.data ?? {};
-        final averageRating = (stats['average_rating'] ?? 0.0).toDouble();
-        final totalRatings = stats['total_ratings'] ?? 0;
-        final distribution = stats['rating_distribution'] ?? {};
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Reseñas
-              Text(
-                'Reseñas',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1C1B1F),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Calificación principal
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          averageRating.toStringAsFixed(1),
-                          style: GoogleFonts.poppins(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1C1B1F),
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: List.generate(5, (index) {
-                            return Icon(
-                              index < averageRating.floor() ? Icons.star : 
-                              index < averageRating ? Icons.star_half : Icons.star_border,
-                              color: const Color(0xFFFFC107),
-                              size: 20,
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$totalRatings Reseñas',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Gráfico de distribución
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: List.generate(5, (index) {
-                        final stars = 5 - index;
-                        final count = distribution[stars.toString()] ?? 0;
-                        final percentage = totalRatings > 0 ? (count / totalRatings) : 0.0;
-                        
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            children: [
-                              Text(
-                                '$stars',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6B7280),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF3F4F6),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    FractionallySizedBox(
-                                      widthFactor: percentage,
-                                      child: Container(
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF3B82F6),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Categorías de calificación
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCategoryRating('🍽️', 'Comida', averageRating),
-                  ),
-                  Expanded(
-                    child: _buildCategoryRating('🏛️', 'Ambiente', averageRating - 0.1),
-                  ),
-                  Expanded(
-                    child: _buildCategoryRating('👨‍💼', 'Servicio', averageRating + 0.1),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Verificación
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.verified,
-                      color: Color(0xFF16A34A),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF16A34A),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Lo que los comensales dicen
-              _buildRecentReviews(),
-            ],
-          ),
-        );
-      },
+    return const PublicReviewsSection(
+      showAddReviewButton: true,
+      compactView: false,
     );
+  }
+
+  Widget _buildOldReviewsSection() {
+    // Legacy method - replaced with PublicReviewsSection
+    return const SizedBox.shrink();
   }
 
   Widget _buildCategoryRating(String emoji, String category, double rating) {
@@ -3215,202 +2883,17 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Sección de reseñas con datos REALES de la base de datos
+  // Sección de reseñas PÚBLICAS - Visible para todos sin login
   Widget _buildReviewsSection() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: RatingService.getRatingStatistics(365), // Últimos 365 días
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final stats = snapshot.data ?? {};
-        final averageRating = (stats['average_rating'] ?? 0.0).toDouble();
-        final totalRatings = stats['total_ratings'] ?? 0;
-        final distribution = stats['rating_distribution'] ?? {};
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Reseñas
-              Text(
-                'Reseñas',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1C1B1F),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Calificación principal
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          averageRating.toStringAsFixed(1),
-                          style: GoogleFonts.poppins(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1C1B1F),
-                            height: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: List.generate(5, (index) {
-                            return Icon(
-                              index < averageRating.floor() ? Icons.star : 
-                              index < averageRating ? Icons.star_half : Icons.star_border,
-                              color: const Color(0xFFFFC107),
-                              size: 20,
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '$totalRatings Reseñas',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  // Gráfico de distribución
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: List.generate(5, (index) {
-                        final stars = 5 - index;
-                        final count = distribution[stars.toString()] ?? 0;
-                        final percentage = totalRatings > 0 ? (count / totalRatings) : 0.0;
-                        
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            children: [
-                              Text(
-                                '$stars',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF6B7280),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF3F4F6),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                    FractionallySizedBox(
-                                      widthFactor: percentage,
-                                      child: Container(
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF3B82F6),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Categorías de calificación
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCategoryRating('🍽️', 'Comida', averageRating),
-                  ),
-                  Expanded(
-                    child: _buildCategoryRating('🏛️', 'Ambiente', averageRating - 0.1),
-                  ),
-                  Expanded(
-                    child: _buildCategoryRating('👨‍💼', 'Servicio', averageRating + 0.1),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Verificación
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.verified,
-                      color: Color(0xFF16A34A),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF16A34A),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Lo que los comensales dicen
-              _buildRecentReviews(),
-            ],
-          ),
-        );
-      },
+    return const PublicReviewsSection(
+      showAddReviewButton: true,
+      compactView: false,
     );
+  }
+
+  Widget _buildOldReviewsSection() {
+    // Legacy method - replaced with PublicReviewsSection
+    return const SizedBox.shrink();
   }
 
   Widget _buildCategoryRating(String emoji, String category, double rating) {
