@@ -568,7 +568,6 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: 8),
-                _buildRatingsSection(),
                 const SizedBox(height: 24),
                 _buildReserveButton(),
               ]),
@@ -1860,54 +1859,6 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     );
   }
 
-  // Sección de valoraciones
-  Widget _buildRatingsSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.star,
-                color: Colors.amber[600],
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Valoraciones de SODITA',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1C1B1F),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Optimized reviews section
-          const OptimizedReviewWidget(
-            days: 30,
-            showStatistics: true,
-            reviewLimit: 3,
-          ),
-        ],
-      ),
-    );
-  }
 
   // Mostrar diálogo de valoración para usuarios
   void _showRatingDialog() {
