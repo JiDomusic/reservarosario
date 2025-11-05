@@ -1,0 +1,580 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import '../models/restaurant.dart';
+import '../widgets/restaurant_card.dart';
+import 'restaurant_login_screen.dart';
+import '../main.dart';
+
+class RestaurantListScreen extends StatefulWidget {
+  const RestaurantListScreen({super.key});
+
+  @override
+  State<RestaurantListScreen> createState() => _RestaurantListScreenState();
+}
+
+class _RestaurantListScreenState extends State<RestaurantListScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _headerAnimationController;
+  late Animation<double> _headerSlideAnimation;
+  late Animation<double> _headerFadeAnimation;
+
+  List<Restaurant> restaurants = [];
+  List<Restaurant> filteredRestaurants = [];
+  String searchQuery = '';
+  String selectedFilter = 'all'; // all, open, available
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _headerAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    _headerSlideAnimation = Tween<double>(
+      begin: -50.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _headerAnimationController,
+      curve: Curves.elasticOut,
+    ));
+    
+    _headerFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _headerAnimationController,
+      curve: Curves.easeIn,
+    ));
+    
+    _loadRestaurants();
+  }
+
+  @override
+  void dispose() {
+    _headerAnimationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadRestaurants() async {
+    setState(() => isLoading = true);
+    
+    try {
+      // Cargar restaurantes desde la base de datos
+      restaurants = await RestaurantData.getRestaurantsFromDatabase();
+      
+      // Si no hay restaurantes en la BD, usar datos demo
+      if (restaurants.isEmpty) {
+        restaurants = RestaurantData.getDemoRestaurants();
+      }
+      
+      _applyFilters();
+    } catch (e) {
+      // En caso de error, usar datos demo
+      restaurants = RestaurantData.getDemoRestaurants();
+      _applyFilters();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando restaurantes: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+    
+    setState(() => isLoading = false);
+    _headerAnimationController.forward();
+  }
+
+  void _applyFilters() {
+    filteredRestaurants = restaurants.where((restaurant) {
+      // Filtro de búsqueda
+      bool matchesSearch = searchQuery.isEmpty ||
+          restaurant.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          restaurant.description.toLowerCase().contains(searchQuery.toLowerCase());
+      
+      // Filtro de estado
+      bool matchesFilter = true;
+      switch (selectedFilter) {
+        case 'open':
+          matchesFilter = restaurant.isOpen && restaurant.isActive;
+          break;
+        case 'available':
+          matchesFilter = restaurant.isOpen && 
+                         restaurant.isActive && 
+                         restaurant.availableTables > 0;
+          break;
+        case 'all':
+        default:
+          matchesFilter = restaurant.isActive;
+      }
+      
+      return matchesSearch && matchesFilter;
+    }).toList();
+    
+    // Ordenar por rating y disponibilidad
+    filteredRestaurants.sort((a, b) {
+      if (a.isOpen && !b.isOpen) return -1;
+      if (!a.isOpen && b.isOpen) return 1;
+      if (a.availableTables > 0 && b.availableTables == 0) return -1;
+      if (a.availableTables == 0 && b.availableTables > 0) return 1;
+      return b.rating.compareTo(a.rating);
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      searchQuery = query;
+      _applyFilters();
+    });
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      selectedFilter = filter;
+      _applyFilters();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: isLoading ? _buildLoadingScreen() : _buildMainContent(),
+      floatingActionButton: _buildAdminLoginFAB(),
+    );
+  }
+
+  Widget _buildLoadingScreen() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF86704)),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Cargando restaurantes...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
+          _buildSliverAppBar(),
+        ];
+      },
+      body: Column(
+        children: [
+          _buildSearchAndFilters(),
+          Expanded(
+            child: _buildRestaurantList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar() {
+    return SliverAppBar(
+      expandedHeight: 200,
+      floating: false,
+      pinned: true,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF0F172A),
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white,
+                Color(0xFFF8FAFC),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: AnimatedBuilder(
+                animation: _headerAnimationController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _headerSlideAnimation.value),
+                    child: FadeTransition(
+                      opacity: _headerFadeAnimation,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFFF86704),
+                                      const Color(0xFFFF8A50),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFF86704).withValues(alpha: 0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.restaurant,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Reservá Rosario',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tu plataforma gastronómica',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFFF86704).withValues(alpha: 0.1),
+                                  const Color(0xFF10B981).withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFF86704).withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.restaurant_menu,
+                                  color: const Color(0xFFF86704),
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${filteredRestaurants.length} restaurantes disponibles',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${filteredRestaurants.where((r) => r.isOpen && r.availableTables > 0).length} con mesas disponibles ahora',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      color: Colors.white,
+      child: Column(
+        children: [
+          // Barra de búsqueda
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: TextField(
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Buscar restaurantes...',
+                hintStyle: GoogleFonts.inter(
+                  color: const Color(0xFF64748B),
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Color(0xFF64748B),
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Filtros
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterChip(
+                  'Todos',
+                  'all',
+                  Icons.restaurant_menu,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFilterChip(
+                  'Abiertos',
+                  'open',
+                  Icons.schedule,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFilterChip(
+                  'Disponibles',
+                  'available',
+                  Icons.check_circle,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, IconData icon) {
+    final isSelected = selectedFilter == value;
+    
+    return GestureDetector(
+      onTap: () => _onFilterChanged(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? const Color(0xFFF86704) 
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected 
+                ? const Color(0xFFF86704) 
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected 
+                  ? Colors.white 
+                  : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isSelected 
+                    ? Colors.white 
+                    : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRestaurantList() {
+    if (filteredRestaurants.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadRestaurants,
+      child: AnimationLimiter(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: filteredRestaurants.length,
+          itemBuilder: (context, index) {
+            final restaurant = filteredRestaurants[index];
+            return AnimationConfiguration.staggeredList(
+              position: index,
+              duration: const Duration(milliseconds: 600),
+              child: SlideAnimation(
+                verticalOffset: 50.0,
+                child: FadeInAnimation(
+                  child: RestaurantCard(
+                    restaurant: restaurant,
+                    onTap: () => _onRestaurantTap(restaurant),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF86704).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(60),
+              ),
+              child: const Icon(
+                Icons.search_off,
+                size: 60,
+                color: Color(0xFFF86704),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No se encontraron restaurantes',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta cambiar los filtros o la búsqueda',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: const Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  searchQuery = '';
+                  selectedFilter = 'all';
+                  _applyFilters();
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF86704),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Mostrar todos'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminLoginFAB() {
+    return FloatingActionButton.extended(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RestaurantLoginScreen(),
+          ),
+        );
+      },
+      backgroundColor: const Color(0xFF2196F3),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.admin_panel_settings),
+      label: Text(
+        'Admin',
+        style: GoogleFonts.inter(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  void _onRestaurantTap(Restaurant restaurant) {
+    print('🔍 Navegando a: ${restaurant.name} con ${restaurant.totalTables} mesas');
+    
+    // TODOS los restaurantes (incluyendo SODITA) usan el mismo sistema clonado
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RestaurantSoditaClone(restaurant: restaurant),
+      ),
+    );
+  }
+}
