@@ -50,6 +50,7 @@ class ReservationService {
         'nombre': customerName,
         'telefono': customerPhone,
         'estado': 'confirmada',
+        'codigo_confirmacion': 'SOD${(DateTime.now().millisecondsSinceEpoch % 10000).toString().padLeft(4, '0')}',
       };
 
       if (customerEmail != null && customerEmail.isNotEmpty) {
@@ -521,7 +522,7 @@ class ReservationService {
           .from('sodita_reservas')
           .update({
             'estado': 'expirada',
-            'comentario_admin': 'Liberada automáticamente - Cliente no se presentó en 15 minutos'
+            'comentarios': 'Liberada automáticamente - Cliente no se presentó en 15 minutos'
           })
           .eq('id', reservationId);
       
@@ -662,6 +663,20 @@ class ReservationService {
     } catch (e) {
       print('❌ Error processing expired reservations: $e');
       return [];
+    }
+  }
+
+  // Obtener reserva activa actual
+  static Future<Map<String, dynamic>?> getActiveReservation() async {
+    try {
+      final now = DateTime.now();
+      final reservations = await getActiveReservationsByDate(now);
+      
+      // Retornar la primera reserva activa encontrada o null si no hay ninguna
+      return reservations.isNotEmpty ? reservations.first : null;
+    } catch (e) {
+      print('❌ Error getting active reservation: $e');
+      return null;
     }
   }
 }
