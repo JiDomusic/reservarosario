@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/restaurant.dart';
+import '../services/dynamic_availability_service.dart';
 
-class RestaurantCard extends StatelessWidget {
+class RestaurantCard extends StatefulWidget {
   final Restaurant restaurant;
   final VoidCallback? onTap;
 
@@ -11,6 +12,43 @@ class RestaurantCard extends StatelessWidget {
     required this.restaurant,
     this.onTap,
   });
+
+  @override
+  State<RestaurantCard> createState() => _RestaurantCardState();
+}
+
+class _RestaurantCardState extends State<RestaurantCard> {
+  int? _dynamicAvailableTables;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailability();
+  }
+
+  Future<void> _loadAvailability() async {
+    try {
+      final availability = await DynamicAvailabilityService.getAvailableTablesCount(widget.restaurant.id);
+      if (mounted) {
+        setState(() {
+          _dynamicAvailableTables = availability;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _dynamicAvailableTables = widget.restaurant.availableTables; // Fallback
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  int get effectiveAvailableTables {
+    return _dynamicAvailableTables ?? widget.restaurant.availableTables;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +68,7 @@ class RestaurantCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -51,7 +89,7 @@ class RestaurantCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            restaurant.name,
+                            widget.restaurant.name,
                             style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -60,7 +98,7 @@ class RestaurantCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            restaurant.description,
+                            widget.restaurant.description,
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               color: const Color(0xFF64748B),
@@ -99,7 +137,7 @@ class RestaurantCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            restaurant.rating.toStringAsFixed(1),
+                            widget.restaurant.rating.toStringAsFixed(1),
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -108,7 +146,7 @@ class RestaurantCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '(${restaurant.totalReviews})',
+                            '(${widget.restaurant.totalReviews})',
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               color: const Color(0xFF64748B),
@@ -132,7 +170,7 @@ class RestaurantCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              restaurant.address,
+                              widget.restaurant.address,
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 color: const Color(0xFF64748B),
@@ -175,18 +213,18 @@ class RestaurantCard extends StatelessWidget {
       width: 60,
       height: 60,
       decoration: BoxDecoration(
-        color: restaurant.primaryColorValue.withValues(alpha: 0.1),
+        color: widget.restaurant.primaryColorValue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: restaurant.primaryColorValue.withValues(alpha: 0.3),
+          color: widget.restaurant.primaryColorValue.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
-      child: restaurant.logoUrl.isNotEmpty
+      child: widget.restaurant.logoUrl.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.network(
-                restaurant.logoUrl,
+                widget.restaurant.logoUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return _buildLogoPlaceholder();
@@ -200,11 +238,11 @@ class RestaurantCard extends StatelessWidget {
   Widget _buildLogoPlaceholder() {
     return Center(
       child: Text(
-        restaurant.logoText,
+        widget.restaurant.logoText,
         style: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w900,
-          color: restaurant.primaryColorValue,
+          color: widget.restaurant.primaryColorValue,
         ),
       ),
     );
@@ -214,10 +252,10 @@ class RestaurantCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: restaurant.statusColor.withValues(alpha: 0.1),
+        color: widget.restaurant.statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: restaurant.statusColor.withValues(alpha: 0.3),
+          color: widget.restaurant.statusColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -227,17 +265,17 @@ class RestaurantCard extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: restaurant.statusColor,
+              color: widget.restaurant.statusColor,
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 6),
           Text(
-            restaurant.statusText,
+            widget.restaurant.statusText,
             style: GoogleFonts.inter(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: restaurant.statusColor,
+              color: widget.restaurant.statusColor,
             ),
           ),
         ],
@@ -246,7 +284,7 @@ class RestaurantCard extends StatelessWidget {
   }
 
   Widget _buildTableInfo() {
-    if (!restaurant.isOpen) {
+    if (!widget.restaurant.isOpen) {
       return Row(
         children: [
           Icon(
@@ -267,7 +305,7 @@ class RestaurantCard extends StatelessWidget {
       );
     }
 
-    if (restaurant.availableTables > 0) {
+    if (effectiveAvailableTables > 0) {
       return Row(
         children: [
           Icon(
@@ -277,7 +315,7 @@ class RestaurantCard extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '${restaurant.availableTables} mesas disponibles',
+            '${effectiveAvailableTables} mesas disponibles',
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -310,7 +348,7 @@ class RestaurantCard extends StatelessWidget {
   }
 
   Widget _buildActionButton() {
-    if (!restaurant.isOpen) {
+    if (!widget.restaurant.isOpen) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -333,14 +371,14 @@ class RestaurantCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            restaurant.primaryColorValue,
-            restaurant.primaryColorValue.withValues(alpha: 0.8),
+            widget.restaurant.primaryColorValue,
+            widget.restaurant.primaryColorValue.withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: restaurant.primaryColorValue.withValues(alpha: 0.3),
+            color: widget.restaurant.primaryColorValue.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -350,13 +388,13 @@ class RestaurantCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            restaurant.availableTables > 0 ? Icons.flash_on : Icons.queue,
+            effectiveAvailableTables > 0 ? Icons.flash_on : Icons.queue,
             color: Colors.white,
             size: 16,
           ),
           const SizedBox(width: 6),
           Text(
-            restaurant.availableTables > 0 ? 'MesaYa!' : 'Cola Virtual',
+            effectiveAvailableTables > 0 ? 'MesaYa!' : 'Cola Virtual',
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,

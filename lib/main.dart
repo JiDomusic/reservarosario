@@ -1367,6 +1367,8 @@ class _RestaurantPageState extends State<RestaurantPage> {
       ),
     );
 
+    bool loadingClosed = false;
+    
     try {
       final timeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
       final reservation = await MultiRestaurantService.createReservation(
@@ -1380,7 +1382,10 @@ class _RestaurantPageState extends State<RestaurantPage> {
         customerEmail: _tempEmail.trim().isEmpty ? null : _tempEmail.trim(),
       );
 
-      Navigator.pop(context); // Cerrar loading
+      if (mounted && !loadingClosed) {
+        Navigator.pop(context); // Cerrar loading
+        loadingClosed = true;
+      }
 
       if (reservation != null) {
         // Mostrar confirmación IGUAL QUE SODITA
@@ -1477,13 +1482,24 @@ class _RestaurantPageState extends State<RestaurantPage> {
         _loadTables(); // Recargar mesas
       }
     } catch (e) {
-      Navigator.pop(context); // Cerrar loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted && !loadingClosed) {
+        Navigator.pop(context); // Cerrar loading
+        loadingClosed = true;
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // Garantizar que siempre se cierre el loading
+      if (mounted && !loadingClosed) {
+        Navigator.pop(context);
+      }
     }
   }
 

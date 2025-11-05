@@ -225,8 +225,8 @@ class RestaurantData {
       Restaurant(
         id: 'sodita',
         name: 'SODITA',
-        description: 'Restaurante con sistema de reservas inteligente y liberación automática.\n\n🏢 LAYOUT FÍSICO:\n• Capacidad total: 50 personas en 10 mesas\n• 1 Living con sofás (12 personas)\n• 4 Mesas altas de barra (16 personas)\n• 5 Mesas bajas comunes (20 personas)\n• Ubicación: Solo planta alta\n• Ambiente: Interior acogedor\n\n📍 Todas las reservas son para la planta alta únicamente.',
-        address: 'Dirección de Sodita, Rosario',
+        description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• Capacidad total: 50 personas en 10 mesas\n• 1 Living con sofás (12 personas)\n• 4 Mesas altas de barra (16 personas)\n• 5 Mesas bajas comunes (20 personas)\n• Ubicación: Solo planta alta\n• Ambiente: Interior acogedor\n\n📍 Todas las reservas son para la planta alta únicamente.',
+        address: 'Laprida 1301, Rosario 2000',
         phone: '+54 341 456-7888',
         email: 'admin@sodita.com',
         totalTables: 10,

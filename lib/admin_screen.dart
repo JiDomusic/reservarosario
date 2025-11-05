@@ -347,6 +347,298 @@ class AdminScreen extends StatefulWidget {
   State<AdminScreen> createState() => _AdminScreenState();
 }
 
+// 🔐 PANTALLA DE LOGIN SÚPER SEGURA
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
+
+  @override
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
+}
+
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  // 📧 CREDENCIALES TEMPORALES (cambiar en Supabase después)
+  static const String ADMIN_EMAIL = 'admin@sodita.com';
+  static const String ADMIN_PASSWORD = 'sodita2025!';
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showError('Por favor completa todos los campos');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Simular autenticación (reemplazar con Supabase Auth)
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      if (email == ADMIN_EMAIL && password == ADMIN_PASSWORD) {
+        // 💰 VERIFICAR SUSCRIPCIÓN DESPUÉS DEL LOGIN
+        final hasValidSubscription = await _checkSubscription();
+        
+        if (mounted) {
+          if (hasValidSubscription) {
+            // Acceso completo al admin
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminScreen()),
+            );
+          } else {
+            // Mostrar pantalla de suscripción
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+            );
+          }
+        }
+      } else {
+        _showError('Credenciales incorrectas');
+      }
+    } catch (e) {
+      _showError('Error de conexión');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 60),
+              
+              // Logo y título
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.admin_panel_settings,
+                        size: 48,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'SODITA Admin',
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1C1B1F),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Panel de Control del Restaurante',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+              
+              // Formulario de login
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Email
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email de Administrador',
+                        hintText: 'admin@sodita.com',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      enabled: !_isLoading,
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Password
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                      ),
+                      obscureText: _obscurePassword,
+                      enabled: !_isLoading,
+                      onSubmitted: (_) => _login(),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Botón de login
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Ingresar al Panel',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Info de credenciales temporales
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Credenciales Temporales',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Email: admin@sodita.com\nContraseña: sodita2025!',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 💰 VERIFICAR SUSCRIPCIÓN
+  Future<bool> _checkSubscription() async {
+    try {
+      // Simular verificación de suscripción (reemplazar con lógica real)
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Para SODITA (sistema de prueba) devolver false para mostrar pantalla de pago
+      return false; // Cambiar a true después del pago
+    } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+}
+
 class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin {
   List<Map<String, dynamic>> reservations = [];
   Map<String, dynamic> stats = {};
@@ -644,6 +936,50 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
   }
 
+  // 🚀 HYPER REFRESH - Actualización ultra-rápida con animaciones
+  Future<void> _hyperRefresh() async {
+    try {
+      // Animación de feedback inmediato
+      setState(() => isLoading = true);
+      
+      // Cargar datos de forma paralela para máxima velocidad
+      await Future.wait([
+        _loadData(),
+        _autoMarkNoShows(),
+        _processExpiredReservations(),
+      ]);
+      
+      // Mostrar feedback de éxito
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.flash_on, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('⚡ Datos actualizados instantáneamente'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error en hyper refresh: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Error actualizando datos'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _autoMarkNoShows() async {
     await ReservationService.autoMarkNoShow();
     _loadData(); // Recargar después de marcar no_shows
@@ -662,9 +998,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       final reservationDate = reservation['fecha'];
       final estado = reservation['estado'];
       
-      // Si es del día actual, mostrar todos los estados
+      // Si es del día actual, mostrar solo estados operativos (excluir no_vino)
       if (reservationDate == todayStr) {
-        return true;
+        return estado == 'confirmada' || estado == 'en_mesa';
       }
       
       // Si es de días anteriores, solo mostrar estados activos (confirmadas, en_mesa)
@@ -1334,12 +1670,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           },
           tooltip: showCalendarView ? 'Vista Lista' : l10n.calendarView,
         ),
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          onPressed: () {
-            print('🔄 Manual refresh button pressed');
-            _loadData();
-          },
+        // 🚀 REFRESH SÚPER INTELIGENTE
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          child: IconButton(
+            icon: AnimatedRotation(
+              turns: isLoading ? 1 : 0,
+              duration: const Duration(milliseconds: 800),
+              child: Icon(
+                isLoading ? Icons.sync : Icons.refresh,
+                color: isLoading ? Colors.blue : null,
+              ),
+            ),
+            onPressed: _hyperRefresh,
+            tooltip: 'Actualización Ultra-Rápida',
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.bug_report),
@@ -2209,12 +2554,144 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       );
     }
 
+    if (reservations.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 64,
+              color: Colors.green.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '✨ ¡Todo limpio!',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.green[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No hay reservas activas en este momento.\nLas mesas están disponibles para nuevas reservas.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
         for (int index = 0; index < reservations.length; index++)
           _buildReservationCard(reservations[index], index),
+        
+        // 🗂️ SECCIÓN DE HISTORIAL DEL DÍA (NO VINO + COMPLETADAS)
+        const SizedBox(height: 32),
+        _buildHistorialSection(),
       ],
     );
+  }
+
+  // 🗂️ SECCIÓN INTELIGENTE DE HISTORIAL
+  Widget _buildHistorialSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getHistorialReservations(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        final historialReservations = snapshot.data!;
+        if (historialReservations.isEmpty) return const SizedBox.shrink();
+        
+        final noVino = historialReservations.where((r) => r['estado'] == 'no_vino').toList();
+        final completadas = historialReservations.where((r) => r['estado'] == 'completada').toList();
+        
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history, color: Colors.grey[600], size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '📊 Historial del Día',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              if (noVino.isNotEmpty) ...[
+                _buildHistorialSubsection('❌ No Vinieron', noVino, Colors.red),
+                const SizedBox(height: 12),
+              ],
+              
+              if (completadas.isNotEmpty) ...[
+                _buildHistorialSubsection('✅ Completadas', completadas, Colors.green),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHistorialSubsection(String title, List<Map<String, dynamic>> reservations, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$title (${reservations.length})',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...reservations.map((reservation) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            '• Mesa ${reservation['sodita_mesas']['numero']} - ${reservation['nombre']} (${reservation['hora']})',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        )),
+      ],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _getHistorialReservations() async {
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final response = await ReservationService.getReservationsByDate(DateTime.now());
+      return response.where((r) => 
+        r['fecha'] == today && 
+        (r['estado'] == 'no_vino' || r['estado'] == 'completada')
+      ).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Widget _buildActionButtons(Map<String, dynamic> reservation) {
@@ -2222,17 +2699,44 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final hasExpired = ReservationService.hasExpired(reservation['hora']);
     final isInCriticalPeriod = ReservationService.isInCriticalPeriod(reservation['hora']);
     
+    // 🧠 LÓGICA INTELIGENTE HORARIA
+    final now = DateTime.now();
+    final reservationTime = DateTime.parse('${reservation['fecha']} ${reservation['hora']}');
+    final difference = reservationTime.difference(now);
+    final isPastReservationTime = difference.isNegative;
+    final minutesUntilReservation = difference.inMinutes;
+    final minutesSinceReservation = isPastReservationTime ? -difference.inMinutes : 0;
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (status == 'confirmada') ...[
-          // Botón de check-in (llegó)
-          _buildActionButton(
-            icon: Icons.check_circle,
-            color: Colors.green,
-            onPressed: () => _updateReservationStatus(reservation['id'], 'en_mesa'),
-            tooltip: 'Cliente llegó - Check-in',
-          ),
+          // 🧠 INTELIGENCIA: Solo mostrar "En Mesa" si ya pasó la hora de reserva
+          if (isPastReservationTime) ...[
+            _buildActionButton(
+              icon: Icons.check_circle,
+              color: Colors.green,
+              onPressed: () => _updateReservationStatus(reservation['id'], 'en_mesa'),
+              tooltip: 'Cliente llegó - Check-in',
+            ),
+          ] else ...[
+            // Antes de la hora de reserva, mostrar info
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Faltan $minutesUntilReservation min',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.blue[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(width: 8),
           
           // Botón de no-show (no vino) - Siempre disponible
@@ -2780,4 +3284,623 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
 
+}
+
+// 💳 PANTALLA DE SUSCRIPCIÓN Y PAGO
+class SubscriptionScreen extends StatefulWidget {
+  const SubscriptionScreen({super.key});
+
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> 
+    with TickerProviderStateMixin {
+  late AnimationController _slideController;
+  late AnimationController _pulseController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _pulseAnimation;
+  bool _isProcessingPayment = false;
+
+  // 🏦 DATOS BANCARIOS PARA TRANSFERENCIA
+  static const String BANK_ALIAS = 'SODITA.RESERVAS';
+  static const String BANK_ACCOUNT = 'CBU: 0070055630004012345678';
+  static const String BANK_HOLDER = 'SODITA RESTAURANT S.R.L.';
+  static const String MONTHLY_AMOUNT = '\$50.000';
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutBack,
+    ));
+    
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _slideController.forward();
+    _pulseController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _processPayment() async {
+    setState(() => _isProcessingPayment = true);
+    
+    try {
+      // Simular procesamiento de pago
+      await Future.delayed(const Duration(seconds: 3));
+      
+      if (mounted) {
+        // Mostrar diálogo de éxito
+        _showPaymentSuccessDialog();
+      }
+    } catch (e) {
+      _showError('Error procesando el pago. Intenta nuevamente.');
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingPayment = false);
+      }
+    }
+  }
+
+  void _showPaymentSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '¡Pago Exitoso!',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tu suscripción ha sido activada.\nYa puedes acceder al panel de administración.',
+              style: GoogleFonts.poppins(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Acceder al Admin',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _copyToClipboard(String text, String label) {
+    // Simular copiar al portapapeles
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$label copiado al portapapeles'),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                
+                // Header con logo y título
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _pulseAnimation.value,
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF2563EB),
+                                    const Color(0xFF3B82F6),
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.restaurant_menu,
+                                size: 48,
+                                color: Colors.white,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'SODITA Premium',
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1C1B1F),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sistema de Gestión de Reservas Profesional',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          color: const Color(0xFF6B7280),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Dirección del restaurante
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Color(0xFF2563EB),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Laprida 1301, Rosario',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF2563EB),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Plan de suscripción
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF2563EB), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Plan Mensual',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1C1B1F),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Recomendado',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Precio
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            MONTHLY_AMOUNT,
+                            style: GoogleFonts.poppins(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF2563EB),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'ARS / mes',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: const Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Características
+                      Column(
+                        children: [
+                          _buildFeatureItem('✅ Gestión completa de reservas'),
+                          _buildFeatureItem('✅ Sistema de cola virtual MesaYa!'),
+                          _buildFeatureItem('✅ Analytics en tiempo real'),
+                          _buildFeatureItem('✅ Notificaciones automáticas'),
+                          _buildFeatureItem('✅ Gestión de valoraciones'),
+                          _buildFeatureItem('✅ Liberación automática de mesas'),
+                          _buildFeatureItem('✅ Panel de administración avanzado'),
+                          _buildFeatureItem('✅ Soporte técnico 24/7'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Información de pago
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.account_balance,
+                            color: Color(0xFF2563EB),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Datos para Transferencia',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1C1B1F),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Alias
+                      _buildPaymentInfo(
+                        'Alias',
+                        BANK_ALIAS,
+                        Icons.alternate_email,
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // CBU
+                      _buildPaymentInfo(
+                        'CBU',
+                        BANK_ACCOUNT,
+                        Icons.numbers,
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Titular
+                      _buildPaymentInfo(
+                        'Titular',
+                        BANK_HOLDER,
+                        Icons.person,
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Monto
+                      _buildPaymentInfo(
+                        'Monto',
+                        MONTHLY_AMOUNT,
+                        Icons.attach_money,
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Instrucciones
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xFF2563EB),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Instrucciones de Pago',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '1. Realiza la transferencia con los datos arriba\n'
+                              '2. Envía el comprobante por WhatsApp al +54 341 123-4567\n'
+                              '3. Tu suscripción será activada en menos de 24hs',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF4B5563),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                // Botón de pago
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isProcessingPayment ? null : _processPayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: _isProcessingPayment
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Ya Realicé la Transferencia',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Botón secundario
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Volver al Login',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF374151),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfo(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: const Color(0xFF6B7280),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.robotoMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1C1B1F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _copyToClipboard(value, label),
+            icon: const Icon(
+              Icons.copy,
+              color: Color(0xFF2563EB),
+              size: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

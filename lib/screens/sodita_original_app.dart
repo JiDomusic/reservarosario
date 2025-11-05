@@ -204,10 +204,27 @@ class RestaurantsPage extends StatefulWidget {
 class _RestaurantsPageState extends State<RestaurantsPage> {
   DateTime selectedDate = DateTime.now();
   TimeOfDay? selectedTime;
-  int partySize = 10;
+  int partySize = 2;
   int? selectedTableNumber;
   String? selectedTableId;
   String? lastPhoneNumber;
+  
+  String _getTableImage(int tableNumber) {
+    final images = {
+      1: 'https://picsum.photos/400/300?random=1',
+      2: 'https://picsum.photos/400/300?random=2',
+      3: 'https://picsum.photos/400/300?random=3',
+      4: 'https://picsum.photos/400/300?random=4',
+      5: 'https://picsum.photos/400/300?random=5',
+      6: 'https://picsum.photos/400/300?random=6',
+      7: 'https://picsum.photos/400/300?random=7',
+      8: 'https://picsum.photos/400/300?random=8',
+      9: 'https://picsum.photos/400/300?random=9',
+      10: 'https://picsum.photos/400/300?random=10',
+    };
+    
+    return images[tableNumber] ?? 'https://picsum.photos/400/300?random=default';
+  }
   
   List<Map<String, dynamic>> availableTables = [];
   List<String> occupiedTableIds = [];
@@ -293,10 +310,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       final results = await Future.wait([
         ReservationService.getMesas().timeout(const Duration(seconds: 5)),
         ReservationService.getCurrentlyOccupiedTables(date: selectedDate).timeout(const Duration(seconds: 5)),
-        // Si no hay hora seleccionada, mostrar todas las reservas del día
+        // Si hay hora seleccionada, verificar ocupación específica; si no, lista vacía (todas disponibles)
         timeString != null 
             ? ReservationService.getOccupiedTables(date: selectedDate, time: timeString).timeout(const Duration(seconds: 5))
-            : ReservationService.getAllReservedTablesForDay(date: selectedDate).timeout(const Duration(seconds: 5)),
+            : Future.value(<String>[]), // Sin hora seleccionada = todas las mesas disponibles
       ]);
       
       final tables = results[0] as List<Map<String, dynamic>>;
@@ -306,7 +323,48 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       if (!mounted) return;
       
       setState(() {
-        availableTables = tables.isNotEmpty ? tables : _getSoditaOriginalTables();
+        // Para SODITA usar datos de BD si están disponibles, sino fallback a datos originales
+        var tablesToUse = tables.isNotEmpty ? tables : _getSoditaOriginalTables();
+        
+        // SODITA es gratis y de demostración - asegurar que todas las mesas estén activas
+        tablesToUse = tablesToUse.map((table) {
+          final modifiedTable = Map<String, dynamic>.from(table);
+          modifiedTable['activa'] = true; // Forzar todas activas para demostración
+          
+          // Si están usando datos por defecto, actualizar las capacidades
+          if (tables.isEmpty) {
+            final tableNumber = modifiedTable['numero'] ?? 0;
+            switch (tableNumber) {
+              case 1:
+              case 10:
+                modifiedTable['capacidad'] = 4;
+                break;
+              case 2:
+              case 4:
+              case 7:
+                modifiedTable['capacidad'] = 6;
+                break;
+              case 3:
+              case 5:
+              case 8:
+                modifiedTable['capacidad'] = 8;
+                break;
+              case 9:
+                modifiedTable['capacidad'] = 10;
+                break;
+              case 6:
+                modifiedTable['capacidad'] = 12;
+                break;
+              case 11:
+                modifiedTable['capacidad'] = 50;
+                break;
+            }
+          }
+          
+          return modifiedTable;
+        }).toList();
+        
+        availableTables = tablesToUse;
         occupiedTableIds = occupied;
         reservedTableIds = reserved.where((id) => !occupied.contains(id)).toList(); // Excluir las que ya están ocupadas
         isLoadingTables = false;
@@ -344,16 +402,17 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   // LAS 10 MESAS ORIGINALES DE SODITA DEL ULTIMO DEPLOY
   List<Map<String, dynamic>> _getSoditaOriginalTables() {
     return [
-      {'id': '1', 'numero': 1, 'capacidad': 2, 'ubicacion': 'Ventana frontal', 'activa': true},
-      {'id': '2', 'numero': 2, 'capacidad': 2, 'ubicacion': 'Ventana lateral', 'activa': true},
-      {'id': '3', 'numero': 3, 'capacidad': 4, 'ubicacion': 'Centro del salon', 'activa': true},
-      {'id': '4', 'numero': 4, 'capacidad': 4, 'ubicacion': 'Cerca de la ventana', 'activa': true},
-      {'id': '5', 'numero': 5, 'capacidad': 6, 'ubicacion': 'Mesa grande central', 'activa': true},
-      {'id': '6', 'numero': 6, 'capacidad': 15, 'ubicacion': 'Living (zona para grupos)', 'activa': true},
-      {'id': '7', 'numero': 7, 'capacidad': 2, 'ubicacion': 'Rincon privado', 'activa': true},
-      {'id': '8', 'numero': 8, 'capacidad': 4, 'ubicacion': 'Centro-derecha', 'activa': true},
-      {'id': '9', 'numero': 9, 'capacidad': 4, 'ubicacion': 'Centro-izquierda', 'activa': true},
-      {'id': '10', 'numero': 10, 'capacidad': 2, 'ubicacion': 'Mesa de la esquina', 'activa': true},
+      {'id': '1', 'numero': 1, 'capacidad': 4, 'ubicacion': 'Ventana frontal', 'activa': true},
+      {'id': '2', 'numero': 2, 'capacidad': 6, 'ubicacion': 'Ventana lateral', 'activa': true},
+      {'id': '3', 'numero': 3, 'capacidad': 8, 'ubicacion': 'Centro del salon', 'activa': true},
+      {'id': '4', 'numero': 4, 'capacidad': 6, 'ubicacion': 'Cerca de la ventana', 'activa': true},
+      {'id': '5', 'numero': 5, 'capacidad': 8, 'ubicacion': 'Mesa grande central', 'activa': true},
+      {'id': '6', 'numero': 6, 'capacidad': 12, 'ubicacion': 'Living (zona para grupos)', 'activa': true},
+      {'id': '7', 'numero': 7, 'capacidad': 6, 'ubicacion': 'Rincon privado', 'activa': true},
+      {'id': '8', 'numero': 8, 'capacidad': 8, 'ubicacion': 'Centro-derecha', 'activa': true},
+      {'id': '9', 'numero': 9, 'capacidad': 10, 'ubicacion': 'Centro-izquierda', 'activa': true},
+      {'id': '10', 'numero': 10, 'capacidad': 4, 'ubicacion': 'Mesa de la esquina', 'activa': true},
+      {'id': '11', 'numero': 11, 'capacidad': 50, 'ubicacion': 'Comedor completo (evento privado)', 'activa': true},
     ];
   }
 
@@ -442,7 +501,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   compactView: true,
                 ),
               ),
-              _buildActiveReservationSection(),
+              // _buildActiveReservationSection(), // Movido solo al admin
               _buildDateTimeSelector(),
               const SizedBox(height: 20),
               _buildPartySizeSelector(),
@@ -626,12 +685,31 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • Planta Alta: 9 mesas + 1 living (15 personas)',
+                              'Restaurante Gourmet • Planta Alta: 11 opciones (4-50 personas)',
                               style: GoogleFonts.poppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: const Color(0xFF6B7280),
                               ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 16,
+                                  color: Color(0xFF2563EB),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Laprida 1301, Rosario 2000',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1474,6 +1552,20 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Imagen de la mesa
+              Container(
+                height: 80,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: NetworkImage(_getTableImage(tableNumber)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
               Row(
                 children: [
                   Container(
@@ -1710,12 +1802,39 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       ),
     );
 
+    bool loadingClosed = false;
+    
+    // Timer de seguridad para cerrar loading después de 10 segundos máximo
+    Timer? safetyTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && !loadingClosed) {
+        print('⏰ SODITA - Safety timer activado, cerrando loading...');
+        try {
+          Navigator.pop(context);
+          loadingClosed = true;
+          print('✅ SODITA - Safety timer: Loading cerrado');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⏰ Tiempo de espera agotado. La reserva puede haberse creado correctamente.'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } catch (e) {
+          print('❌ SODITA - Error en safety timer: $e');
+        }
+      }
+    });
+    
     try {
       // Guardar el teléfono para WhatsApp
       lastPhoneNumber = phone.trim();
       
+      print('🔄 SODITA - Iniciando creación de reserva...');
+      
       // Crear reserva
       final timeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
+      print('🔄 SODITA - Datos: Mesa $selectedTableId, Fecha ${selectedDate.toIso8601String().split('T')[0]}, Hora $timeString');
+      
       final reservation = await ReservationService.createReservation(
         mesaId: selectedTableId!,
         date: selectedDate,
@@ -1725,12 +1844,20 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         customerPhone: phone.trim(),
         customerEmail: email.trim().isEmpty ? null : email.trim(),
         comments: null,
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15)); // Aumentar timeout
+      
+      print('🔄 SODITA - Reserva completada: $reservation');
 
-      if (mounted) {
+      if (mounted && !loadingClosed) {
+        print('🔄 SODITA - Cerrando loading dialog...');
         Navigator.pop(context); // Cerrar loading
+        loadingClosed = true;
+        safetyTimer.cancel(); // Cancelar timer de seguridad
+        print('✅ SODITA - Loading dialog cerrado exitosamente');
 
         if (reservation != null) {
+          print('✅ SODITA - Reserva exitosa: ${reservation['codigo_confirmacion']}');
+          
           // Analytics: Reserva completada
           analytics.logEvent(
             name: 'reservation_completed',
@@ -1741,16 +1868,22 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             },
           );
           
-          // Actualizar estado
+          // Actualizar estado - solo agregar la mesa específica reservada
           setState(() {
             if (selectedTableId != null) {
               reservedTableIds.add(selectedTableId!);
             }
           });
           
+          // Esperar un momento para asegurar que el loading se cerró
+          await Future.delayed(const Duration(milliseconds: 100));
+          
           // Mostrar diálogo de éxito
-          _showSuccessDialog(reservation['codigo_confirmacion']);
+          if (mounted) {
+            _showSuccessDialog(reservation['codigo_confirmacion']);
+          }
         } else {
+          print('❌ SODITA - Reserva falló: response null');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('❌ Error al crear la reserva. Intenta nuevamente.'),
@@ -1761,13 +1894,17 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         }
       }
     } catch (e) {
-      print('Error en reserva: $e');
+      print('❌ SODITA - Error en reserva: $e');
       
-      if (mounted) {
+      if (mounted && !loadingClosed) {
         Navigator.pop(context); // Cerrar loading
+        loadingClosed = true;
+        safetyTimer.cancel(); // Cancelar timer de seguridad
         
         // Generar código de respaldo
         final fallbackCode = 'SOD${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+        
+        print('🔄 SODITA - Generando código temporal: $fallbackCode');
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1778,9 +1915,33 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ),
         );
         
+        // Actualizar estado con código temporal
+        setState(() {
+          if (selectedTableId != null) {
+            reservedTableIds.add(selectedTableId!);
+          }
+        });
+        
+        // Esperar un momento para asegurar que el loading se cerró
+        await Future.delayed(const Duration(milliseconds: 100));
+        
         // Mostrar diálogo con código temporal
-        _showSuccessDialog(fallbackCode);
+        if (mounted) {
+          _showSuccessDialog(fallbackCode);
+        }
       }
+    } finally {
+      // Garantizar que siempre se cierre el loading
+      if (mounted && !loadingClosed) {
+        print('🔄 SODITA - Finally block: Cerrando loading dialog...');
+        try {
+          Navigator.pop(context);
+          print('✅ SODITA - Finally block: Loading dialog cerrado');
+        } catch (e) {
+          print('❌ SODITA - Error cerrando loading en finally: $e');
+        }
+      }
+      safetyTimer?.cancel(); // Siempre cancelar el timer
     }
   }
 
@@ -1904,8 +2065,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
 
 ¡Te esperamos! 🎉
 
-SODITA - Cocina casera, ambiente familiar
-📍 Rosario, Santa Fe
+SODITA - Comida gourmet
+📍 Laprida 1301, Rosario 2000
       ''';
 
       final whatsappUrl = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
