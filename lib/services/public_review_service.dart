@@ -62,7 +62,7 @@ class PublicReviewService {
         };
       }).toList();
 
-      debugPrint('✅ Public reviews loaded: ${averageRating.toStringAsFixed(1)} (${totalReviews} reviews)');
+      debugPrint('✅ Public reviews loaded: ${averageRating.toStringAsFixed(1)} ($totalReviews reviews)');
 
       return {
         'statistics': {

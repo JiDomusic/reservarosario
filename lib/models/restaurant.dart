@@ -131,6 +131,25 @@ class Restaurant {
     );
   }
 
+  // Helper para parsear doubles desde diferentes tipos de datos
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    // Si es un Map u otro tipo, intentar extraer el valor
+    if (value is Map) {
+      // Podría ser un IdentityMap o similar, buscar valores numéricos
+      for (var val in value.values) {
+        if (val is double) return val;
+        if (val is int) return val.toDouble();
+      }
+    }
+    return 0.0;
+  }
+
   factory Restaurant.fromJson(Map<String, dynamic> json) {
     return Restaurant(
       id: json['id'] ?? '',
@@ -143,7 +162,7 @@ class Restaurant {
       whatsapp: json['whatsapp'] ?? '',
       email: json['email'] ?? '',
       totalTables: json['total_tables'] ?? 0,
-      rating: (json['average_rating'] ?? 0.0).toDouble(),
+      rating: _parseDouble(json['average_rating']),
       totalReviews: json['total_reviews'] ?? 0,
       primaryColor: json['primary_color'] ?? '#F86704',
       secondaryColor: json['secondary_color'] ?? '#10B981',

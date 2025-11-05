@@ -3,25 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:reservarosario/widgets/reservation_countdown.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
-import 'services/reservation_service.dart';
 import 'services/multi_restaurant_service.dart';
-import 'services/rating_service.dart';
-import 'widgets/rating_widget.dart';
 import 'providers/review_provider.dart';
-import 'widgets/optimized_review_widget.dart';
-import 'widgets/public_reviews_section.dart';
 import 'admin_screen.dart';
 import 'services/restaurant_auth_service.dart';
-import 'screens/sodita_original_app.dart';
 import 'screens/gastronomica_home_screen.dart';
-import 'screens/restaurant_registration_screen.dart';
 import 'widgets/multi_restaurant_reviews_section.dart';
 import 'models/restaurant.dart';
 
@@ -401,7 +392,7 @@ class _RestaurantPageState extends State<RestaurantPage> {
     final totalTables = widget.restaurant.totalTables;
     List<Map<String, dynamic>> tables = [];
     
-    print('🍽️ Generando ${totalTables} mesas para ${widget.restaurant.name}');
+    print('🍽️ Generando $totalTables mesas para ${widget.restaurant.name}');
     
     // MISMA LÓGICA QUE SODITA PARA DISTRIBUCIÓN
     final locations = ['Ventana frontal', 'Ventana lateral', 'Centro del salon', 'Cerca de la ventana', 
@@ -1263,7 +1254,7 @@ class _RestaurantPageState extends State<RestaurantPage> {
         ),
         child: Text(
           canReserve 
-              ? 'Reservar Mesa ${selectedTableNumber} para $partySize ${partySize == 1 ? "persona" : "personas"}'
+              ? 'Reservar Mesa $selectedTableNumber para $partySize ${partySize == 1 ? "persona" : "personas"}'
               : 'Selecciona mesa y hora para continuar',
           style: GoogleFonts.poppins(
             fontSize: 16,

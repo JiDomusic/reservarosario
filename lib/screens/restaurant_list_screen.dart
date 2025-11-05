@@ -4,7 +4,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/restaurant.dart';
 import '../widgets/restaurant_card.dart';
 import 'restaurant_login_screen.dart';
-import '../main.dart';
+import 'restaurants/universal_restaurant_screen.dart';
 
 class RestaurantListScreen extends StatefulWidget {
   const RestaurantListScreen({super.key});
@@ -569,11 +569,11 @@ class _RestaurantListScreenState extends State<RestaurantListScreen>
   void _onRestaurantTap(Restaurant restaurant) {
     print('🔍 Navegando a: ${restaurant.name} con ${restaurant.totalTables} mesas');
     
-    // TODOS los restaurantes (incluyendo SODITA) usan el mismo sistema clonado
+    // TODOS los restaurantes usan el sistema completo de SODITA
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RestaurantSoditaClone(restaurant: restaurant),
+        builder: (context) => UniversalRestaurantScreen(restaurant: restaurant),
       ),
     );
   }

@@ -5,9 +5,9 @@ import '../models/restaurant.dart';
 import '../widgets/restaurant_card.dart';
 import 'restaurant_login_screen.dart';
 import 'restaurant_registration_screen.dart';
-import '../main.dart';
 import '../supabase_config.dart';
 import 'sodita_original_app.dart';
+import 'restaurants/universal_restaurant_screen.dart';
 
 class GastronomicaHomeScreen extends StatefulWidget {
   const GastronomicaHomeScreen({super.key});
@@ -93,7 +93,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           updatedAt: DateTime.now(),
         ),
         // Restaurantes reales desde Supabase
-        ...response.map((json) => Restaurant.fromJson(json)).toList(),
+        ...response.map((json) => Restaurant.fromJson(json)),
         
         // RESTAURANTE DE PRUEBA CON 25 MESAS
         Restaurant(
@@ -697,7 +697,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => RestaurantSoditaClone(restaurant: restaurant),
+          builder: (context) => UniversalRestaurantScreen(restaurant: restaurant),
         ),
       );
     }

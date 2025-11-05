@@ -2,15 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../models/restaurant.dart';
 import '../../services/reservation_service.dart';
-import '../../services/rating_service.dart';
-import '../../widgets/rating_widget.dart';
-import '../../widgets/reservation_countdown.dart';
-import '../../widgets/optimized_review_widget.dart';
 import '../../widgets/public_reviews_section.dart';
-import '../../l10n.dart';
 
 // PANTALLA UNIVERSAL - TODAS LAS FUNCIONES DE SODITA PARA CUALQUIER RESTAURANTE
 class UniversalRestaurantScreen extends StatefulWidget {
@@ -1311,7 +1305,7 @@ class _RestaurantReservationSystemState extends State<RestaurantReservationSyste
         ),
         child: Text(
           canReserve 
-              ? 'Reservar Mesa ${selectedTableNumber} para $partySize ${partySize == 1 ? "persona" : "personas"}'
+              ? 'Reservar Mesa $selectedTableNumber para $partySize ${partySize == 1 ? "persona" : "personas"}'
               : 'Selecciona mesa y hora para continuar',
           style: GoogleFonts.poppins(
             fontSize: 16,

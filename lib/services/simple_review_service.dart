@@ -65,7 +65,7 @@ class SimpleReviewService {
         };
       }).toList();
 
-      debugPrint('✅ Verified reviews loaded: ${averageRating.toStringAsFixed(1)} (${totalReviews} reviews)');
+      debugPrint('✅ Verified reviews loaded: ${averageRating.toStringAsFixed(1)} ($totalReviews reviews)');
 
       return {
         'statistics': {

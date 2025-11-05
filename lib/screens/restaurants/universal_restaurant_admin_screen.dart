@@ -513,7 +513,7 @@ class _UniversalRestaurantAdminScreenState extends State<UniversalRestaurantAdmi
             onChanged: (value) {
               context.read<RestaurantAuthService>().toggleRestaurantStatus();
             },
-            activeColor: currentRestaurant!.secondaryColorValue,
+            activeThumbColor: currentRestaurant!.secondaryColorValue,
           ),
         ],
       ),

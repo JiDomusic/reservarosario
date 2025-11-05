@@ -923,7 +923,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen>
                 _hasChanges = true;
               });
             },
-            activeColor: currentRestaurant!.primaryColorValue,
+            activeThumbColor: currentRestaurant!.primaryColorValue,
           ),
           
           const SizedBox(width: 16),
@@ -1023,7 +1023,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen>
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: currentRestaurant!.primaryColorValue,
+            activeThumbColor: currentRestaurant!.primaryColorValue,
           ),
         ],
       ),

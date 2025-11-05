@@ -1,14 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../models/review_model.dart';
 import '../services/review_service.dart';
-import '../services/rating_service.dart';
 import '../services/optimized_rating_service.dart';
 
 class ReviewProvider extends ChangeNotifier {
   
   // Cache with TTL
-  Map<String, CachedData<List<Review>>> _reviewsCache = {};
-  Map<String, CachedData<Map<String, dynamic>>> _statisticsCache = {};
+  final Map<String, CachedData<List<Review>>> _reviewsCache = {};
+  final Map<String, CachedData<Map<String, dynamic>>> _statisticsCache = {};
   
   // Loading states
   bool _isLoading = false;

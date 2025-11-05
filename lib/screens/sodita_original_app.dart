@@ -2,23 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
 import 'package:reservarosario/widgets/reservation_countdown.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import '../firebase_options.dart';
-import '../supabase_config.dart';
 import '../l10n.dart';
 import '../services/reservation_service.dart';
 import '../services/rating_service.dart';
 import '../widgets/rating_widget.dart';
-import '../providers/review_provider.dart';
-import '../widgets/optimized_review_widget.dart';
 import '../widgets/public_reviews_section.dart';
 import '../admin_screen.dart';
 import 'restaurant_list_screen.dart';
-import '../widgets/modern_datetime_picker.dart';
 
 class SoditaOriginalApp extends StatefulWidget {
   const SoditaOriginalApp({super.key});
