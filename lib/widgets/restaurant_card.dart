@@ -268,28 +268,24 @@ class RestaurantCard extends StatelessWidget {
     }
 
     if (restaurant.availableTables > 0) {
-      return Flexible(
-        child: Row(
-          children: [
-            Icon(
-              Icons.restaurant,
+      return Row(
+        children: [
+          Icon(
+            Icons.restaurant,
+            color: const Color(0xFF10B981),
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${restaurant.availableTables} mesas disponibles',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: const Color(0xFF10B981),
-              size: 16,
             ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                '${restaurant.availableTables} mesas disponibles',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF10B981),
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       );
     }
 
