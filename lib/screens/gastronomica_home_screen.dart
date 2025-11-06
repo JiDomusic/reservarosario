@@ -67,89 +67,24 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
     
     await Future.delayed(const Duration(milliseconds: 800));
     
-    try {
-      // Cargar restaurantes reales desde Supabase
-      final response = await supabase
-          .from('restaurants')
-          .select()
-          .eq('is_active', true)
-          .order('created_at');
-      
-      restaurants = [
-        // SODITA PRIMERO (original intacto)
-        Restaurant(
-          id: 'sodita',
-          name: 'SODITA',
-          description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• PLANTA ALTA únicamente\n• 10 mesas disponibles para reservas online\n• Capacidad: 2 a 50 personas\n• Mesas bajas tradicionales (2-4 personas)\n• Mesas altas de barra (2 personas)\n• Área de living con sofás (4-6 personas)\n• Distribución: Solo interior (planta alta)\n\n📍 Reservas SOLO para la planta alta del restaurante. La planta baja NO está disponible para reservas online.',
-          address: 'Laprida 1301, Rosario 2000',
-          phone: '+54 341 000-0000',
-          email: 'admin@sodita.com',
-          totalTables: 10,
-          rating: 4.9,
-          totalReviews: 350,
-          availableTables: 5,
-          pendingReservations: 3,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-        // Restaurantes reales desde Supabase
-        ...response.map((json) => Restaurant.fromJson(json)),
-        
-        // RESTAURANTE DE PRUEBA CON 25 MESAS
-        Restaurant(
-          id: 'test_25_mesas',
-          name: 'LA PARRILLA DEL PUERTO',
-          description: 'Restaurante grande con 25 mesas - Especialidad en carnes',
-          address: 'Puerto Norte, Rosario',
-          phone: '+54 341 111-2222',
-          email: 'admin@parrilladelpuerto.com',
-          totalTables: 25,
-          rating: 4.7,
-          totalReviews: 180,
-          availableTables: 12,
-          pendingReservations: 5,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-        
-        // RESTAURANTE DE PRUEBA CON 8 MESAS
-        Restaurant(
-          id: 'test_8_mesas',
-          name: 'CAFÉ BOUTIQUE',
-          description: 'Cafetería íntima con solo 8 mesas - Ambiente acogedor',
-          address: 'Centro Histórico, Rosario',
-          phone: '+54 341 333-4444',
-          email: 'admin@cafeboutique.com',
-          totalTables: 8,
-          rating: 4.8,
-          totalReviews: 95,
-          availableTables: 3,
-          pendingReservations: 1,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      ];
-    } catch (e) {
-      debugPrint('Error cargando restaurantes: $e');
-      // Fallback solo a SODITA si falla la BD
-      restaurants = [
-        Restaurant(
-          id: 'sodita',
-          name: 'SODITA',
-          description: 'El restaurante original - Experiencia premium completa',
-          address: 'Laprida 1301, Rosario 2000',
-          phone: '+54 341 000-0000',
-          email: 'admin@sodita.com',
-          totalTables: 10,
-          rating: 4.9,
-          totalReviews: 350,
-          availableTables: 5,
-          pendingReservations: 3,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      ];
-    }
+    // SOLO SODITA - SIN SIMULACIONES NI OTROS RESTAURANTES
+    restaurants = [
+      Restaurant(
+        id: 'sodita',
+        name: 'SODITA',
+        description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• PLANTA ALTA únicamente\n• 10 mesas disponibles para reservas online\n• Capacidad: 2 a 50 personas\n• Mesas bajas tradicionales (2-4 personas)\n• Mesas altas de barra (2 personas)\n• Área de living con sofás (4-6 personas)\n• Distribución: Solo interior (planta alta)\n\n📍 Reservas SOLO para la planta alta del restaurante. La planta baja NO está disponible para reservas online.',
+        address: 'Laprida 1301, Rosario 2000',
+        phone: '+54 341 000-0000',
+        email: 'admin@sodita.com',
+        totalTables: 10,
+        rating: 4.9,
+        totalReviews: 350,
+        availableTables: 5,
+        pendingReservations: 3,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    ];
     
     _applyFilters();
     
@@ -249,7 +184,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           const SizedBox(height: 32),
           Text(
             'GASTRONÓMICA ROSARIO',
-            style: GoogleFonts.inter(
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontSize: 28,
               fontWeight: FontWeight.w900,
               color: const Color(0xFF0F172A),
@@ -258,7 +193,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           const SizedBox(height: 8),
           Text(
             'Sistema de reservas y puntuación en Rosario',
-            style: GoogleFonts.inter(
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontSize: 16,
               color: const Color(0xFF64748B),
             ),
@@ -270,7 +205,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           const SizedBox(height: 16),
           Text(
             'Cargando restaurantes...',
-            style: GoogleFonts.inter(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 14,
               color: const Color(0xFF64748B),
             ),
@@ -300,7 +235,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 250,
+      expandedHeight: 180,
       floating: false,
       pinned: true,
       backgroundColor: Colors.white,
@@ -319,7 +254,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: AnimatedBuilder(
                 animation: _headerAnimationController,
                 builder: (context, child) {
@@ -336,8 +271,8 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
                             Row(
                               children: [
                                 Container(
-                                  width: 70,
-                                  height: 70,
+                                  width: 50,
+                                  height: 50,
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
@@ -357,7 +292,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
                                   child: const Icon(
                                     Icons.restaurant,
                                     color: Colors.white,
-                                    size: 36,
+                                    size: 24,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -367,16 +302,16 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
                                     children: [
                                       Text(
                                         'GASTRONÓMICA',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 24,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontSize: 18,
                                           fontWeight: FontWeight.w900,
                                           color: const Color(0xFF0F172A),
                                         ),
                                       ),
                                       Text(
                                         'ROSARIO',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 20,
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                           color: const Color(0xFFF86704),
                                         ),
@@ -387,22 +322,22 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
                               ],
                             ),
                             
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             
                             Text(
                               'Sistema de reservas y puntuación en Rosario',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
                                 color: const Color(0xFF64748B),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
                             
                             // Stats container
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -420,25 +355,25 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
                                   Icon(
                                     Icons.restaurant_menu,
                                     color: const Color(0xFFF86704),
-                                    size: 20,
+                                    size: 16,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           '${filteredRestaurants.length} restaurantes en la plataforma',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 14,
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(0xFF0F172A),
                                           ),
                                         ),
                                         Text(
                                           '${filteredRestaurants.where((r) => r.isOpen && r.availableTables > 0).length} con mesas disponibles ahora',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 11,
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            fontSize: 10,
                                             color: const Color(0xFF64748B),
                                           ),
                                         ),
@@ -464,7 +399,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
 
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       color: Colors.white,
       child: Column(
         children: [
@@ -479,7 +414,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'Buscar restaurantes...',
-                hintStyle: GoogleFonts.inter(color: const Color(0xFF64748B)),
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF64748B)),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(16),
@@ -532,7 +467,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
             Flexible(
               child: Text(
                 label,
-                style: GoogleFonts.inter(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isSelected ? Colors.white : const Color(0xFF64748B),
@@ -555,7 +490,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
       onRefresh: _loadRestaurants,
       child: AnimationLimiter(
         child: ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           itemCount: filteredRestaurants.length,
           itemBuilder: (context, index) {
             final restaurant = filteredRestaurants[index];
@@ -601,7 +536,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
             const SizedBox(height: 24),
             Text(
               'No se encontraron restaurantes',
-              style: GoogleFonts.inter(
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF0F172A),
@@ -610,7 +545,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
             const SizedBox(height: 8),
             Text(
               'Intenta cambiar los filtros o la búsqueda',
-              style: GoogleFonts.inter(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontSize: 14,
                 color: const Color(0xFF64748B),
               ),
@@ -657,7 +592,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           icon: const Icon(Icons.restaurant_menu),
           label: Text(
             'Registrar Restaurante',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         const SizedBox(height: 10),
@@ -674,7 +609,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
           icon: const Icon(Icons.admin_panel_settings),
           label: Text(
             'Admin',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
       ],

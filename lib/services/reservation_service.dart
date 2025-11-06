@@ -18,11 +18,14 @@ class ReservationService {
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('❌ Error fetching mesas: $e');
+      print('⚠️ IMPORTANTE: Ejecuta supabase_setup_clean.sql en tu panel de Supabase');
+      print('📍 Panel: https://supabase.com/dashboard/project/weurjculqnxvtmbqltjo');
       return [];
     }
   }
 
-  // Crear una nueva reserva
+
+  // Crear una nueva reserva en Supabase
   static Future<Map<String, dynamic>?> createReservation({
     required String mesaId,
     required DateTime date,
@@ -34,23 +37,32 @@ class ReservationService {
     String? comments,
   }) async {
     try {
-      print('🍽️ Creando reserva:');
-      print('   Mesa: $mesaId');
+      print('🍽️ Creando reserva en Supabase:');
+      print('   Mesa ID: $mesaId');
       print('   Fecha: ${date.toIso8601String().split('T')[0]}');
       print('   Hora: $time');
       print('   Personas: $partySize');
       print('   Cliente: $customerName');
       print('   Teléfono: $customerPhone');
 
+      // Buscar el UUID real de la mesa basado en el número
+      final mesas = await getMesas();
+      final mesa = mesas.firstWhere(
+        (m) => m['numero'].toString() == mesaId,
+        orElse: () => {'id': mesaId}, // Fallback si no se encuentra
+      );
+      
+      final realMesaId = mesa['id'];
+      print('🔄 Mesa número $mesaId -> UUID: $realMesaId');
+
       final reservationData = <String, dynamic>{
-        'mesa_id': mesaId,
+        'mesa_id': realMesaId,
         'fecha': date.toIso8601String().split('T')[0],
         'hora': time,
         'personas': partySize,
         'nombre': customerName,
         'telefono': customerPhone,
         'estado': 'confirmada',
-        'codigo_confirmacion': 'SOD${(DateTime.now().millisecondsSinceEpoch % 10000).toString().padLeft(4, '0')}',
       };
 
       if (customerEmail != null && customerEmail.isNotEmpty) {
@@ -67,12 +79,17 @@ class ReservationService {
           .select()
           .single();
 
-      print('✅ Reserva creada exitosamente: ${response['codigo_confirmacion']}');
+      print('✅ Reserva creada exitosamente!');
+      print('   Código: ${response['codigo_confirmacion'] ?? response['id']}');
+      print('   ⏰ IMPORTANTE: Tienes 15 minutos para confirmar tu llegada');
       print('📊 Reserva ID: ${response['id']}, Estado: ${response['estado']}');
-      print('📅 Fecha: ${response['fecha']}, Hora: ${response['hora']}');
+      
       return response;
+      
     } catch (e) {
       print('❌ Error creating reservation: $e');
+      print('⚠️ IMPORTANTE: Ejecuta supabase_setup_clean.sql en tu panel de Supabase');
+      print('📍 Panel: https://supabase.com/dashboard/project/weurjculqnxvtmbqltjo');
       return null;
     }
   }

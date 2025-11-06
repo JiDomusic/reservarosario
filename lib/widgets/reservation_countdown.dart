@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/reservation_service.dart';
@@ -73,9 +74,17 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
   }
 
   String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    
+    if (hours > 0) {
+      // Si hay horas, mostrar formato HH:MM:SS
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    } else {
+      // Si no hay horas, mostrar formato MM:SS
+      return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
   }
 
   Color _getCountdownColor() {
@@ -117,12 +126,26 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 32,
+            // 🕐 RELOJ CIRCULAR ANIMADO - Solo flujo visual, sin números
+            SizedBox(
+              width: 100,
+              height: 100,
+              child: CustomPaint(
+                painter: CircularClockPainter(
+                  progress: _isExpired ? 0.0 : (_secondsRemaining / 900.0), // 900 = 15 minutos
+                  color: color,
+                  backgroundColor: color.withValues(alpha: 0.15),
+                ),
+                child: Center(
+                  child: Icon(
+                    _isExpired ? Icons.timer_off : Icons.access_time,
+                    color: color,
+                    size: 24,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               statusText,
               style: GoogleFonts.inter(
@@ -131,29 +154,6 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              timeText,
-              style: GoogleFonts.inter(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: 1.2,
-              ),
-            ),
-            if (!_isExpired) ...[
-              const SizedBox(height: 4),
-              Text(
-                _isPending 
-                    ? "hasta que inicie la reserva"
-                    : "hasta liberación automática",
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: color.withValues(alpha: 0.8),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
           ],
         ),
       );
@@ -193,6 +193,62 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
         ],
       ),
     );
+  }
+}
+
+// 🎨 Painter para reloj circular animado con flujo de color
+class CircularClockPainter extends CustomPainter {
+  final double progress; // 0.0 a 1.0 (1.0 = 15 minutos completos)
+  final Color color;
+  final Color backgroundColor;
+
+  CircularClockPainter({
+    required this.progress,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - 8;
+
+    // Fondo del círculo (gris claro)
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Arco de progreso (cuarto de círculo = 15 minutos)
+    if (progress > 0) {
+      final progressPaint = Paint()
+        ..color = color
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      // El arco inicia desde las 12:00 (arriba) y va hacia las 3:00 (derecha)
+      // -π/2 = empezar arriba, progress * π/2 = cuarto de círculo máximo
+      final sweepAngle = progress * (math.pi / 2); // Máximo π/2 = 90 grados = cuarto de círculo
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, // Empezar arriba
+        sweepAngle,   // Cuanto avanzar
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CircularClockPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+           oldDelegate.color != color ||
+           oldDelegate.backgroundColor != backgroundColor;
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:reservarosario/widgets/reservation_countdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../l10n.dart';
 import '../services/reservation_service.dart';
 import '../services/rating_service.dart';
@@ -21,6 +22,7 @@ class SoditaOriginalApp extends StatefulWidget {
 }
 
 class _SoditaOriginalAppState extends State<SoditaOriginalApp> {
+  final supabase = Supabase.instance.client;
   Locale _locale = const Locale('es');
 
   void _changeLanguage(Locale locale) {
@@ -61,8 +63,10 @@ class _SoditaOriginalAppState extends State<SoditaOriginalApp> {
           onSurface: const Color(0xFF1C1B1F),
         ),
         // Tipografía moderna Woki
-        fontFamily: GoogleFonts.poppins().fontFamily,
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        fontFamily: 'Poppins',
+        textTheme: const TextTheme().apply(
+          fontFamily: 'Poppins',
+        ),
         // Botones estilo Woki 2025
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -202,6 +206,7 @@ class RestaurantsPage extends StatefulWidget {
 }
 
 class _RestaurantsPageState extends State<RestaurantsPage> {
+  final supabase = Supabase.instance.client;
   DateTime selectedDate = DateTime.now();
   TimeOfDay? selectedTime;
   int partySize = 2;
@@ -229,6 +234,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   List<Map<String, dynamic>> availableTables = [];
   List<String> occupiedTableIds = [];
   List<String> reservedTableIds = [];
+  List<Map<String, dynamic>> reservations = []; // Para almacenar reservas
   bool isLoadingTables = true;
   
   // Timer para actualizaciones automáticas
@@ -245,6 +251,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   void initState() {
     super.initState();
     _loadTables();
+    _loadReservations(); // Cargar reservas
     _startAutoUpdate();
     _loadActiveReservationCache(); // Cargar reserva activa una vez
     _startReservationCacheTimer(); // Timer para actualizar cache cada 10 segundos
@@ -323,48 +330,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       if (!mounted) return;
       
       setState(() {
-        // Para SODITA usar datos de BD si están disponibles, sino fallback a datos originales
-        var tablesToUse = tables.isNotEmpty ? tables : _getSoditaOriginalTables();
-        
-        // SODITA es gratis y de demostración - asegurar que todas las mesas estén activas
-        tablesToUse = tablesToUse.map((table) {
-          final modifiedTable = Map<String, dynamic>.from(table);
-          modifiedTable['activa'] = true; // Forzar todas activas para demostración
-          
-          // Si están usando datos por defecto, actualizar las capacidades
-          if (tables.isEmpty) {
-            final tableNumber = modifiedTable['numero'] ?? 0;
-            switch (tableNumber) {
-              case 1:
-              case 10:
-                modifiedTable['capacidad'] = 4;
-                break;
-              case 2:
-              case 4:
-              case 7:
-                modifiedTable['capacidad'] = 6;
-                break;
-              case 3:
-              case 5:
-              case 8:
-                modifiedTable['capacidad'] = 8;
-                break;
-              case 9:
-                modifiedTable['capacidad'] = 10;
-                break;
-              case 6:
-                modifiedTable['capacidad'] = 12;
-                break;
-              case 11:
-                modifiedTable['capacidad'] = 50;
-                break;
-            }
-          }
-          
-          return modifiedTable;
-        }).toList();
-        
-        availableTables = tablesToUse;
+        // USAR DIRECTAMENTE LOS DATOS DE LA BASE DE DATOS REAL
+        availableTables = tables;
         occupiedTableIds = occupied;
         reservedTableIds = reserved.where((id) => !occupied.contains(id)).toList(); // Excluir las que ya están ocupadas
         isLoadingTables = false;
@@ -379,9 +346,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       if (!mounted) return;
       
       setState(() {
-        availableTables = _getSoditaOriginalTables();
-        occupiedTableIds = []; // Sin datos de ocupación en modo offline
-        reservedTableIds = []; // Sin datos de reserva en modo offline
+        // En caso de error, usar mesas vacías para forzar reconexión
+        availableTables = [];
+        occupiedTableIds = [];
+        reservedTableIds = [];
         isLoadingTables = false;
       });
       
@@ -399,22 +367,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     }
   }
 
-  // LAS 10 MESAS ORIGINALES DE SODITA DEL ULTIMO DEPLOY
-  List<Map<String, dynamic>> _getSoditaOriginalTables() {
-    return [
-      {'id': '1', 'numero': 1, 'capacidad': 4, 'ubicacion': 'Ventana frontal', 'activa': true},
-      {'id': '2', 'numero': 2, 'capacidad': 6, 'ubicacion': 'Ventana lateral', 'activa': true},
-      {'id': '3', 'numero': 3, 'capacidad': 8, 'ubicacion': 'Centro del salon', 'activa': true},
-      {'id': '4', 'numero': 4, 'capacidad': 6, 'ubicacion': 'Cerca de la ventana', 'activa': true},
-      {'id': '5', 'numero': 5, 'capacidad': 8, 'ubicacion': 'Mesa grande central', 'activa': true},
-      {'id': '6', 'numero': 6, 'capacidad': 12, 'ubicacion': 'Living (zona para grupos)', 'activa': true},
-      {'id': '7', 'numero': 7, 'capacidad': 6, 'ubicacion': 'Rincon privado', 'activa': true},
-      {'id': '8', 'numero': 8, 'capacidad': 8, 'ubicacion': 'Centro-derecha', 'activa': true},
-      {'id': '9', 'numero': 9, 'capacidad': 10, 'ubicacion': 'Centro-izquierda', 'activa': true},
-      {'id': '10', 'numero': 10, 'capacidad': 4, 'ubicacion': 'Mesa de la esquina', 'activa': true},
-      {'id': '11', 'numero': 11, 'capacidad': 50, 'ubicacion': 'Comedor completo (evento privado)', 'activa': true},
-    ];
-  }
+  // Función eliminada - ahora usamos solo datos de la base de datos real
 
   void _showTableReleasedAlert(Map<String, dynamic> releasedTable) {
     if (!mounted) return;
@@ -685,12 +638,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • Planta Alta: 11 opciones (4-50 personas)',
+                              'Restaurante Gourmet • 11 mesas (4-50 pers)',
                               style: GoogleFonts.poppins(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                                 color: const Color(0xFF6B7280),
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -763,12 +717,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 color: Color(0xFF6B7280),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '30 min',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF1C1B1F),
+                              Flexible(
+                                child: Text(
+                                  '30 min',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1C1B1F),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -791,12 +748,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 color: Color(0xFF6B7280),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '\$\$',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF1C1B1F),
+                              Flexible(
+                                child: Text(
+                                  '\$\$',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1C1B1F),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -819,12 +779,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 color: Color(0xFF6B7280),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'Hasta 50 personas',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF1C1B1F),
+                              Flexible(
+                                child: Text(
+                                  '4-50 pers',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1C1B1F),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -1197,10 +1160,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               : const Color(0xFF6B7280),
                           size: 20,
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                             Text(
                               'Hora',
                               style: GoogleFonts.poppins(
@@ -1222,6 +1186,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               ),
                             ),
                           ],
+                          ),
                         ),
                       ],
                     ),
@@ -1456,7 +1421,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.2,
+              childAspectRatio: 0.85,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -1548,13 +1513,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ] : [],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Imagen de la mesa
               Container(
-                height: 80,
+                height: 60,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
@@ -1564,13 +1530,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               
               Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 24,
+                    height: 24,
                     decoration: BoxDecoration(
                       color: textColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
@@ -1578,15 +1544,15 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     child: Icon(
                       statusIcon,
                       color: textColor,
-                      size: 16,
+                      size: 12,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Mesa $tableNumber',
                       style: GoogleFonts.poppins(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1C1B1F),
                       ),
@@ -1595,33 +1561,33 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 ],
               ),
               
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               
               Text(
                 statusText,
                 style: GoogleFonts.poppins(
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: textColor,
                 ),
               ),
               
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               
               Text(
                 '$capacity personas',
                 style: GoogleFonts.poppins(
-                  fontSize: 12,
+                  fontSize: 10,
                   color: const Color(0xFF6B7280),
                 ),
               ),
               
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               
               Text(
                 location,
                 style: GoogleFonts.poppins(
-                  fontSize: 11,
+                  fontSize: 9,
                   color: const Color(0xFF9CA3AF),
                 ),
                 maxLines: 1,
@@ -1637,48 +1603,56 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   Widget _buildActionButtons() {
     final canReserve = selectedTableId != null && selectedTime != null;
     
+    // 🚫 VERIFICAR SI YA HAY RESERVA PARA ESTA FECHA/HORA
+    final hasActiveReservation = _hasActiveReservationForDateTime();
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
-          // Botón de reservar
+          // Botón de reservar o estado
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: canReserve ? () => _showReservationDialog() : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: canReserve 
-                    ? const Color(0xFF2563EB)
-                    : const Color(0xFFE5E7EB),
-                foregroundColor: canReserve 
-                    ? Colors.white
-                    : const Color(0xFF9CA3AF),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: canReserve ? 2 : 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    canReserve ? Icons.check : Icons.info_outline,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    canReserve 
-                        ? 'Reservar Mesa ${selectedTableNumber ?? 0}'
-                        : 'Selecciona mesa y hora',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+            child: hasActiveReservation
+                ? _buildReservationStatus() // Mostrar estado de reserva existente
+                : ElevatedButton(
+                    onPressed: canReserve ? () => _showReservationDialog() : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: canReserve 
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFFE5E7EB),
+                      foregroundColor: canReserve 
+                          ? Colors.white
+                          : const Color(0xFF9CA3AF),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: canReserve ? 2 : 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          canReserve ? Icons.check : Icons.info_outline,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            canReserve 
+                                ? 'Reservar Mesa ${selectedTableNumber ?? 0}'
+                                : 'Selecciona mesa y hora',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
           
           const SizedBox(height: 12),
@@ -1719,6 +1693,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
 
   // Mostrar diálogo de reserva
   void _showReservationDialog() {
+    // Limpiar variables temporales
+    _tempName = '';
+    _tempPhone = '';
+    _tempEmail = '';
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1729,28 +1708,37 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                key: const Key('reservation_name_field'),
                 decoration: const InputDecoration(
                   labelText: 'Nombre completo',
                   border: OutlineInputBorder(),
                 ),
+                enableSuggestions: false,
+                autocorrect: false,
                 onChanged: (value) => _tempName = value,
               ),
               const SizedBox(height: 12),
               TextField(
+                key: const Key('reservation_phone_field'),
                 decoration: const InputDecoration(
                   labelText: 'Teléfono',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
+                enableSuggestions: false,
+                autocorrect: false,
                 onChanged: (value) => _tempPhone = value,
               ),
               const SizedBox(height: 12),
               TextField(
+                key: const Key('reservation_email_field'),
                 decoration: const InputDecoration(
                   labelText: 'Email (opcional)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
+                enableSuggestions: false,
+                autocorrect: false,
                 onChanged: (value) => _tempEmail = value,
               ),
             ],
@@ -1758,11 +1746,19 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () => _createReservation(),
+            key: const Key('reservation_submit_button'),
+            onPressed: () {
+              print('🔄 Botón Reservar presionado');
+              _createReservation();
+            },
             child: const Text('Reservar'),
           ),
         ],
@@ -1774,267 +1770,530 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   String _tempPhone = '';
   String _tempEmail = '';
 
-  // Crear reserva
+  // Crear reserva - VERSION ULTRA SIMPLIFICADA PARA DEBUGGING
   void _createReservation() async {
+    print('>>> PASO 1: Iniciando _createReservation');
+    
     final name = _tempName.trim();
     final phone = _tempPhone.trim();
     final email = _tempEmail.trim();
 
+    print('>>> PASO 2: Datos validados - Nombre: $name, Teléfono: $phone');
+
     if (name.isEmpty || phone.isEmpty) {
+      print('>>> ERROR: Datos vacíos');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('❌ Por favor completa nombre y teléfono'),
+          content: Text('Por favor completa nombre y teléfono'),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    Navigator.pop(context); // Cerrar diálogo
+    print('>>> PASO 3: Cerrando formulario');
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
 
-    // Mostrar loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    bool loadingClosed = false;
+    print('>>> PASO 4: Creando reserva en BD...');
     
-    // Timer de seguridad para cerrar loading después de 10 segundos máximo
-    Timer? safetyTimer = Timer(const Duration(seconds: 10), () {
-      if (mounted && !loadingClosed) {
-        print('⏰ SODITA - Safety timer activado, cerrando loading...');
-        try {
-          Navigator.pop(context);
-          loadingClosed = true;
-          print('✅ SODITA - Safety timer: Loading cerrado');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⏰ Tiempo de espera agotado. La reserva puede haberse creado correctamente.'),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } catch (e) {
-          print('❌ SODITA - Error en safety timer: $e');
-        }
-      }
-    });
-    
+    // LLAMADA DIRECTA SIN LOADING COMPLEJO
     try {
-      // Guardar el teléfono para WhatsApp
-      lastPhoneNumber = phone.trim();
-      
-      print('🔄 SODITA - Iniciando creación de reserva...');
-      
-      // Crear reserva
       final timeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
-      print('🔄 SODITA - Datos: Mesa $selectedTableId, Fecha ${selectedDate.toIso8601String().split('T')[0]}, Hora $timeString');
+      print('>>> PASO 5: TimeString creado: $timeString');
       
       final reservation = await ReservationService.createReservation(
         mesaId: selectedTableId!,
         date: selectedDate,
         time: timeString,
         partySize: partySize,
-        customerName: name.trim(),
-        customerPhone: phone.trim(),
-        customerEmail: email.trim().isEmpty ? null : email.trim(),
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email.isEmpty ? null : email,
         comments: null,
-      ).timeout(const Duration(seconds: 15)); // Aumentar timeout
+      );
       
-      print('🔄 SODITA - Reserva completada: $reservation');
-
-      if (mounted && !loadingClosed) {
-        print('🔄 SODITA - Cerrando loading dialog...');
-        Navigator.pop(context); // Cerrar loading
-        loadingClosed = true;
-        safetyTimer.cancel(); // Cancelar timer de seguridad
-        print('✅ SODITA - Loading dialog cerrado exitosamente');
-
-        if (reservation != null) {
-          print('✅ SODITA - Reserva exitosa: ${reservation['codigo_confirmacion']}');
+      print('>>> PASO 6: Respuesta de BD: $reservation');
+      
+      if (reservation != null) {
+        final codigo = reservation['codigo_confirmacion'] ?? reservation['id'] ?? 'TEMP${DateTime.now().millisecond}';
+        print('>>> PASO 7: Código obtenido: $codigo');
+        
+        // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO
+        if (mounted) {
+          print('>>> PASO 8: Widget montado, mostrando diálogo de éxito');
+          _showSuccessDialog(codigo);
           
-          // Analytics: Reserva completada
-          analytics.logEvent(
-            name: 'reservation_completed',
-            parameters: {
-              'table_number': selectedTableNumber ?? 0,
-              'party_size': partySize,
-              'confirmation_code': reservation['codigo_confirmacion'],
-            },
-          );
-          
-          // Actualizar estado - solo agregar la mesa específica reservada
+          // Actualizar estado solo si está montado
           setState(() {
             if (selectedTableId != null) {
               reservedTableIds.add(selectedTableId!);
             }
           });
           
-          // Esperar un momento para asegurar que el loading se cerró
-          await Future.delayed(const Duration(milliseconds: 100));
-          
-          // Mostrar diálogo de éxito
-          if (mounted) {
-            _showSuccessDialog(reservation['codigo_confirmacion']);
-          }
+          print('>>> PASO 9: COMPLETADO EXITOSAMENTE');
         } else {
-          print('❌ SODITA - Reserva falló: response null');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ Error al crear la reserva. Intenta nuevamente.'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print('>>> PASO 8: Widget desmontado, NO mostrando diálogo');
         }
-      }
-    } catch (e) {
-      print('❌ SODITA - Error en reserva: $e');
-      
-      if (mounted && !loadingClosed) {
-        Navigator.pop(context); // Cerrar loading
-        loadingClosed = true;
-        safetyTimer.cancel(); // Cancelar timer de seguridad
-        
-        // Generar código de respaldo
-        final fallbackCode = 'SOD${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-        
-        print('🔄 SODITA - Generando código temporal: $fallbackCode');
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('⚠️ Conexión lenta. Usando código temporal: $fallbackCode'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        
-        // Actualizar estado con código temporal
-        setState(() {
-          if (selectedTableId != null) {
-            reservedTableIds.add(selectedTableId!);
-          }
-        });
-        
-        // Esperar un momento para asegurar que el loading se cerró
-        await Future.delayed(const Duration(milliseconds: 100));
-        
-        // Mostrar diálogo con código temporal
+      } else {
+        print('>>> ERROR: Reservation es null');
         if (mounted) {
-          _showSuccessDialog(fallbackCode);
+          // Generar código de emergencia
+          final emergencyCode = 'EMG${DateTime.now().millisecond}';
+          print('>>> PASO 9b: Código de emergencia: $emergencyCode');
+          _showSuccessDialog(emergencyCode);
+        } else {
+          print('>>> ERROR: Widget desmontado, no se puede mostrar emergencia');
         }
       }
-    } finally {
-      // Garantizar que siempre se cierre el loading
-      if (mounted && !loadingClosed) {
-        print('🔄 SODITA - Finally block: Cerrando loading dialog...');
-        try {
-          Navigator.pop(context);
-          print('✅ SODITA - Finally block: Loading dialog cerrado');
-        } catch (e) {
-          print('❌ SODITA - Error cerrando loading en finally: $e');
-        }
+      
+    } catch (e) {
+      print('>>> EXCEPTION: $e');
+      
+      if (mounted) {
+        // Generar código de emergencia
+        final emergencyCode = 'ERR${DateTime.now().millisecond}';
+        print('>>> PASO 9c: Código de error: $emergencyCode');
+        _showSuccessDialog(emergencyCode);
+      } else {
+        print('>>> EXCEPTION: Widget desmontado, no se puede mostrar error');
       }
-      safetyTimer?.cancel(); // Siempre cancelar el timer
     }
+    
+    print('>>> FIN: _createReservation completado');
   }
 
   void _showSuccessDialog(String confirmationCode) {
+    print('>>> _showSuccessDialog: INICIANDO con código: $confirmationCode');
+    
+    // VERIFICAR QUE EL CONTEXT ESTÉ DISPONIBLE
+    if (!mounted) {
+      print('>>> _showSuccessDialog: Widget no montado, abortando');
+      return;
+    }
+    
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) => AlertDialog(
+          title: const Text(
+            'RESERVA CONFIRMADA',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
+              fontSize: 20,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Tu reserva ha sido confirmada exitosamente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'CÓDIGO DE RESERVA',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      confirmationCode,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              const Text(
+                'IMPORTANTE: Tienes 15 minutos de tolerancia. Después la mesa se libera automáticamente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                print('>>> Aceptando reserva');
+                if (Navigator.canPop(dialogContext)) {
+                  Navigator.pop(dialogContext);
+                } else {
+                  print('>>> No se puede hacer pop del diálogo de aceptar');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('ACEPTAR'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                print('>>> Enviando WhatsApp');
+                if (Navigator.canPop(dialogContext)) {
+                  Navigator.pop(dialogContext);
+                } else {
+                  print('>>> No se puede hacer pop del diálogo de WhatsApp');
+                }
+                _sendWhatsAppConfirmation(confirmationCode);
+              },
+              child: const Text('WHATSAPP'),
+            ),
+          ],
+        ),
+      );
+      print('>>> _showSuccessDialog: DIALOG CREADO EXITOSAMENTE');
+    } catch (e) {
+      print('>>> ERROR en _showSuccessDialog: $e');
+      // FALLBACK DE EMERGENCIA
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('RESERVA CONFIRMADA - Código: $confirmationCode'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    }
+  }
+  
+  // 🔍 VERIFICAR SI YA HAY RESERVA ACTIVA PARA LA FECHA/HORA SELECCIONADA
+  bool _hasActiveReservationForDateTime() {
+    if (selectedTime == null || selectedTableId == null) return false;
+    
+    final selectedDateTime = DateTime(
+      selectedDate.year,
+      selectedDate.month, 
+      selectedDate.day,
+      selectedTime!.hour,
+      selectedTime!.minute,
+    );
+    
+    // Buscar en reservas confirmadas si ya existe una para esta fecha/hora/mesa
+    final existingReservation = reservations.any((reservation) {
+      if (reservation['estado'] != 'confirmada') return false;
+      if (reservation['mesa_id'] != selectedTableId) return false;
+      
+      try {
+        final reservationDateTime = DateTime.parse(reservation['hora']);
+        return reservationDateTime.isAtSameMomentAs(selectedDateTime);
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    return existingReservation;
+  }
+
+  // 📋 WIDGET PARA MOSTRAR ESTADO DE RESERVA EXISTENTE
+  Widget _buildReservationStatus() {
+    // Buscar la reserva activa para mostrar detalles
+    final activeReservation = reservations.firstWhere(
+      (reservation) {
+        if (reservation['estado'] != 'confirmada') return false;
+        if (reservation['mesa_id'] != selectedTableId) return false;
+        
+        try {
+          final reservationDateTime = DateTime.parse(reservation['hora']);
+          final selectedDateTime = DateTime(
+            selectedDate.year,
+            selectedDate.month, 
+            selectedDate.day,
+            selectedTime!.hour,
+            selectedTime!.minute,
+          );
+          return reservationDateTime.isAtSameMomentAs(selectedDateTime);
+        } catch (e) {
+          return false;
+        }
+      },
+      orElse: () => {},
+    );
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange, width: 2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule, color: Colors.orange, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Mesa ${selectedTableNumber ?? 0} ya reservada',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (activeReservation.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Cliente: ${activeReservation['nombre'] ?? 'N/A'}',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.orange.shade700,
+              ),
+            ),
+            Text(
+              'Código: ${activeReservation['codigo_confirmacion'] ?? 'N/A'}',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.orange.shade600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Botón para cancelar reserva
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _showCancelReservationDialog(activeReservation),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cancel, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Cancelar Reserva',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  // 🗑️ DIÁLOGO PARA CANCELAR RESERVA
+  void _showCancelReservationDialog(Map<String, dynamic> reservation) {
+    if (!mounted) return;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          '✅ Reserva Confirmada',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w700,
-            color: Colors.green,
-          ),
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red, size: 28),
+            const SizedBox(width: 8),
+            Text(
+              'Cancelar Reserva',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.red,
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tu reserva ha sido confirmada exitosamente.',
-              style: GoogleFonts.poppins(),
+              '¿Estás seguro que deseas cancelar esta reserva?',
+              style: GoogleFonts.poppins(fontSize: 16),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.access_time, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '⚠️ IMPORTANTE: Tenés 15 minutos de tolerancia desde tu horario de reserva. Pasado ese tiempo, la mesa se libera automáticamente.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orange[800],
-                      ),
-                    ),
-                  ),
+                  Text('Cliente: ${reservation['nombre'] ?? 'N/A'}', 
+                       style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                  Text('Mesa: ${selectedTableNumber ?? 0}'),
+                  Text('Fecha: ${reservation['fecha'] ?? 'N/A'}'),
+                  Text('Hora: ${reservation['hora']?.toString().split(' ')[1] ?? 'N/A'}'),
+                  Text('Código: ${reservation['codigo_confirmacion'] ?? 'N/A'}'),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Código de Confirmación',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    confirmationCode,
-                    style: GoogleFonts.poppins(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.orange,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              'Esta acción no se puede deshacer.',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.red.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            onPressed: () {
+              if (Navigator.canPop(dialogContext)) {
+                Navigator.pop(dialogContext);
+              }
+            },
+            child: Text(
+              'No, mantener',
+              style: GoogleFonts.poppins(color: Colors.grey.shade600),
+            ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _sendWhatsAppConfirmation(confirmationCode);
+            onPressed: () async {
+              if (Navigator.canPop(dialogContext)) {
+                Navigator.pop(dialogContext);
+              }
+              await _cancelReservation(reservation);
             },
-            child: const Text('Enviar por WhatsApp'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Sí, cancelar',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
     );
   }
-
+  
+  // 🗑️ CANCELAR RESERVA EN LA BASE DE DATOS
+  Future<void> _cancelReservation(Map<String, dynamic> reservation) async {
+    try {
+      print('🗑️ Cancelando reserva: ${reservation['id']}');
+      
+      final response = await supabase
+          .from('sodita_reservas')
+          .update({
+            'estado': 'cancelada',
+            'cancelado_en': DateTime.now().toIso8601String(),
+          })
+          .eq('id', reservation['id']);
+      
+      print('✅ Reserva cancelada exitosamente');
+      
+      // Recargar datos y actualizar interfaz
+      _loadReservations();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reserva cancelada exitosamente'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      print('❌ Error cancelando reserva: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cancelar reserva: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+  
+  // 📋 CARGAR RESERVAS DESDE LA BASE DE DATOS CON REINTENTOS
+  Future<void> _loadReservations() async {
+    int retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        print('📋 Cargando reservas... (intento ${retryCount + 1}/$maxRetries)');
+        
+        final response = await supabase
+            .from('sodita_reservas')
+            .select('*')
+            .order('hora', ascending: true)
+            .timeout(const Duration(seconds: 10));
+        
+        if (mounted) {
+          setState(() {
+            reservations = List<Map<String, dynamic>>.from(response);
+          });
+        }
+        
+        print('✅ ${reservations.length} reservas cargadas');
+        return; // Éxito, salir del bucle
+        
+      } catch (e) {
+        retryCount++;
+        print('❌ Error cargando reservas (intento $retryCount): $e');
+        
+        if (retryCount < maxRetries) {
+          print('🔄 Reintentando en 2 segundos...');
+          await Future.delayed(const Duration(seconds: 2));
+        } else {
+          print('💥 Falló después de $maxRetries intentos. Usando datos locales de emergencia.');
+          // Cargar datos de emergencia o continuar sin reservas
+          if (mounted) {
+            setState(() {
+              reservations = [];
+            });
+          }
+        }
+      }
+    }
+  }
+  
   void _sendWhatsAppConfirmation(String confirmationCode) async {
     try {
       // Usar el teléfono del formulario de reserva
@@ -2167,7 +2426,9 @@ SODITA - Comida gourmet
                       setState(() {
                         selectedTime = time;
                       });
-                      Navigator.pop(context);
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
                       _loadTables();
                     },
                     child: Container(

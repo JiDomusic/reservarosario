@@ -5,6 +5,8 @@ import '../models/restaurant.dart';
 import '../widgets/restaurant_card.dart';
 import 'restaurant_login_screen.dart';
 import 'restaurants/universal_restaurant_screen.dart';
+import 'sodita_original_app.dart';
+import '../supabase_config.dart';
 
 class RestaurantListScreen extends StatefulWidget {
   const RestaurantListScreen({super.key});
@@ -62,30 +64,26 @@ class _RestaurantListScreenState extends State<RestaurantListScreen>
   Future<void> _loadRestaurants() async {
     setState(() => isLoading = true);
     
-    try {
-      // Cargar restaurantes desde la base de datos
-      restaurants = await RestaurantData.getRestaurantsFromDatabase();
-      
-      // Si no hay restaurantes en la BD, usar datos demo
-      if (restaurants.isEmpty) {
-        restaurants = RestaurantData.getDemoRestaurants();
-      }
-      
-      _applyFilters();
-    } catch (e) {
-      // En caso de error, usar datos demo
-      restaurants = RestaurantData.getDemoRestaurants();
-      _applyFilters();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error cargando restaurantes: $e'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
+    // SOLO SODITA - SIN OTROS RESTAURANTES
+    restaurants = [
+      Restaurant(
+        id: 'sodita',
+        name: 'SODITA',
+        description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• PLANTA ALTA únicamente\n• 10 mesas disponibles para reservas online\n• Capacidad: 2 a 50 personas\n• Mesas bajas tradicionales (2-4 personas)\n• Mesas altas de barra (2 personas)\n• Área de living con sofás (4-6 personas)\n• Distribución: Solo interior (planta alta)\n\n📍 Reservas SOLO para la planta alta del restaurante. La planta baja NO está disponible para reservas online.',
+        address: 'Laprida 1301, Rosario 2000',
+        phone: '+54 341 000-0000',
+        email: 'admin@sodita.com',
+        totalTables: 10,
+        rating: 4.9,
+        totalReviews: 350,
+        availableTables: 5,
+        pendingReservations: 3,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    ];
+    
+    _applyFilters();
     
     setState(() => isLoading = false);
     _headerAnimationController.forward();
@@ -567,14 +565,24 @@ class _RestaurantListScreenState extends State<RestaurantListScreen>
   }
 
   void _onRestaurantTap(Restaurant restaurant) {
-    print('🔍 Navegando a: ${restaurant.name} con ${restaurant.totalTables} mesas');
+    print('🔍 Navegando a: ${restaurant.name}');
     
-    // TODOS los restaurantes usan el sistema completo de SODITA
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UniversalRestaurantScreen(restaurant: restaurant),
-      ),
-    );
+    if (restaurant.id == 'sodita') {
+      // SODITA va a su aplicación ORIGINAL con base de datos REAL
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SoditaOriginalApp(),
+        ),
+      );
+    } else {
+      // Otros restaurantes usan el clon
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => UniversalRestaurantScreen(restaurant: restaurant),
+        ),
+      );
+    }
   }
 }

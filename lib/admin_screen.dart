@@ -927,6 +927,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           stats = todayStats; // Estadísticas de reservas activas
           isLoading = false;
         });
+        
+        // ⚠️ VERIFICAR ALERTAS CRÍTICAS después de cargar datos
+        _checkCriticalReservations();
       }
     } catch (e) {
       print('Error loading data: $e');
@@ -998,9 +1001,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       final reservationDate = reservation['fecha'];
       final estado = reservation['estado'];
       
-      // Si es del día actual, mostrar solo estados operativos (excluir no_vino)
+      // Si es del día actual, mostrar TODOS los estados para estadísticas completas
       if (reservationDate == todayStr) {
-        return estado == 'confirmada' || estado == 'en_mesa';
+        return estado == 'confirmada' || 
+               estado == 'en_mesa' || 
+               estado == 'completada' || 
+               estado == 'no_show' || 
+               estado == 'expirada';
       }
       
       // Si es de días anteriores, solo mostrar estados activos (confirmadas, en_mesa)
@@ -1050,6 +1057,85 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       'tasa_canceladas': total > 0 ? (canceladas / total * 100).round() : 0,
     };
   }
+
+  // Obtener reservas liberadas automáticamente (expiradas por el sistema)
+  List<Map<String, dynamic>> _getAutoExpiredReservations(List<Map<String, dynamic>> allReservations) {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    
+    return allReservations.where((reservation) {
+      final reservationDate = reservation['fecha'];
+      final estado = reservation['estado'];
+      
+      // Solo del día actual y con estado 'expirada' (liberadas automáticamente)
+      return reservationDate == todayStr && estado == 'expirada';
+    }).toList();
+  }
+
+  // Obtener cancelaciones manuales hechas por la recepcionista
+  List<Map<String, dynamic>> _getManualCancellations(List<Map<String, dynamic>> allReservations) {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    
+    return allReservations.where((reservation) {
+      final reservationDate = reservation['fecha'];
+      final estado = reservation['estado'];
+      
+      // Solo del día actual y con estado 'cancelada' (canceladas manualmente)
+      return reservationDate == todayStr && estado == 'cancelada';
+    }).toList();
+  }
+
+  // Obtener no-show marcados manualmente por la recepcionista
+  List<Map<String, dynamic>> _getManualNoShows(List<Map<String, dynamic>> allReservations) {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    
+    return allReservations.where((reservation) {
+      final reservationDate = reservation['fecha'];
+      final estado = reservation['estado'];
+      
+      // Solo del día actual y con estado 'no_show' (marcadas manualmente como no vinieron)
+      return reservationDate == todayStr && estado == 'no_show';
+    }).toList();
+  }
+
+  // Funciones para cálculos en tiempo real de las estadísticas
+  int _getTodayReservationsTotal() {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    return reservations.where((r) => r['fecha'] == todayStr).length;
+  }
+
+  int _getCompletedCount() {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'completada').length;
+  }
+
+
+  int _getConfirmedCount() {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'confirmada').length;
+  }
+
+  int _getNoShowCount() {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    // Incluir tanto 'no_show' (manual) como 'expirada' (automático)
+    return reservations.where((r) => 
+      r['fecha'] == todayStr && 
+      (r['estado'] == 'no_show' || r['estado'] == 'expirada')
+    ).length;
+  }
+
+  int _getInTableCount() {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    // Solo los que están actualmente comiendo en mesa
+    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'en_mesa').length;
+  }
   
   // Verificar reservas críticas y mostrar notificaciones
   void _checkCriticalReservations() {
@@ -1065,6 +1151,17 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       final mesa = reservation['sodita_mesas'];
       final minutesLeft = timeLeft.inMinutes;
       
+      // 🔔 NUEVA ALERTA: Cuando EMPIEZAN los 15 minutos de tolerancia
+      if (minutesLeft == 15 && !_notifiedReservations.contains('$reservationId-start15min')) {
+        _notifiedReservations.add('$reservationId-start15min');
+        _showCriticalAlert(
+          '🕐 INICIA TOLERANCIA',
+          'Mesa ${mesa['numero']} - ${reservation['nombre']}\n¡Ya es la hora de reserva! Inician los 15 minutos de tolerancia',
+          Colors.blue,
+          reservation,
+        );
+      }
+      
       // Alerta a los 5 minutos exactos
       if (minutesLeft == 5 && !_notifiedReservations.contains('$reservationId-5min')) {
         _notifiedReservations.add('$reservationId-5min');
@@ -1077,7 +1174,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       }
       
       // Alerta a los 2 minutos (período súper crítico)
-      else if (minutesLeft == 2 && !_notifiedReservations.contains('$reservationId-2min')) {
+      if (minutesLeft == 2 && !_notifiedReservations.contains('$reservationId-2min')) {
         _notifiedReservations.add('$reservationId-2min');
         _showCriticalAlert(
           '🚨 CRÍTICO: 2 MINUTOS',
@@ -1088,7 +1185,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       }
       
       // Alerta cuando se vence (0 minutos)
-      else if (minutesLeft == 0 && !_notifiedReservations.contains('$reservationId-expired')) {
+      if (minutesLeft == 0 && !_notifiedReservations.contains('$reservationId-expired')) {
         _notifiedReservations.add('$reservationId-expired');
         _showCriticalAlert(
           '💀 VENCIDA',
@@ -1943,29 +2040,29 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             children: [
               _buildDashboardCard(
                 'Reservas Hoy',
-                '${stats['total'] ?? reservations.length}',
+                '${_getTodayReservationsTotal()}',
                 Icons.event_note,
                 const Color(0xFFE6F3FF),
                 const Color(0xFF4A90E2),
               ),
               _buildDashboardCard(
                 'Completadas',
-                '${stats['completadas'] ?? reservations.where((r) => r['estado'] == 'completada').length}',
-                Icons.people,
+                '${_getCompletedCount()}',
+                Icons.check_circle,
                 const Color(0xFFE8F5E8),
                 const Color(0xFF4CAF50),
               ),
               _buildDashboardCard(
-                'Mesas Ocupadas',
-                '${stats['occupied_tables'] ?? reservations.where((r) => r['estado'] == 'en_mesa').length}',
-                Icons.table_restaurant,
-                const Color(0xFFFFF3E0),
-                const Color(0xFFFF9800),
+                'No Show',
+                '${_getNoShowCount()}',
+                Icons.person_off,
+                const Color(0xFFFFEBEE),
+                const Color(0xFFE53E3E),
               ),
               _buildDashboardCard(
                 'En Mesa',
-                '${stats['en_mesa'] ?? reservations.where((r) => r['estado'] == 'en_mesa').length}',
-                Icons.star,
+                '${_getInTableCount()}',
+                Icons.restaurant,
                 const Color(0xFFFFF8E1),
                 const Color(0xFFFFD700),
               ),
@@ -2256,10 +2353,6 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   Widget _buildReservationCard(Map<String, dynamic> reservation, int index) {
     final mesa = reservation['sodita_mesas'];
-    final isLate = _isLate(reservation['hora']) && reservation['estado'] == 'confirmada';
-    final timeLeft = ReservationService.getTimeUntilNoShow(reservation['hora']);
-    final isInCriticalPeriod = ReservationService.isInCriticalPeriod(reservation['hora']);
-    final hasExpired = ReservationService.hasExpired(reservation['hora']);
     
     return AnimationConfiguration.staggeredList(
       position: index,
@@ -2705,38 +2798,19 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final difference = reservationTime.difference(now);
     final isPastReservationTime = difference.isNegative;
     final minutesUntilReservation = difference.inMinutes;
-    final minutesSinceReservation = isPastReservationTime ? -difference.inMinutes : 0;
     
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (status == 'confirmada') ...[
-          // 🧠 INTELIGENCIA: Solo mostrar "En Mesa" si ya pasó la hora de reserva
-          if (isPastReservationTime) ...[
-            _buildActionButton(
-              icon: Icons.check_circle,
-              color: Colors.green,
-              onPressed: () => _updateReservationStatus(reservation['id'], 'en_mesa'),
-              tooltip: 'Cliente llegó - Check-in',
-            ),
-          ] else ...[
-            // Antes de la hora de reserva, mostrar info
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Faltan $minutesUntilReservation min',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.blue[700],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
+          // ✅ BOTÓN SIEMPRE DISPONIBLE: Cliente puede llegar antes de la hora
+          _buildActionButton(
+            icon: Icons.check_circle,
+            color: Colors.green,
+            onPressed: () => _updateReservationStatus(reservation['id'], 'en_mesa'),
+            tooltip: 'Cliente llegó - Check-in',
+          ),
+          // Info adicional removida para interfaz más limpia
           const SizedBox(width: 8),
           
           // Botón de no-show (no vino) - Siempre disponible
@@ -2745,6 +2819,16 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             color: Colors.red,
             onPressed: () => _showNoShowConfirmation(reservation),
             tooltip: 'Cliente no vino - Marcar como no-show',
+          ),
+          
+          const SizedBox(width: 8),
+          
+          // 🔓 BOTÓN DE LIBERACIÓN MANUAL - Disponible para recepcionista
+          _buildActionButton(
+            icon: Icons.lock_open,
+            color: Colors.orange[600]!,
+            onPressed: () => _showManualReleaseConfirmation(reservation),
+            tooltip: 'Liberar mesa manualmente (uso recepcionista)',
           ),
           
           // Botón especial para reservas vencidas (liberar mesa)
@@ -3208,43 +3292,194 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon = Icons.warning;
         }
         
+        // 🕐 RELOJ CIRCULAR ANIMADO PARA TODAS LAS RESERVAS
+        double progress = 0.0;
+        
+        if (totalSecondsElapsed < 0) {
+          // Reserva futura: mostrar reloj lleno esperando
+          progress = 1.0;
+        } else if (remainingSeconds > 0) {
+          // En período de tolerancia: mostrar progreso decreciente
+          progress = remainingSeconds / totalToleranceSeconds;
+        } else {
+          // Expirada: reloj vacío
+          progress = 0.0;
+        }
+        
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
+          padding: const EdgeInsets.all(8),
+          child: SizedBox(
+            width: 60,
+            height: 60,
+            child: CustomPaint(
+              painter: CircularClockPainter(
+                progress: progress,
                 color: color,
-                size: 18,
+                backgroundColor: color.withOpacity(0.15),
               ),
-              const SizedBox(width: 8),
-              Text(
-                timeText,
-                style: GoogleFonts.robotoMono(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+              child: Center(
+                child: Icon(
+                  icon,
                   color: color,
-                  letterSpacing: 1.2,
+                  size: 20,
                 ),
               ),
-            ],
+            ),
           ),
         );
       },
     );
+  }
+
+  // 🔓 DIÁLOGO DE CONFIRMACIÓN PARA LIBERACIÓN MANUAL
+  void _showManualReleaseConfirmation(Map<String, dynamic> reservation) {
+    final mesa = reservation['sodita_mesas'];
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.lock_open,
+          color: Colors.orange[600],
+          size: 32,
+        ),
+        title: Text(
+          'Liberar Mesa Manualmente',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.bold,
+            color: Colors.orange[700],
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Confirmas que deseas liberar esta mesa manualmente?',
+              style: GoogleFonts.inter(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('📋 Mesa ${mesa?['numero'] ?? 'N/A'} - ${mesa?['ubicacion'] ?? 'N/A'}'),
+                  Text('👤 ${reservation['nombre'] ?? 'N/A'}'),
+                  Text('⏰ ${reservation['hora'] ?? 'N/A'} - ${reservation['personas'] ?? 0} personas'),
+                  Text('📞 ${reservation['telefono'] ?? 'N/A'}'),
+                  Text('🆔 Código: ${reservation['codigo_confirmacion'] ?? 'N/A'}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.orange[700], size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Esta acción liberará la mesa inmediatamente para nuevas reservas.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.orange[800],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.inter(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _processManualRelease(reservation);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[600],
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Sí, liberar mesa',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // 🔄 PROCESAR LIBERACIÓN MANUAL DE MESA
+  Future<void> _processManualRelease(Map<String, dynamic> reservation) async {
+    try {
+      print('🔓 Liberación manual de mesa: ${reservation['id']}');
+      
+      // Actualizar estado a 'liberada_manual' para diferenciarlo de automático
+      final response = await supabase
+          .from('sodita_reservas')
+          .update({
+            'estado': 'liberada_manual',
+            'liberado_manualmente_en': DateTime.now().toIso8601String(),
+            'notas_liberacion': 'Mesa liberada manualmente por recepcionista',
+          })
+          .eq('id', reservation['id']);
+      
+      print('✅ Mesa liberada manualmente');
+      
+      // Recargar datos
+      _loadData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('Mesa ${reservation['sodita_mesas']?['numero'] ?? 'N/A'} liberada manualmente'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      
+    } catch (e) {
+      print('❌ Error en liberación manual: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al liberar mesa: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   void _showRatingDialog(Map<String, dynamic> reservation) {

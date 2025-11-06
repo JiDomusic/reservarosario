@@ -71,8 +71,9 @@ class _RestaurantCardState extends State<RestaurantCard> {
           onTap: widget.onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header con logo y status
@@ -81,7 +82,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                     // Logo del restaurante
                     _buildRestaurantLogo(),
                     
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     
                     // Info principal
                     Expanded(
@@ -90,20 +91,22 @@ class _RestaurantCardState extends State<RestaurantCard> {
                         children: [
                           Text(
                             widget.restaurant.name,
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: const Color(0xFF0F172A),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             widget.restaurant.description,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
                               color: const Color(0xFF64748B),
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -115,7 +118,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                   ],
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 
                 // Rating y dirección
                 Row(
@@ -138,7 +141,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                           const SizedBox(width: 4),
                           Text(
                             widget.restaurant.rating.toStringAsFixed(1),
-                            style: GoogleFonts.inter(
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF10B981),
@@ -147,7 +150,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                           const SizedBox(width: 4),
                           Text(
                             '(${widget.restaurant.totalReviews})',
-                            style: GoogleFonts.inter(
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontSize: 10,
                               color: const Color(0xFF64748B),
                             ),
@@ -171,7 +174,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                           Expanded(
                             child: Text(
                               widget.restaurant.address,
-                              style: GoogleFonts.inter(
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 fontSize: 12,
                                 color: const Color(0xFF64748B),
                               ),
@@ -184,7 +187,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                   ],
                 ),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 
                 // Footer con mesas disponibles y botón
                 Row(
@@ -194,7 +197,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
                       child: _buildTableInfo(),
                     ),
                     
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     
                     // Botón de acción
                     _buildActionButton(),
@@ -239,7 +242,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
     return Center(
       child: Text(
         widget.restaurant.logoText,
-        style: GoogleFonts.inter(
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w900,
           color: widget.restaurant.primaryColorValue,
@@ -272,7 +275,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
           const SizedBox(width: 6),
           Text(
             widget.restaurant.statusText,
-            style: GoogleFonts.inter(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 10,
               fontWeight: FontWeight.w600,
               color: widget.restaurant.statusColor,
@@ -295,7 +298,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
           const SizedBox(width: 6),
           Text(
             'Cerrado',
-            style: GoogleFonts.inter(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: const Color(0xFFEF4444),
@@ -314,14 +317,16 @@ class _RestaurantCardState extends State<RestaurantCard> {
             size: 16,
           ),
           const SizedBox(width: 6),
-          Text(
-            '${effectiveAvailableTables} mesas disponibles',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF10B981),
+          Expanded(
+            child: Text(
+              '$effectiveAvailableTables mesas disponibles',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF10B981),
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       );
@@ -337,7 +342,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
         const SizedBox(width: 6),
         Text(
           'Cola virtual disponible',
-          style: GoogleFonts.inter(
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: const Color(0xFFF59E0B),
@@ -357,7 +362,7 @@ class _RestaurantCardState extends State<RestaurantCard> {
         ),
         child: Text(
           'Cerrado',
-          style: GoogleFonts.inter(
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF6B7280),
@@ -392,11 +397,11 @@ class _RestaurantCardState extends State<RestaurantCard> {
             color: Colors.white,
             size: 16,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Text(
-            effectiveAvailableTables > 0 ? 'MesaYa!' : 'Cola Virtual',
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            effectiveAvailableTables > 0 ? 'MesaYa!' : 'Cola',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),

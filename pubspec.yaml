@@ -72,3 +72,12 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/fonts/
+    
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+    - family: NotoColorEmoji
+      fonts:
+        - asset: assets/fonts/NotoColorEmoji.ttf
