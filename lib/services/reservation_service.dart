@@ -55,6 +55,22 @@ class ReservationService {
       final realMesaId = mesa['id'];
       print('🔄 Mesa número $mesaId -> UUID: $realMesaId');
 
+      // 🛡️ VERIFICAR DUPLICADOS - PREVENIR MISMA MESA/HORA/DÍA
+      final existingReservations = await _client
+          .from('sodita_reservas')
+          .select('id, nombre, telefono')
+          .eq('mesa_id', realMesaId)
+          .eq('fecha', date.toIso8601String().split('T')[0])
+          .eq('hora', time)
+          .neq('estado', 'cancelada')
+          .neq('estado', 'no_show');
+
+      if (existingReservations.isNotEmpty) {
+        final existing = existingReservations.first;
+        throw Exception('Mesa $mesaId ya está reservada para $time por ${existing['nombre']}');
+      }
+
+      print('✅ Mesa disponible - creando reserva');
       final reservationData = <String, dynamic>{
         'mesa_id': realMesaId,
         'fecha': date.toIso8601String().split('T')[0],
@@ -509,7 +525,8 @@ class ReservationService {
       for (var reservation in response) {
         final timeString = reservation['hora'].toString();
         final cleanTimeString = timeString.contains(':00:00') ? timeString.substring(0, 5) : timeString;
-        final reservationTime = DateTime.parse('${reservation['fecha']} $cleanTimeString:00');
+        final formattedTimeString = cleanTimeString.contains(':') && cleanTimeString.split(':').length == 2 ? '$cleanTimeString:00' : cleanTimeString;
+        final reservationTime = DateTime.parse('${reservation['fecha']} $formattedTimeString');
         final toleranceTime = reservationTime.add(const Duration(minutes: 15));
         
         print('📋 Reserva: ${reservation['nombre']} - Mesa ${reservation['sodita_mesas']['numero']}');

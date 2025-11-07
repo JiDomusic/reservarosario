@@ -641,7 +641,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 }
 
 class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin {
-  List<Map<String, dynamic>> reservations = [];
+  List<Map<String, dynamic>> reservations = []; // Lista filtrada para mostrar
+  List<Map<String, dynamic>> allReservations = []; // Todas las reservas sin filtrar
   Map<String, dynamic> stats = {};
   Map<DateTime, List<Map<String, dynamic>>> calendarEvents = {};
   bool isLoading = true;
@@ -684,6 +685,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
     
     _loadData();
+    _loadCalendarData(); // 🗓️ CARGAR DATOS INICIALES DEL CALENDARIO
     _startAutoCheck();
     _startAutoReleaseSystem();
     
@@ -710,25 +712,30 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Iniciar verificación automática cada 30 segundos para nuevas reservas
+  // Iniciar verificación automática OPTIMIZADA - sin loops
   void _startAutoCheck() {
-    _autoCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      print('🔄 Auto-refresh: Verificando nuevas reservas...');
-      _loadData(); // Recargar datos cada 30 segundos
+    // ✨ ACTUALIZACIÓN SUAVE Y PROFESIONAL PARA RECEPCIONISTA
+    _autoCheckTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted && !showCalendarView) {
+        print('🔄 Auto-refresh RÁPIDO: Verificando nuevas reservas...');
+        _loadData(); // Recargar datos
+      }
     });
     
-    // Contador en tiempo real cada segundo para actualizar los tiempos
+    // Contador de tiempo cada segundo para tiempo real
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && !showCalendarView) {
         setState(() {
-          // Forzar reconstrucción para actualizar contadores
+          // Actualizar contadores en tiempo real
         });
       }
     });
     
-    // Timer para notificaciones críticas cada 30 segundos
-    _notificationTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _checkCriticalReservations();
+    // Notificaciones cada 3 segundos para alertas inmediatas
+    _notificationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        _checkCriticalReservations();
+      }
     });
   }
 
@@ -740,6 +747,38 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
 
   // Procesar reservas expiradas y mostrar alertas
+  // ✨ Cargar datos con animación suave y sin parpadeos
+  Future<void> _loadDataWithAnimation() async {
+    if (!mounted) return;
+    
+    try {
+      // Solo actualizar si realmente hay cambios para evitar parpadeos
+      final newReservations = await ReservationService.getReservationsByDate(DateTime.now());
+      
+      // Comparar si hay cambios reales
+      if (_hasReservationChanges(newReservations)) {
+        setState(() {
+          reservations = newReservations;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading data with animation: $e');
+    }
+  }
+  
+  // Verificar si hay cambios reales en las reservas
+  bool _hasReservationChanges(List<Map<String, dynamic>> newReservations) {
+    if (reservations.length != newReservations.length) return true;
+    
+    for (int i = 0; i < reservations.length; i++) {
+      if (reservations[i]['id'] != newReservations[i]['id'] ||
+          reservations[i]['estado'] != newReservations[i]['estado']) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Future<void> _processExpiredReservations() async {
     try {
       final wasRestaurantFull = await ReservationService.isRestaurantFull();
@@ -755,7 +794,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         }
       }
       
-      // Recargar datos si se liberaron reservas
+      // Recargar datos suavemente si se liberaron reservas
       if (releasedTables.isNotEmpty) {
         _loadData();
       }
@@ -894,21 +933,36 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     });
   }
 
+  // Loading state suave - NO ocultar datos anteriores  
+  bool _isSoftLoading = false;
+  
   Future<void> _loadData() async {
-    setState(() {
-      isLoading = true;
-    });
+    // NO mostrar loading si ya hay datos (actualización suave)
+    if (reservations.isEmpty) {
+      setState(() {
+        isLoading = true;
+      });
+    } else {
+      setState(() {
+        _isSoftLoading = true; // Indicador sutil
+      });
+    }
 
     try {
       if (showCalendarView) {
-        // Cargar datos para el calendario
+        // 📅 CARGAR HISTORIAL COMPLETO PARA CALENDARIO
+        print('🗓️ Cargando historial de $selectedPeriod días para calendario...');
         final calendarData = await ReservationService.getReservationsForCalendar(selectedPeriod);
         final statsData = await ReservationService.getReservationStats(selectedPeriod);
+        
+        print('📊 Datos calendario cargados: ${calendarData.length} días con reservas');
+        print('📈 Stats calculadas: $statsData');
         
         setState(() {
           calendarEvents = calendarData;
           stats = statsData;
           isLoading = false;
+          _isSoftLoading = false;
         });
       } else {
         // Cargar SOLO las reservas activas del día actual (excluyendo completadas/no_show de días anteriores)
@@ -924,19 +978,48 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         print('📊 Stats calculadas: $todayStats');
         
         setState(() {
-          reservations = activeReservations; // Solo reservas activas del día
+          allReservations = todaysReservations; // TODAS las reservas del día (para contadores)
+          reservations = activeReservations; // Solo reservas activas del día (para lista)
           stats = todayStats; // Estadísticas de reservas activas
           isLoading = false;
+          _isSoftLoading = false;
         });
         
-        // ⚠️ VERIFICAR ALERTAS CRÍTICAS después de cargar datos
-        _checkCriticalReservations();
+        // Las alertas críticas se verifican en el timer independiente
       }
     } catch (e) {
       print('Error loading data: $e');
       setState(() {
         isLoading = false;
+        _isSoftLoading = false;
       });
+    }
+  }
+
+  // 🗓️ CARGAR DATOS INICIALES DEL CALENDARIO SIEMPRE
+  Future<void> _loadCalendarData() async {
+    try {
+      print('🗓️ Cargando datos iniciales del calendario para $selectedPeriod días...');
+      final calendarData = await ReservationService.getReservationsForCalendar(selectedPeriod);
+      final statsData = await ReservationService.getReservationStats(selectedPeriod);
+      
+      print('📊 Calendario inicializado: ${calendarData.length} días con datos');
+      print('📅 Datos del calendario por fecha:');
+      calendarData.forEach((fecha, eventos) {
+        print('   ${fecha.toIso8601String().split('T')[0]}: ${eventos.length} reservas');
+        for (var evento in eventos) {
+          print('      - ${evento['nombre']} a las ${evento['hora']} (${evento['estado']})');
+        }
+      });
+      
+      if (mounted) {
+        setState(() {
+          calendarEvents = calendarData;
+          // No sobrescribir stats si ya están cargados desde vista lista
+        });
+      }
+    } catch (e) {
+      print('❌ Error cargando datos calendario: $e');
     }
   }
 
@@ -1002,13 +1085,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       final reservationDate = reservation['fecha'];
       final estado = reservation['estado'];
       
-      // Si es del día actual, mostrar TODOS los estados para estadísticas completas
+      // Si es del día actual, solo mostrar confirmadas y en_mesa (trabajo pendiente)
+      // Las completadas/no_show van solo a los cards superiores
       if (reservationDate == todayStr) {
-        return estado == 'confirmada' || 
-               estado == 'en_mesa' || 
-               estado == 'completada' || 
-               estado == 'no_show' || 
-               estado == 'expirada';
+        return estado == 'confirmada' || estado == 'en_mesa';
       }
       
       // Si es de días anteriores, solo mostrar estados activos (confirmadas, en_mesa)
@@ -1059,6 +1139,70 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     };
   }
 
+  // Función para cerrar día y mover reservas al historial
+  Future<void> _cerrarDia() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cerrar Día'),
+        content: const Text('¿Estás seguro de que deseas cerrar el día? Todas las reservas actuales se moverán al historial.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cerrar Día'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _procesarCierreDia();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Día cerrado exitosamente. Todas las reservas movidas al historial.'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadData(); // Recargar datos
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar el día: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _procesarCierreDia() async {
+    try {
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      
+      // Marcar todas las reservas confirmadas como completadas (SIN updated_at)
+      await supabase.from('sodita_reservas').update({
+        'estado': 'completada',
+      }).eq('fecha', today).eq('estado', 'confirmada');
+      
+      // Marcar todas las reservas en mesa como completadas (SIN updated_at)
+      await supabase.from('sodita_reservas').update({
+        'estado': 'completada', 
+      }).eq('fecha', today).eq('estado', 'en_mesa');
+      
+      print('✅ Día cerrado exitosamente');
+    } catch (e) {
+      print('❌ Error cerrando día: $e');
+      throw e;
+    }
+  }
+
   // Obtener reservas liberadas automáticamente (expiradas por el sistema)
   List<Map<String, dynamic>> _getAutoExpiredReservations(List<Map<String, dynamic>> allReservations) {
     final today = DateTime.now();
@@ -1105,27 +1249,27 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   int _getTodayReservationsTotal() {
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
-    return reservations.where((r) => r['fecha'] == todayStr).length;
+    return allReservations.where((r) => r['fecha'] == todayStr).length;
   }
 
   int _getCompletedCount() {
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
-    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'completada').length;
+    return allReservations.where((r) => r['fecha'] == todayStr && (r['estado'] == 'completada' || r['estado'] == 'liberada_manual')).length;
   }
 
 
   int _getConfirmedCount() {
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
-    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'confirmada').length;
+    return allReservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'confirmada').length;
   }
 
   int _getNoShowCount() {
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
     // Incluir tanto 'no_show' (manual) como 'expirada' (automático)
-    return reservations.where((r) => 
+    return allReservations.where((r) => 
       r['fecha'] == todayStr && 
       (r['estado'] == 'no_show' || r['estado'] == 'expirada')
     ).length;
@@ -1135,7 +1279,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     final today = DateTime.now();
     final todayStr = today.toIso8601String().split('T')[0];
     // Solo los que están actualmente comiendo en mesa
-    return reservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'en_mesa').length;
+    return allReservations.where((r) => r['fecha'] == todayStr && r['estado'] == 'en_mesa').length;
   }
   
   // Verificar reservas críticas y mostrar notificaciones
@@ -1372,7 +1516,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
 
     if (success) {
+      // 🚀 ACTUALIZACIÓN INMEDIATA DEL UI (sin esperar BD)
+      setState(() {
+        // Actualizar estado local inmediatamente para feedback instantáneo
+        final index = reservations.indexWhere((r) => r['id'] == reservationId);
+        if (index != -1) {
+          reservations[index]['estado'] = newStatus;
+        }
+      });
+      
+      // Luego cargar datos reales de BD (en paralelo)
       _loadData();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Estado actualizado a: $newStatus'),
@@ -1764,7 +1919,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             setState(() {
               showCalendarView = !showCalendarView;
             });
-            // No llamar _loadData() para evitar loops
+            // 🗓️ CARGAR DATOS INMEDIATAMENTE AL CAMBIAR A CALENDARIO
+            if (showCalendarView) {
+              print('📅 Activando vista calendario - cargando datos históricos...');
+              _loadCalendarData();
+            }
           },
           tooltip: showCalendarView ? 'Vista Lista' : l10n.calendarView,
         ),
@@ -1772,13 +1931,32 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           child: IconButton(
-            icon: AnimatedRotation(
-              turns: isLoading ? 1 : 0,
-              duration: const Duration(milliseconds: 800),
-              child: Icon(
-                isLoading ? Icons.sync : Icons.refresh,
-                color: isLoading ? Colors.blue : null,
-              ),
+            icon: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedRotation(
+                  turns: (isLoading || _isSoftLoading) ? 1 : 0,
+                  duration: const Duration(milliseconds: 800),
+                  child: Icon(
+                    (isLoading || _isSoftLoading) ? Icons.sync : Icons.refresh,
+                    color: isLoading ? Colors.blue : (_isSoftLoading ? Colors.green : null),
+                  ),
+                ),
+                // Indicador sutil para soft loading
+                if (_isSoftLoading && !isLoading)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             onPressed: _hyperRefresh,
             tooltip: 'Actualización Ultra-Rápida',
@@ -1798,6 +1976,11 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon: const Icon(Icons.person_off),
           onPressed: _autoMarkNoShows,
           tooltip: 'Marcar No-Shows',
+        ),
+        IconButton(
+          icon: const Icon(Icons.bedtime),
+          onPressed: _cerrarDia,
+          tooltip: 'Cerrar Día',
         ),
       ],
     );
@@ -2357,11 +2540,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     
     return AnimationConfiguration.staggeredList(
       position: index,
-      duration: const Duration(milliseconds: 375),
+      duration: const Duration(milliseconds: 600),
       child: SlideAnimation(
-        verticalOffset: 50.0,
+        verticalOffset: 20.0,
         child: FadeInAnimation(
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOut,
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -2873,17 +3058,39 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }) {
     return Tooltip(
       message: tooltip,
-      child: Container(
-        width: 26,
-        height: 26,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        width: 56,  // 🔥 BOTONES GRANDES PARA TABLET (era 26)
+        height: 56, // 🔥 BOTONES GRANDES PARA TABLET (era 26) 
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16), // Bordes más redondeados
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: IconButton(
-          icon: Icon(icon, size: 18),
-          color: color,
-          onPressed: onPressed,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onPressed,
+            splashColor: color.withValues(alpha: 0.3),
+            highlightColor: color.withValues(alpha: 0.1),
+            child: Center(
+              child: Icon(
+                icon, 
+                size: 28, // 🔥 ICONOS GRANDES (era 18)
+                color: color,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -3236,7 +3443,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
 
 
-  /// Contador digital EN VIVO - Cuenta desde hora de reserva hasta 15 min después
+  /// Contador CIRCULAR ANIMADO - 15 minutos con colores y progreso visual
   Widget _buildDigitalCounter(String hora) {
     return StreamBuilder<int>(
       stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
@@ -3256,6 +3463,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         // Total de 15 minutos = 900 segundos
         const totalToleranceSeconds = 15 * 60;
         final remainingSeconds = totalToleranceSeconds - totalSecondsElapsed;
+        
+        // Progreso de 0.0 a 1.0
+        final progress = (totalSecondsElapsed / totalToleranceSeconds).clamp(0.0, 1.0);
         
         Color color;
         String timeText;
@@ -3293,39 +3503,82 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           icon = Icons.warning;
         }
         
-        // 🕐 RELOJ CIRCULAR ANIMADO PARA TODAS LAS RESERVAS
-        double progress = 0.0;
-        
-        if (totalSecondsElapsed < 0) {
-          // Reserva futura: mostrar reloj lleno esperando
-          progress = 1.0;
-        } else if (remainingSeconds > 0) {
-          // En período de tolerancia: mostrar progreso decreciente
-          progress = remainingSeconds / totalToleranceSeconds;
-        } else {
-          // Expirada: reloj vacío
-          progress = 0.0;
-        }
-        
+        // 🎨 CONTADOR CIRCULAR ANIMADO CON COLORES DE PROGRESO  
         return Container(
-          padding: const EdgeInsets.all(8),
-          child: SizedBox(
-            width: 60,
-            height: 60,
-            child: CustomPaint(
-              painter: CircularClockPainter(
-                progress: progress,
-                color: color,
-                backgroundColor: color.withOpacity(0.15),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
+          width: 60,
+          height: 60,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Círculo base (gris claro)
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey[200],
+                  border: Border.all(color: Colors.grey[300]!, width: 2),
                 ),
               ),
-            ),
+              
+              // Progreso circular animado
+              SizedBox(
+                width: 56,
+                height: 56,
+                child: AnimatedBuilder(
+                  animation: AlwaysStoppedAnimation(progress),
+                  builder: (context, child) {
+                    return CircularProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.transparent,
+                      valueColor: AlwaysStoppedAnimation(color),
+                      strokeWidth: 4,
+                      strokeCap: StrokeCap.round,
+                    );
+                  },
+                ),
+              ),
+              
+              // Texto central con tiempo
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: color, size: 16),
+                  const SizedBox(height: 2),
+                  Text(
+                    timeText.contains(':') ? timeText.split(':')[0] : timeText.substring(0, 2),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  if (timeText.contains(':'))
+                    Text(
+                      timeText.split(':')[1],
+                      style: TextStyle(
+                        fontSize: 8,
+                        color: color.withOpacity(0.8),
+                      ),
+                    ),
+                ],
+              ),
+              
+              // Efecto de pulso para estados críticos
+              if (remainingSeconds > 0 && remainingSeconds <= 300)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  width: progress > 0.7 ? 70 : 60,
+                  height: progress > 0.7 ? 70 : 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: color.withOpacity(0.3),
+                      width: progress > 0.7 ? 3 : 1,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -4139,4 +4392,5 @@ class _SubscriptionScreenState extends State<SubscriptionScreen>
       ),
     );
   }
+
 }

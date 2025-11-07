@@ -57,7 +57,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                       child: Text(
                         '${widget.reservations.length}',
                         style: GoogleFonts.inter(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -171,7 +171,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Mesa ${mesa['numero']}',
+                    mesa['numero'] == 11 ? 'Salón completo' : 'Mesa ${mesa['numero']}',
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 12,
@@ -197,7 +197,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                     child: Text(
                       ReservationService.formatTimeRemaining(timeLeft),
                       style: GoogleFonts.robotoMono(
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: isInCriticalPeriod 
                             ? Colors.red[700] 
@@ -326,7 +326,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                       const Text(
                         'LIVING (12 personas)',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -360,7 +360,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                       const Text(
                         'MESAS BARRA (16 personas)',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -404,7 +404,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
                         const Text(
                           'MESAS BAJAS (22 personas)',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -533,7 +533,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
             Text(
               statusText,
               style: GoogleFonts.robotoMono(
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: tableColor,
               ),

@@ -250,6 +250,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   @override
   void initState() {
     super.initState();
+    
+    // 🛡️ RESET FLAGS DE PROTECCIÓN AL INICIALIZAR
+    _isCreatingReservation = false;
+    _reservationCompleted = false;
+    
     _loadTables();
     _loadReservations(); // Cargar reservas
     _startAutoUpdate();
@@ -638,7 +643,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • 11 mesas (4-50 pers)',
+                              'Restaurante Gourmet • 10 mesas + Salón completo (4-50 pers)',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -721,7 +726,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 child: Text(
                                   '30 min',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF1C1B1F),
                                   ),
@@ -752,7 +757,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 child: Text(
                                   '\$\$',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF1C1B1F),
                                   ),
@@ -783,7 +788,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                 child: Text(
                                   '4-50 pers',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF1C1B1F),
                                   ),
@@ -1112,7 +1117,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             Text(
                               'Fecha',
                               style: GoogleFonts.poppins(
-                                fontSize: 12,
+                                fontSize: 14,
                                 color: const Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1120,7 +1125,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             Text(
                               '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
+                                fontSize: 18,
                                 color: const Color(0xFF1C1B1F),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1168,7 +1173,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             Text(
                               'Hora',
                               style: GoogleFonts.poppins(
-                                fontSize: 12,
+                                fontSize: 14,
                                 color: const Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1178,7 +1183,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                   ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
                                   : 'Seleccionar',
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
+                                fontSize: 18,
                                 color: selectedTime != null 
                                     ? const Color(0xFF1C1B1F) 
                                     : const Color(0xFF2563EB),
@@ -1216,7 +1221,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     child: Text(
                       'Selecciona una hora para ver las mesas disponibles',
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: 14,
                         color: const Color(0xFF2563EB),
                         fontWeight: FontWeight.w500,
                       ),
@@ -1406,7 +1411,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 child: Text(
                   '${availableTables.length} mesas',
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF2563EB),
                   ),
@@ -1530,7 +1535,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               
               Row(
                 children: [
@@ -1550,9 +1555,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Mesa $tableNumber',
+                      tableNumber == 11 ? 'Salón completo 50 personas' : 'Mesa $tableNumber',
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF1C1B1F),
                       ),
@@ -1561,33 +1566,33 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 ],
               ),
               
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               
               Text(
                 statusText,
                 style: GoogleFonts.poppins(
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: textColor,
                 ),
               ),
               
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               
               Text(
                 '$capacity personas',
                 style: GoogleFonts.poppins(
-                  fontSize: 10,
+                  fontSize: 14,
                   color: const Color(0xFF6B7280),
                 ),
               ),
               
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               
               Text(
                 location,
                 style: GoogleFonts.poppins(
-                  fontSize: 9,
+                  fontSize: 13,
                   color: const Color(0xFF9CA3AF),
                 ),
                 maxLines: 1,
@@ -1693,6 +1698,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
 
   // Mostrar diálogo de reserva
   void _showReservationDialog() {
+    // 🛡️ PREVENIR REAPERTURA DESPUÉS DE RESERVA EXITOSA
+    if (_reservationCompleted) {
+      print('>>> BLOQUEADO: Reserva ya completada, no mostrar formulario');
+      return;
+    }
+    
     // Limpiar variables temporales
     _tempName = '';
     _tempPhone = '';
@@ -1770,8 +1781,19 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   String _tempPhone = '';
   String _tempEmail = '';
 
-  // Crear reserva - VERSION ULTRA SIMPLIFICADA PARA DEBUGGING
+  // Protección contra múltiples clicks Y reapertura del formulario
+  bool _isCreatingReservation = false;
+  bool _reservationCompleted = false;
+
+  // Crear reserva - PROTEGIDA CONTRA DUPLICADOS
   void _createReservation() async {
+    // PREVENIR MÚLTIPLES CLICKS
+    if (_isCreatingReservation) {
+      print('>>> BLOQUEADO: Ya se está creando una reserva');
+      return;
+    }
+    
+    _isCreatingReservation = true;
     print('>>> PASO 1: Iniciando _createReservation');
     
     final name = _tempName.trim();
@@ -1791,17 +1813,24 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       return;
     }
 
-    print('>>> PASO 3: Cerrando formulario');
-    if (mounted && Navigator.canPop(context)) {
-      Navigator.pop(context);
+    // 🚫 VALIDAR RESERVAS DUPLICADAS ANTES DE CREAR
+    if (_hasActiveReservationForDateTime()) {
+      print('>>> ERROR: Ya existe una reserva para esta fecha/hora/mesa');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ya existe una reserva para esta mesa en este horario'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
     }
 
-    print('>>> PASO 4: Creando reserva en BD...');
+    print('>>> PASO 3: Validación OK, creando reserva en BD...');
     
     // LLAMADA DIRECTA SIN LOADING COMPLEJO
     try {
       final timeString = '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}';
-      print('>>> PASO 5: TimeString creado: $timeString');
+      print('>>> PASO 4: TimeString creado: $timeString');
       
       final reservation = await ReservationService.createReservation(
         mesaId: selectedTableId!,
@@ -1814,16 +1843,25 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         comments: null,
       );
       
-      print('>>> PASO 6: Respuesta de BD: $reservation');
+      print('>>> PASO 5: Respuesta de BD: $reservation');
       
       if (reservation != null) {
         final codigo = reservation['codigo_confirmacion'] ?? reservation['id'] ?? 'TEMP${DateTime.now().millisecond}';
-        print('>>> PASO 7: Código obtenido: $codigo');
+        print('>>> PASO 6: Código obtenido: $codigo');
+        
+        // 🛡️ MARCAR COMO COMPLETADA ANTES DE CUALQUIER ACCIÓN
+        _reservationCompleted = true;
+        print('>>> PASO 7: Reserva marcada como completada');
+        
+        // CERRAR EL FORMULARIO SOLO SI LA RESERVA FUE EXITOSA
+        print('>>> PASO 8: Cerrando formulario después de éxito');
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
         
         // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO
         if (mounted) {
-          print('>>> PASO 8: Widget montado, mostrando diálogo de éxito');
-          _showSuccessDialog(codigo);
+          print('>>> PASO 9: Widget montado, mostrando diálogo de éxito');
           
           // Actualizar estado solo si está montado
           setState(() {
@@ -1832,6 +1870,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             }
           });
           
+          // Mostrar diálogo de confirmación sin interferir con formulario
+          Future.microtask(() => _showSuccessDialog(codigo));
+          
           print('>>> PASO 9: COMPLETADO EXITOSAMENTE');
         } else {
           print('>>> PASO 8: Widget desmontado, NO mostrando diálogo');
@@ -1839,10 +1880,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       } else {
         print('>>> ERROR: Reservation es null');
         if (mounted) {
-          // Generar código de emergencia
-          final emergencyCode = 'EMG${DateTime.now().millisecond}';
-          print('>>> PASO 9b: Código de emergencia: $emergencyCode');
-          _showSuccessDialog(emergencyCode);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error al crear la reserva. Por favor intenta nuevamente.'),
+              backgroundColor: Colors.red,
+            ),
+          );
         } else {
           print('>>> ERROR: Widget desmontado, no se puede mostrar emergencia');
         }
@@ -1852,13 +1895,19 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       print('>>> EXCEPTION: $e');
       
       if (mounted) {
-        // Generar código de emergencia
-        final emergencyCode = 'ERR${DateTime.now().millisecond}';
-        print('>>> PASO 9c: Código de error: $emergencyCode');
-        _showSuccessDialog(emergencyCode);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error inesperado: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       } else {
         print('>>> EXCEPTION: Widget desmontado, no se puede mostrar error');
       }
+    } finally {
+      // LIBERAR FLAG SIEMPRE
+      _isCreatingReservation = false;
+      print('>>> FLAG LIBERADO: _isCreatingReservation = false');
     }
     
     print('>>> FIN: _createReservation completado');
@@ -1932,7 +1981,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 'IMPORTANTE: Tienes 15 minutos de tolerancia. Después la mesa se libera automáticamente.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   color: Colors.red,
                   fontWeight: FontWeight.w500,
                 ),
@@ -2453,7 +2502,7 @@ SODITA - Comida gourmet
                           Text(
                             timeString,
                             style: GoogleFonts.poppins(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF1C1B1F),
                             ),
@@ -2480,25 +2529,30 @@ SODITA - Comida gourmet
   }
 
   List<TimeOfDay> _getAvailableTimes() {
-    List<TimeOfDay> times = [];
-    
-    // Horarios de almuerzo (12:00 - 15:30)
-    for (int hour = 12; hour <= 15; hour++) {
-      for (int minute = 0; minute < 60; minute += 30) {
-        if (hour == 15 && minute > 30) break;
-        times.add(TimeOfDay(hour: hour, minute: minute));
-      }
-    }
-    
-    // Horarios de cena (19:00 - 22:30)
-    for (int hour = 19; hour <= 22; hour++) {
-      for (int minute = 0; minute < 60; minute += 30) {
-        if (hour == 22 && minute > 30) break;
-        times.add(TimeOfDay(hour: hour, minute: minute));
-      }
-    }
-    
-    return times;
+    // Horarios sin loops - Lista directa de horarios disponibles
+    return [
+      // Horarios de almuerzo (12:00 - 15:30)
+      TimeOfDay(hour: 12, minute: 0),
+      TimeOfDay(hour: 12, minute: 30),
+      TimeOfDay(hour: 13, minute: 0),
+      TimeOfDay(hour: 13, minute: 30),
+      TimeOfDay(hour: 14, minute: 0),
+      TimeOfDay(hour: 14, minute: 30),
+      TimeOfDay(hour: 15, minute: 0),
+      TimeOfDay(hour: 15, minute: 30),
+      
+      // Horarios de cena (19:00 - 23:20)
+      TimeOfDay(hour: 19, minute: 0),
+      TimeOfDay(hour: 19, minute: 30),
+      TimeOfDay(hour: 20, minute: 0),
+      TimeOfDay(hour: 20, minute: 30),
+      TimeOfDay(hour: 21, minute: 0),
+      TimeOfDay(hour: 21, minute: 30),
+      TimeOfDay(hour: 22, minute: 0),
+      TimeOfDay(hour: 22, minute: 30),
+      TimeOfDay(hour: 23, minute: 0),
+      TimeOfDay(hour: 23, minute: 20), // 🕚 AMPLIADO hasta 23:20
+    ];
   }
 
 }

@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'supabase_config.dart';
 import 'l10n.dart';
 import 'providers/review_provider.dart';
+import 'services/restaurant_auth_service.dart';
 import 'screens/sodita_original_app.dart';
 
 void main() async {
@@ -29,6 +30,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
+        ChangeNotifierProvider(create: (_) => RestaurantAuthService()),
       ],
       child: const SoditaApp(),
     ),

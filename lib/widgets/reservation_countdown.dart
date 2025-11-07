@@ -132,7 +132,7 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
               height: 100,
               child: CustomPaint(
                 painter: CircularClockPainter(
-                  progress: _isExpired ? 0.0 : (_secondsRemaining / 900.0), // 900 = 15 minutos
+                  progress: _isExpired ? 1.0 : (1.0 - (_secondsRemaining / 900.0)), // Tiempo transcurrido, no restante
                   color: color,
                   backgroundColor: color.withValues(alpha: 0.15),
                 ),

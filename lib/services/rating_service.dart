@@ -12,12 +12,11 @@ class RatingService {
     int? mesaNumero,
   }) async {
     try {
-      await _client.from('sodita_reviews').insert({
+      await _client.from('reviews').insert({
         'reservation_id': reservationId,
         'customer_name': customerName,
         'stars': stars,
         'comment': comment,
-        'mesa_numero': mesaNumero,
         'created_at': DateTime.now().toIso8601String(),
       });
 
@@ -33,7 +32,7 @@ class RatingService {
   static Future<List<Map<String, dynamic>>> getAllRatings() async {
     try {
       final response = await _client
-          .from('sodita_reviews')
+          .from('reviews')
           .select('*')
           .order('created_at', ascending: false);
 
@@ -51,7 +50,7 @@ class RatingService {
       final startDate = endDate.subtract(Duration(days: days - 1));
       
       final response = await _client
-          .from('sodita_reviews')
+          .from('reviews')
           .select('*')
           .gte('created_at', startDate.toIso8601String())
           .lte('created_at', endDate.toIso8601String())
@@ -118,7 +117,7 @@ class RatingService {
   static Future<bool> hasRating(String reservationId) async {
     try {
       final response = await _client
-          .from('sodita_reviews')
+          .from('reviews')
           .select('id')
           .eq('reservation_id', reservationId)
           .limit(1);
@@ -134,7 +133,7 @@ class RatingService {
   static Future<Map<String, dynamic>?> getRatingByReservation(String reservationId) async {
     try {
       final response = await _client
-          .from('sodita_reviews')
+          .from('reviews')
           .select('*')
           .eq('reservation_id', reservationId)
           .limit(1);
@@ -153,7 +152,7 @@ class RatingService {
   static Future<List<Map<String, dynamic>>> getRecentRatings() async {
     try {
       final response = await _client
-          .from('sodita_reviews')
+          .from('reviews')
           .select('*')
           .order('created_at', ascending: false)
           .limit(10);
