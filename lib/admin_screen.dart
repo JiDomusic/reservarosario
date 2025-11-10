@@ -150,6 +150,391 @@ class _AnimatedClockState extends State<AnimatedClock>
       },
     );
   }
+
+  void _showReviewModerationPanel() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: _ReviewModerationPanel(),
+      ),
+    );
+  }
+}
+
+class _ReviewModerationPanel extends StatefulWidget {
+  @override
+  _ReviewModerationPanelState createState() => _ReviewModerationPanelState();
+}
+
+class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
+  List<Map<String, dynamic>> reviews = [];
+  bool isLoading = true;
+  int currentPage = 0;
+  final int pageSize = 20;
+  bool hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      setState(() => isLoading = true);
+      final newReviews = await RatingService.getRatingsForModerationPaginated(
+        limit: pageSize,
+        offset: currentPage * pageSize,
+      );
+      
+      setState(() {
+        if (currentPage == 0) {
+          reviews = newReviews;
+        } else {
+          reviews.addAll(newReviews);
+        }
+        hasMore = newReviews.length == pageSize;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error cargando reseñas: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteReview(String reviewId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Reseña'),
+        content: const Text('¿Estás seguro de que deseas eliminar esta reseña? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await RatingService.deleteRating(reviewId);
+      if (success) {
+        setState(() {
+          reviews.removeWhere((review) => review['id'] == reviewId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reseña eliminada exitosamente')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al eliminar la reseña'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _editReview(Map<String, dynamic> review) async {
+    final commentController = TextEditingController(text: review['comment'] ?? '');
+    int selectedStars = review['stars'] ?? 5;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Editar Reseña'),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Cliente: ${review['customer_name']}'),
+                const SizedBox(height: 16),
+                const Text('Calificación:'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          selectedStars = index + 1;
+                        });
+                      },
+                      icon: Icon(
+                        index < selectedStars ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  decoration: const InputDecoration(
+                    labelText: 'Comentario',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final success = await RatingService.updateRating(
+                  ratingId: review['id'],
+                  comment: commentController.text,
+                  stars: selectedStars,
+                );
+                
+                Navigator.pop(context);
+                
+                if (success) {
+                  setState(() {
+                    final index = reviews.indexWhere((r) => r['id'] == review['id']);
+                    if (index != -1) {
+                      reviews[index]['comment'] = commentController.text;
+                      reviews[index]['stars'] = selectedStars;
+                    }
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Reseña actualizada exitosamente')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Error al actualizar la reseña'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(
+          'Moderar Comentarios',
+          style: GoogleFonts.poppins(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF1C1B1F),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1C1B1F),
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              currentPage = 0;
+              _loadReviews();
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar',
+          ),
+        ],
+      ),
+      body: isLoading && currentPage == 0
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info, color: Colors.blue[600]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Total de reseñas: ${reviews.length}${hasMore ? '+' : ''}',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: reviews.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.rate_review,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay reseñas para moderar',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : NotificationListener<ScrollNotification>(
+                          onNotification: (scrollInfo) {
+                            if (!isLoading && 
+                                hasMore && 
+                                scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+                              currentPage++;
+                              _loadReviews();
+                            }
+                            return false;
+                          },
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: reviews.length + (hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == reviews.length) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+
+                              final review = reviews[index];
+                              return _buildReviewCard(review);
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final DateTime createdAt = DateTime.parse(review['created_at']);
+    final String formattedDate = '${createdAt.day}/${createdAt.month}/${createdAt.year}';
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
+                  child: Icon(
+                    Icons.person,
+                    color: const Color(0xFF2563EB),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        review['customer_name'] ?? 'Cliente anónimo',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        formattedDate,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < (review['stars'] ?? 0) ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 20,
+                    );
+                  }),
+                ),
+              ],
+            ),
+            if (review['comment'] != null && review['comment'].isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Text(
+                  review['comment'],
+                  style: GoogleFonts.poppins(fontSize: 14),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _editReview(review),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Editar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => _deleteReview(review['id']),
+                  icon: const Icon(Icons.delete, size: 18),
+                  label: const Text('Eliminar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // Painter personalizado para dibujar el reloj
@@ -1884,6 +2269,33 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             ),
             style: TextButton.styleFrom(
               backgroundColor: const Color(0xB3DC0B3F).withOpacity(0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          ),
+        ),
+        // Moderar Comentarios button
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: TextButton.icon(
+            onPressed: () => _showReviewModerationPanel(),
+            icon: const Icon(
+              Icons.admin_panel_settings,
+              color: Color(0xFF8B4513),
+              size: 20,
+            ),
+            label: Text(
+              'Moderar',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF8B4513),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B35).withOpacity(0.2),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -4008,6 +4420,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       ),
     );
   }
+
+  void _showReviewModerationPanel() {}
 
 }
 

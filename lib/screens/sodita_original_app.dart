@@ -1436,6 +1436,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               return _buildTableCard(table);
             },
           ),
+          
+          const SizedBox(height: 32),
+          
+          // 💬 SECCIÓN DE COMENTARIOS PÚBLICOS
+          _buildPublicReviewsSection(),
+          
         ],
       ),
     );
@@ -1517,79 +1523,95 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             ),
           ] : [],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
             children: [
-              // Imagen de la mesa - MÁS GRANDE
-              Expanded(
-                flex: 4,
+              // 🖼️ IMAGEN COMPLETA DE FONDO
+              Positioned.fill(
+                child: Image.network(
+                  _getTableImage(tableNumber),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey.shade300,
+                      child: Icon(Icons.restaurant, color: Colors.grey.shade600),
+                    );
+                  },
+                ),
+              ),
+              
+              // 🎨 GRADIENTE PARA LEGIBILIDAD
+              Positioned.fill(
                 child: Container(
-                  width: double.infinity,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: NetworkImage(_getTableImage(tableNumber)),
-                      fit: BoxFit.cover,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
               
-              // Contenido compacto - SIN ESPACIO PERDIDO
-              Expanded(
-                flex: 1,
+              // 📝 CONTENIDO OVERLAY - DISEÑO 2025
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Título y estado en una línea
                     Row(
                       children: [
                         Container(
-                          width: 16,
-                          height: 16,
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: textColor.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(
-                            statusIcon,
-                            color: textColor,
-                            size: 10,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            tableNumber == 11 ? 'Salón 50p' : 'Mesa $tableNumber',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF1C1B1F),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(statusIcon, size: 12, color: textColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                tableNumber == 11 ? 'Salón 50p' : 'Mesa $tableNumber',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    
+                    // Estado y capacidad
                     Text(
                       statusText,
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: textColor,
+                        color: Colors.white,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       '$capacity personas • $location',
                       style: GoogleFonts.poppins(
-                        fontSize: 9,
-                        color: const Color(0xFF6B7280),
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2574,20 +2596,291 @@ SODITA - Comida gourmet
     ];
   }
 
+  // 💬 SECCIÓN PÚBLICA DE COMENTARIOS DE CLIENTES
+  Widget _buildPublicReviewsSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Título de la sección
+          Row(
+            children: [
+              Icon(Icons.star, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Lo que dicen nuestros clientes',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1C1B1F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Experiencias reales de quienes visitaron SODITA',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF6B7280),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Lista horizontal de reseñas CON BOTONES ESTILO NETFLIX
+          SizedBox(
+            height: 180,
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: RatingService.getAllRatings(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: const Color(0xFF2563EB),
+                    ),
+                  );
+                }
+                
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey.shade400),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sé el primero en dejar una reseña',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                final reviews = snapshot.data!;
+                return _buildReviewScrollableSection(reviews);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 📝 CARD INDIVIDUAL DE RESEÑA
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final rating = review['rating'] ?? 5;
+    final comment = review['comment'] ?? '';
+    final customerName = review['customer_name'] ?? 'Usuario';
+    final createdAt = review['created_at'] ?? '';
+    
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Estrellas y nombre
+          Row(
+            children: [
+              // Estrellas
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 16,
+                  );
+                }),
+              ),
+              const Spacer(),
+              // Nombre
+              Text(
+                customerName,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2563EB),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          
+          // Comentario
+          Expanded(
+            child: Text(
+              comment.isNotEmpty ? comment : 'Excelente experiencia en SODITA',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: const Color(0xFF1C1B1F),
+                height: 1.4,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Fecha
+          if (createdAt.isNotEmpty)
+            Text(
+              _formatReviewDate(createdAt),
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 📅 FORMATEAR FECHA DE RESEÑA
+  String _formatReviewDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+      
+      if (difference.inDays == 0) {
+        return 'Hoy';
+      } else if (difference.inDays == 1) {
+        return 'Ayer';
+      } else if (difference.inDays < 7) {
+        return 'Hace ${difference.inDays} días';
+      } else {
+        return '${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // 🎬 SCROLL ESTILO NETFLIX PARA RESEÑAS
+  Widget _buildReviewScrollableSection(List<Map<String, dynamic>> reviews) {
+    final ScrollController scrollController = ScrollController();
+
+    return Stack(
+      children: [
+        // Lista scrolleable
+        ListView.builder(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 50), // Espacio para los botones
+          itemCount: reviews.length,
+          itemBuilder: (context, index) {
+            final review = reviews[index];
+            return _buildReviewCard(review);
+          },
+        ),
+        
+        // Botón izquierdo
+        Positioned(
+          left: 8,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: () {
+                  scrollController.animateTo(
+                    scrollController.offset - 300,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(Icons.chevron_left, size: 24),
+                color: const Color(0xFF2563EB),
+              ),
+            ),
+          ),
+        ),
+        
+        // Botón derecho  
+        Positioned(
+          right: 8,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: () {
+                  scrollController.animateTo(
+                    scrollController.offset + 300,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                icon: const Icon(Icons.chevron_right, size: 24),
+                color: const Color(0xFF2563EB),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // 📱 RESPONSIVIDAD INTELIGENTE PARA MESAS
+  // 🎨 DISEÑO PROFESIONAL 2025 - RESPONSIVE PERFECTO
   int _getResponsiveCrossAxisCount(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width < 500) return 2;      // Móvil pequeño: 2 columnas
-    if (width < 800) return 3;      // Tablet: 3 columnas  
-    if (width < 1200) return 4;     // Desktop: 4 columnas
+    if (width < 600) return 2;      // Móvil: 2 columnas SIEMPRE
+    if (width < 900) return 3;      // Tablet: 3 columnas  
+    if (width < 1400) return 4;     // Desktop: 4 columnas
     return 5;                       // Ultra wide: 5 columnas
   }
   
   double _getResponsiveAspectRatio(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width < 500) return 2.8;    // Móvil: cards chatas
-    if (width < 800) return 2.5;    // Tablet: un poco más altas
-    return 2.2;                     // Desktop: más cuadradas
+    // PROPORCIÓN DORADA PARA CARDS DE RESTAURANTE
+    if (width < 600) return 1.4;    // Móvil: más altas para contenido
+    if (width < 900) return 1.6;    // Tablet: equilibrio perfecto
+    return 1.8;                     // Desktop: ligeramente rectangulares
   }
 }
 

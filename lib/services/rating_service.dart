@@ -217,4 +217,91 @@ class RatingService {
       return {};
     }
   }
+
+  // FUNCIONES DE MODERACIÓN PARA ADMIN
+  static Future<bool> updateRating({
+    required String ratingId,
+    String? comment,
+    int? stars,
+  }) async {
+    try {
+      final updateData = <String, dynamic>{};
+      if (comment != null) updateData['comment'] = comment;
+      if (stars != null) updateData['stars'] = stars;
+      
+      await _client
+          .from('reviews')
+          .update(updateData)
+          .eq('id', ratingId);
+
+      print('✅ Rating updated successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error updating rating: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteRating(String ratingId) async {
+    try {
+      await _client
+          .from('reviews')
+          .delete()
+          .eq('id', ratingId);
+
+      print('✅ Rating deleted successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error deleting rating: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getRatingsForModerationPaginated({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _client
+          .from('reviews')
+          .select('*')
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('❌ Error fetching ratings for moderation: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> hideRating(String ratingId) async {
+    try {
+      await _client
+          .from('reviews')
+          .update({'is_hidden': true})
+          .eq('id', ratingId);
+
+      print('✅ Rating hidden successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error hiding rating: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> showRating(String ratingId) async {
+    try {
+      await _client
+          .from('reviews')
+          .update({'is_hidden': false})
+          .eq('id', ratingId);
+
+      print('✅ Rating shown successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error showing rating: $e');
+      return false;
+    }
+  }
 }

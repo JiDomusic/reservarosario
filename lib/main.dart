@@ -80,7 +80,7 @@ class _SoditaAppState extends State<SoditaApp> {
         ),
         fontFamily: GoogleFonts.poppins().fontFamily,
         textTheme: GoogleFonts.poppinsTextTheme(),
-        // Google Fonts maneja emojis automáticamente
+        // Ignorar warnings de Noto fonts - no afectan funcionalidad
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFA10319),
