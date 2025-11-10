@@ -643,7 +643,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • 10 mesas + Salón completo (4-50 pers)',
+                              'Restaurante Gourmet • 10 mesas o salón completo y living (4-50 pers)',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -1409,7 +1409,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${availableTables.length} mesas',
+                  '10 mesas o salón completo y living',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1426,9 +1426,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.8,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              childAspectRatio: 1.3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
             itemCount: availableTables.length,
             itemBuilder: (context, index) {
@@ -1518,85 +1518,82 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ] : [],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Imagen de la mesa
-              Container(
-                height: 60,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: NetworkImage(_getTableImage(tableNumber)),
-                    fit: BoxFit.cover,
+              // Imagen de la mesa - MÁS GRANDE
+              Expanded(
+                flex: 3,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    image: DecorationImage(
+                      image: NetworkImage(_getTableImage(tableNumber)),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
-              
-              Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: textColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      statusIcon,
-                      color: textColor,
-                      size: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      tableNumber == 11 ? 'Salón completo 50 personas' : 'Mesa $tableNumber',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1C1B1F),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              
               const SizedBox(height: 4),
               
-              Text(
-                statusText,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
+              // Contenido compacto - SIN ESPACIO PERDIDO
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: textColor.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            statusIcon,
+                            color: textColor,
+                            size: 10,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            tableNumber == 11 ? 'Salón 50p' : 'Mesa $tableNumber',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF1C1B1F),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      statusText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    Text(
+                      '$capacity personas • $location',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF6B7280),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ),
-              
-              const SizedBox(height: 2),
-              
-              Text(
-                '$capacity personas',
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  color: const Color(0xFF6B7280),
-                ),
-              ),
-              
-              const SizedBox(height: 2),
-              
-              Text(
-                location,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: const Color(0xFF9CA3AF),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
