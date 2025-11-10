@@ -1524,7 +1524,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             children: [
               // Imagen de la mesa - MÁS GRANDE
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -1540,7 +1540,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               
               // Contenido compacto - SIN ESPACIO PERDIDO
               Expanded(
-                flex: 2,
+                flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
