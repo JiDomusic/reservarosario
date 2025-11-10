@@ -74,18 +74,4 @@ flutter:
     - assets/images/
     - assets/fonts/
     
-  fonts:
-    - family: NotoSans
-      fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-        - asset: assets/fonts/NotoSans-Bold.ttf
-          weight: 700
-    - family: Noto
-      fonts:
-        - asset: assets/fonts/NotoSans-Regular.ttf
-        - asset: assets/fonts/NotoSans-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/NotoColorEmoji.ttf
-        - asset: assets/fonts/NotoEmoji-Regular.ttf
-        - asset: assets/fonts/NotoSansSymbols-Regular.ttf
-        - asset: assets/fonts/NotoSansSymbols2-Regular.ttf
+# No custom fonts - Google Fonts maneja todo automáticamente

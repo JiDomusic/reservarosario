@@ -1850,6 +1850,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         _reservationCompleted = true;
         print('>>> PASO 7: Reserva marcada como completada');
         
+        // 🚪 CERRAR FORMULARIO DE RESERVA INMEDIATAMENTE
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+          print('>>> PASO 7.5: Formulario de reserva CERRADO');
+        }
+        
         // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO
         if (mounted) {
           print('>>> PASO 8: Widget montado, mostrando diálogo de éxito');
@@ -1861,8 +1867,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             }
           });
           
-          // Mostrar diálogo de confirmación Y cerrar formulario después
-          _showSuccessDialogAndClose(codigo);
+          // Mostrar diálogo de confirmación SIN cerrar formulario (ya está cerrado)
+          _showSuccessDialog(codigo);
           
           print('>>> PASO 9: COMPLETADO EXITOSAMENTE');
         } else {
@@ -1904,7 +1910,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     print('>>> FIN: _createReservation completado');
   }
 
-  void _showSuccessDialogAndClose(String confirmationCode) {
+  void _showSuccessDialog(String confirmationCode) {
     print('>>> _showSuccessDialogAndClose: INICIANDO con código: $confirmationCode');
     
     // VERIFICAR QUE EL CONTEXT ESTÉ DISPONIBLE
@@ -1982,14 +1988,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                print('>>> Aceptando reserva y cerrando formulario');
-                // Cerrar diálogo de éxito
+                print('>>> Aceptando reserva y cerrando diálogo');
+                // Solo cerrar diálogo de éxito (formulario ya cerrado)
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
-                }
-                // CERRAR FORMULARIO ORIGINAL DEFINITIVAMENTE  
-                if (mounted && Navigator.canPop(context)) {
-                  Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -2000,14 +2002,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                print('>>> Enviando WhatsApp y cerrando formulario');
-                // Cerrar diálogo de éxito
+                print('>>> Enviando WhatsApp y cerrando diálogo');
+                // Solo cerrar diálogo de éxito (formulario ya cerrado)
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
-                }
-                // CERRAR FORMULARIO ORIGINAL DEFINITIVAMENTE
-                if (mounted && Navigator.canPop(context)) {
-                  Navigator.pop(context);
                 }
                 _sendWhatsAppConfirmation(confirmationCode);
               },
