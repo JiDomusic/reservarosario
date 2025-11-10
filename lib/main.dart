@@ -80,7 +80,7 @@ class _SoditaAppState extends State<SoditaApp> {
         ),
         fontFamily: GoogleFonts.poppins().fontFamily,
         textTheme: GoogleFonts.poppinsTextTheme(),
-        fontFamilyFallback: const ['NotoSans', 'NotoColorEmoji', 'NotoEmoji', 'NotoSansSymbols', 'NotoSansSymbols2'],
+        fontFamilyFallback: const ['Noto', 'NotoSans'],
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFA10319),
