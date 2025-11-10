@@ -747,24 +747,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
 
   // Procesar reservas expiradas y mostrar alertas
-  // ✨ Cargar datos con animación suave y sin parpadeos
-  Future<void> _loadDataWithAnimation() async {
-    if (!mounted) return;
-    
-    try {
-      // Solo actualizar si realmente hay cambios para evitar parpadeos
-      final newReservations = await ReservationService.getReservationsByDate(DateTime.now());
-      
-      // Comparar si hay cambios reales
-      if (_hasReservationChanges(newReservations)) {
-        setState(() {
-          reservations = newReservations;
-        });
-      }
-    } catch (e) {
-      print('❌ Error loading data with animation: $e');
-    }
-  }
+  // FUNCIÓN ELIMINADA: _loadDataWithAnimation no se usa
   
   // Verificar si hay cambios reales en las reservas
   bool _hasReservationChanges(List<Map<String, dynamic>> newReservations) {
@@ -1032,7 +1015,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       // Cargar datos de forma paralela para máxima velocidad
       await Future.wait([
         _loadData(),
-        _autoMarkNoShows(),
+        // _autoMarkNoShows(), // DESHABILITADO - Solo manual por ahora
         _processExpiredReservations(),
       ]);
       
@@ -2222,33 +2205,37 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             mainAxisSpacing: 8,
             childAspectRatio: 1.2,
             children: [
-              _buildDashboardCard(
+              _buildClickableDashboardCard(
                 'Reservas Hoy',
                 '${_getTodayReservationsTotal()}',
                 Icons.event_note,
                 const Color(0xFFE6F3FF),
                 const Color(0xFF4A90E2),
+                () => _showFilteredReservations('confirmada'),
               ),
-              _buildDashboardCard(
+              _buildClickableDashboardCard(
                 'Completadas',
                 '${_getCompletedCount()}',
                 Icons.check_circle,
                 const Color(0xFFE8F5E8),
                 const Color(0xFF4CAF50),
+                () => _showFilteredReservations('completada'),
               ),
-              _buildDashboardCard(
+              _buildClickableDashboardCard(
                 'No Show',
                 '${_getNoShowCount()}',
                 Icons.person_off,
                 const Color(0xFFFFEBEE),
                 const Color(0xFFE53E3E),
+                () => _showFilteredReservations('no_show'),
               ),
-              _buildDashboardCard(
+              _buildClickableDashboardCard(
                 'En Mesa',
                 '${_getInTableCount()}',
                 Icons.restaurant,
                 const Color(0xFFFFF8E1),
                 const Color(0xFFFFD700),
+                () => _showFilteredReservations('en_mesa'),
               ),
             ],
           ),
@@ -2257,44 +2244,291 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildDashboardCard(String title, String value, IconData icon, Color bgColor, Color iconColor) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: iconColor.withOpacity(0.2)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: iconColor,
-            size: 16,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+  Widget _buildClickableDashboardCard(String title, String value, IconData icon, Color bgColor, Color iconColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: iconColor.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: iconColor.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
               color: iconColor,
+              size: 16,
             ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: iconColor,
+              ),
+            ),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 8,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF8B4513),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Mostrar lista filtrada de reservas por estado
+  void _showFilteredReservations(String estado) {
+    final filteredReservations = reservations.where((r) => r['estado'] == estado).toList();
+    
+    String titulo;
+    Color color;
+    IconData icono;
+    
+    switch (estado) {
+      case 'confirmada':
+        titulo = 'Reservas Confirmadas de Hoy';
+        color = const Color(0xFF4A90E2);
+        icono = Icons.event_note;
+        break;
+      case 'completada':
+        titulo = 'Reservas Completadas';
+        color = const Color(0xFF4CAF50);
+        icono = Icons.check_circle;
+        break;
+      case 'no_show':
+        titulo = 'No Shows del Día';
+        color = const Color(0xFFE53E3E);
+        icono = Icons.person_off;
+        break;
+      case 'en_mesa':
+        titulo = 'Clientes en Mesa Ahora';
+        color = const Color(0xFFFFD700);
+        icono = Icons.restaurant;
+        break;
+      default:
+        titulo = 'Reservas';
+        color = Colors.grey;
+        icono = Icons.list;
+    }
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: const Color(0xFFFAF7F0),
+          appBar: AppBar(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            title: Row(
+              children: [
+                Icon(icono, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    titulo,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${filteredReservations.length} ${estado == 'confirmada' ? 'reservas' : estado == 'completada' ? 'completadas' : estado == 'no_show' ? 'no shows' : 'en mesa'}',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+            ],
           ),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 8,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF8B4513),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+          body: filteredReservations.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icono, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay reservas en este estado',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredReservations.length,
+                  itemBuilder: (context, index) {
+                    final reserva = filteredReservations[index];
+                    return _buildDetailedReservationCard(reserva, color);
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  // Card detallada para cada reserva con todos los datos
+  Widget _buildDetailedReservationCard(Map<String, dynamic> reserva, Color themeColor) {
+    final mesa = reserva['sodita_mesas'];
+    final nombre = reserva['nombre'] ?? 'Sin nombre';
+    final telefono = reserva['telefono'] ?? 'Sin teléfono';
+    final email = reserva['email'] ?? '';
+    final hora = reserva['hora'] ?? '';
+    final personas = reserva['personas'] ?? 0;
+    final estado = reserva['estado'] ?? '';
+    final numeroMesa = mesa?['numero']?.toString() ?? 'N/A';
+    final ubicacionMesa = mesa?['ubicacion'] ?? 'Sin ubicación';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: themeColor.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: themeColor.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header con nombre y estado
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    nombre,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1C1B1F),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: themeColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    estado.toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: themeColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Información principal
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoRow(Icons.access_time, 'Hora', hora),
+                ),
+                Expanded(
+                  child: _buildInfoRow(Icons.people, 'Personas', personas.toString()),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _buildInfoRow(Icons.table_restaurant, 'Mesa', 'Mesa $numeroMesa'),
+                ),
+                Expanded(
+                  child: _buildInfoRow(Icons.place, 'Ubicación', ubicacionMesa),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Datos de contacto
+            _buildInfoRow(Icons.phone, 'Teléfono', telefono),
+            if (email.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(Icons.email, 'Email', email),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1C1B1F),
+            ),
+          ),
+        ),
+      ],
     );
   }
   

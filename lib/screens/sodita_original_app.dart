@@ -1426,7 +1426,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.85,
+              childAspectRatio: 1.8,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -1853,15 +1853,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         _reservationCompleted = true;
         print('>>> PASO 7: Reserva marcada como completada');
         
-        // CERRAR EL FORMULARIO SOLO SI LA RESERVA FUE EXITOSA
-        print('>>> PASO 8: Cerrando formulario después de éxito');
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-        
         // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO
         if (mounted) {
-          print('>>> PASO 9: Widget montado, mostrando diálogo de éxito');
+          print('>>> PASO 8: Widget montado, mostrando diálogo de éxito');
           
           // Actualizar estado solo si está montado
           setState(() {
@@ -1870,8 +1864,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             }
           });
           
-          // Mostrar diálogo de confirmación sin interferir con formulario
-          Future.microtask(() => _showSuccessDialog(codigo));
+          // Mostrar diálogo de confirmación Y cerrar formulario después
+          _showSuccessDialogAndClose(codigo);
           
           print('>>> PASO 9: COMPLETADO EXITOSAMENTE');
         } else {
@@ -1913,12 +1907,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     print('>>> FIN: _createReservation completado');
   }
 
-  void _showSuccessDialog(String confirmationCode) {
-    print('>>> _showSuccessDialog: INICIANDO con código: $confirmationCode');
+  void _showSuccessDialogAndClose(String confirmationCode) {
+    print('>>> _showSuccessDialogAndClose: INICIANDO con código: $confirmationCode');
     
     // VERIFICAR QUE EL CONTEXT ESTÉ DISPONIBLE
     if (!mounted) {
-      print('>>> _showSuccessDialog: Widget no montado, abortando');
+      print('>>> _showSuccessDialogAndClose: Widget no montado, abortando');
       return;
     }
     
@@ -1991,11 +1985,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                print('>>> Aceptando reserva');
+                print('>>> Aceptando reserva y cerrando formulario');
+                // Cerrar diálogo de éxito
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
-                } else {
-                  print('>>> No se puede hacer pop del diálogo de aceptar');
+                }
+                // CERRAR FORMULARIO ORIGINAL DEFINITIVAMENTE  
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -2006,11 +2003,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                print('>>> Enviando WhatsApp');
+                print('>>> Enviando WhatsApp y cerrando formulario');
+                // Cerrar diálogo de éxito
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
-                } else {
-                  print('>>> No se puede hacer pop del diálogo de WhatsApp');
+                }
+                // CERRAR FORMULARIO ORIGINAL DEFINITIVAMENTE
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
                 }
                 _sendWhatsAppConfirmation(confirmationCode);
               },
@@ -2539,7 +2539,23 @@ SODITA - Comida gourmet
       TimeOfDay(hour: 14, minute: 0),
       TimeOfDay(hour: 14, minute: 30),
       TimeOfDay(hour: 15, minute: 0),
+      TimeOfDay(hour: 15, minute: 15),
       TimeOfDay(hour: 15, minute: 30),
+      TimeOfDay(hour: 15, minute: 45),
+      
+      // Horario pico ampliado (16:00 - 19:00) - Más slots por demanda
+      TimeOfDay(hour: 16, minute: 0),
+      TimeOfDay(hour: 16, minute: 15),
+      TimeOfDay(hour: 16, minute: 30),
+      TimeOfDay(hour: 16, minute: 45),
+      TimeOfDay(hour: 17, minute: 0),
+      TimeOfDay(hour: 17, minute: 15),
+      TimeOfDay(hour: 17, minute: 30),
+      TimeOfDay(hour: 17, minute: 45),
+      TimeOfDay(hour: 18, minute: 0),
+      TimeOfDay(hour: 18, minute: 15),
+      TimeOfDay(hour: 18, minute: 30),
+      TimeOfDay(hour: 18, minute: 45),
       
       // Horarios de cena (19:00 - 23:20)
       TimeOfDay(hour: 19, minute: 0),
