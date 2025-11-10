@@ -2059,13 +2059,15 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  leading: ReservationCountdown(
-                    reservationTime: reservation['hora'],
-                    onExpired: () {
-                      // Auto-liberar cuando expire
-                      _processExpiredReservations();
-                    },
-                  ),
+                  leading: reservation['estado'] == 'en_mesa' 
+                    ? Icon(Icons.restaurant, color: Colors.green, size: 32)
+                    : ReservationCountdown(
+                        reservationTime: reservation['hora'],
+                        onExpired: () {
+                          // Auto-liberar cuando expire
+                          _processExpiredReservations();
+                        },
+                      ),
                   title: Text('Mesa ${mesa['numero']} - ${reservation['nombre']}'),
                   subtitle: Text(
                     'Tiempo restante: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : "Vencida"}\n'
@@ -2297,7 +2299,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
 
   // Mostrar lista filtrada de reservas por estado
   void _showFilteredReservations(String estado) {
-    final filteredReservations = reservations.where((r) => r['estado'] == estado).toList();
+    final filteredReservations = allReservations.where((r) => r['estado'] == estado).toList();
     
     String titulo;
     Color color;

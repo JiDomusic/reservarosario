@@ -322,10 +322,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       final results = await Future.wait([
         ReservationService.getMesas().timeout(const Duration(seconds: 5)),
         ReservationService.getCurrentlyOccupiedTables(date: selectedDate).timeout(const Duration(seconds: 5)),
-        // Si hay hora seleccionada, verificar ocupación específica; si no, lista vacía (todas disponibles)
+        // Siempre verificar mesas reservadas del día completo para mostrar en naranja
         timeString != null 
             ? ReservationService.getOccupiedTables(date: selectedDate, time: timeString).timeout(const Duration(seconds: 5))
-            : Future.value(<String>[]), // Sin hora seleccionada = todas las mesas disponibles
+            : ReservationService.getAllReservedTablesForDay(date: selectedDate).timeout(const Duration(seconds: 5)),
       ]);
       
       final tables = results[0] as List<Map<String, dynamic>>;
@@ -643,7 +643,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • 10 mesas o salón completo y living (4-50 pers)',
+                              'Restaurante Gourmet • 10 mesas + living (4-50 pers)',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -1409,7 +1409,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '10 mesas o salón completo y living',
+                  '10 mesas + living',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1424,11 +1424,11 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _getResponsiveCrossAxisCount(context),
+              childAspectRatio: _getResponsiveAspectRatio(context),
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
             ),
             itemCount: availableTables.length,
             itemBuilder: (context, index) {
@@ -1518,7 +1518,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           ] : [],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1536,7 +1536,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               
               // Contenido compacto - SIN ESPACIO PERDIDO
               Expanded(
@@ -1565,7 +1565,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           child: Text(
                             tableNumber == 11 ? 'Salón 50p' : 'Mesa $tableNumber',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xFF1C1B1F),
                             ),
@@ -1578,15 +1578,17 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     Text(
                       statusText,
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: textColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       '$capacity personas • $location',
                       style: GoogleFonts.poppins(
-                        fontSize: 11,
+                        fontSize: 9,
                         color: const Color(0xFF6B7280),
                       ),
                       maxLines: 1,
@@ -1698,6 +1700,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     // 🛡️ PREVENIR REAPERTURA DESPUÉS DE RESERVA EXITOSA
     if (_reservationCompleted) {
       print('>>> BLOQUEADO: Reserva ya completada, no mostrar formulario');
+      return;
+    }
+    
+    // 🛡️ PREVENIR APERTURA SI YA SE ESTÁ CREANDO UNA RESERVA
+    if (_isCreatingReservation) {
+      print('>>> BLOQUEADO: Ya se está creando una reserva');
       return;
     }
     
@@ -1850,10 +1858,10 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         _reservationCompleted = true;
         print('>>> PASO 7: Reserva marcada como completada');
         
-        // 🚪 CERRAR FORMULARIO DE RESERVA INMEDIATAMENTE
+        // 🚪 CERRAR FORMULARIO INMEDIATAMENTE
         if (mounted && Navigator.canPop(context)) {
           Navigator.pop(context);
-          print('>>> PASO 7.5: Formulario de reserva CERRADO');
+          print('>>> PASO 7.5: Formulario cerrado inmediatamente');
         }
         
         // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO
@@ -1867,7 +1875,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             }
           });
           
-          // Mostrar diálogo de confirmación SIN cerrar formulario (ya está cerrado)
+          // Mostrar diálogo de confirmación CON código y WhatsApp (SIN cerrar formulario porque ya está cerrado)
           _showSuccessDialog(codigo);
           
           print('>>> PASO 9: COMPLETADO EXITOSAMENTE');
@@ -1988,8 +1996,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                print('>>> Aceptando reserva y cerrando diálogo');
-                // Solo cerrar diálogo de éxito (formulario ya cerrado)
+                print('>>> Aceptando reserva y cerrando diálogo de éxito');
+                // Solo cerrar diálogo de éxito (formulario ya cerrado antes)
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
                 }
@@ -2002,8 +2010,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                print('>>> Enviando WhatsApp y cerrando diálogo');
-                // Solo cerrar diálogo de éxito (formulario ya cerrado)
+                print('>>> Enviando WhatsApp y cerrando diálogo de éxito');
+                // Solo cerrar diálogo de éxito (formulario ya cerrado antes)
                 if (Navigator.canPop(dialogContext)) {
                   Navigator.pop(dialogContext);
                 }
@@ -2566,6 +2574,21 @@ SODITA - Comida gourmet
     ];
   }
 
+  // 📱 RESPONSIVIDAD INTELIGENTE PARA MESAS
+  int _getResponsiveCrossAxisCount(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 500) return 2;      // Móvil pequeño: 2 columnas
+    if (width < 800) return 3;      // Tablet: 3 columnas  
+    if (width < 1200) return 4;     // Desktop: 4 columnas
+    return 5;                       // Ultra wide: 5 columnas
+  }
+  
+  double _getResponsiveAspectRatio(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 500) return 2.8;    // Móvil: cards chatas
+    if (width < 800) return 2.5;    // Tablet: un poco más altas
+    return 2.2;                     // Desktop: más cuadradas
+  }
 }
 
 // Página de Reservas
