@@ -180,7 +180,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                 ),
               ),
               
-              // Right side - Distribution bars
+              // Right side - Distribution bars (sin rayas amarillas/negras)
               if (!widget.compactView && totalReviews > 0)
                 Expanded(
                   flex: 3,
@@ -249,16 +249,8 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: percentage,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A8A), // Navy blue color from image
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                  ),
+                  // QUITÉ SOLO LAS RAYAS AMARILLAS/NEGRAS - Sin FractionallySizedBox
+                  // child: percentage > 0 ? FractionallySizedBox(...) : null,
                 ),
               ),
             ],
@@ -413,24 +405,27 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               // First row: stars and name
               Row(
                 children: [
+                  // Estrellas más pequeñas para que quepan
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: List.generate(5, (index) {
                       return Icon(
                         index < review['rating'] ? Icons.star : Icons.star_border,
                         color: Colors.amber[600],
-                        size: 18,
+                        size: 14, // Más pequeñas: 14px vs 18px
                       );
                     }),
                   ),
-                  const SizedBox(width: 8),
-                  Flexible(
+                  const SizedBox(width: 4), // Menos espacio
+                  Expanded( // Expanded en lugar de Flexible
                     child: Text(
                       review['customer_name'] ?? 'Cliente',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 12, // Texto más pequeño
                       ),
                       overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                 ],
@@ -500,30 +495,31 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Shimmer for header
+          // Shimmer for header - MÁS PEQUEÑO
           Container(
-            height: 28,
-            width: 200,
+            height: 20,
+            width: 150,
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: 16),
-          // Shimmer for statistics card
+          const SizedBox(height: 8),
+          // Shimmer for statistics card - MÁS PEQUEÑO
           Container(
-            height: 120,
+            height: 60,
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          const SizedBox(height: 16),
-          // Shimmer for reviews
-          ...List.generate(3, (index) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            height: 80,
+          const SizedBox(height: 8),
+          // Shimmer for reviews - MÁS PEQUEÑO
+          ...List.generate(2, (index) => Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(12),

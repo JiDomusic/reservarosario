@@ -442,16 +442,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await _processExpiredReservationsAndLoadTables();
-        },
-        // 🛡️ MENOS SENSIBLE - Solo si bajas desde arriba del todo
-        displacement: 60,
-        strokeWidth: 2,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
             children: [
               _buildHeader(l10n),
               // 🌟 CALIFICACIONES MÁS GRANDES Y MEJOR DISEÑADAS
@@ -473,7 +466,6 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               _buildActionButtons(),
               const SizedBox(height: 40),
             ],
-          ),
         ),
       ),
     );
@@ -647,12 +639,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • 10 mesas / living / salón completo (4-50 pers)',
+                              'Restaurante Gourmet • 10 mesas / living / salón',
                               style: GoogleFonts.poppins(
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: const Color(0xFF6B7280),
                               ),
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
