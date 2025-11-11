@@ -1097,28 +1097,20 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Auto-refresh manual para mayor estabilidad
+  // NO MÁS AUTO-REFRESH - Solo refresh manual
   void _startAutoCheck() {
-    // Auto-refresh cada 2 minutos para máxima estabilidad
-    _autoCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
-      if (mounted && !showCalendarView) {
-        print('🔄 Auto-refresh suave: Verificando actualizaciones...');
-        _loadData();
-      }
-    });
-    
-    // Notificaciones críticas cada minuto
-    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      if (mounted) {
-        _checkCriticalReservations();
-      }
-    });
+    // COMPLETAMENTE DESACTIVADO - Solo refresh manual con botón
+    print('✅ Auto-refresh DESACTIVADO - Solo refresh manual');
   }
 
-  // Sistema de liberación automática de reservas cada 60 segundos
+  // SOLO liberación de mesas - SIN refresh de UI
   void _startAutoReleaseSystem() {
-    _autoReleaseTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
-      _processExpiredReservations();
+    print('🔄 Iniciando SOLO sistema de liberación de mesas...');
+    // Timer EXCLUSIVO para liberar mesas expiradas (NO refresh de UI)
+    _autoReleaseTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        _processExpiredReservations(); // Solo procesa expiraciones, no actualiza UI
+      }
     });
   }
 
@@ -1153,9 +1145,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         }
       }
       
-      // Recargar datos suavemente si se liberaron reservas
+      // SOLO actualizar si se liberaron reservas (no refresh constante)
       if (releasedTables.isNotEmpty) {
-        _loadData();
+        print('✅ ${releasedTables.length} mesa(s) liberada(s) automáticamente');
+        // Actualización mínima sin loops
+        if (mounted) {
+          _loadData();
+        }
       }
     } catch (e) {
       print('❌ Error in auto release system: $e');
@@ -2217,35 +2213,43 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ],
       ),
       actions: [
-        // Home button
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          child: TextButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(
-              Icons.home,
-              color: Color(0xFFA10319),
-              size: 20,
-            ),
-            label: Text(
-              'Home',
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF8B4513),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xB3DC0B3F),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-        ),
+        // Scrollable actions to prevent overflow
+        SizedBox(
+          width: 300, // Fixed width to prevent overflow
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Home button
+                Container(
+                  margin: const EdgeInsets.only(right: 4),
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(
+                      Icons.home,
+                      color: Color(0xFFA10319),
+                      size: 16,
+                    ),
+                    label: Text(
+                      'Home',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF8B4513),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xB3DC0B3F),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 32),
+                    ),
+                  ),
+                ),
         // Analytics button
         Container(
           margin: const EdgeInsets.only(right: 8),
@@ -2305,6 +2309,10 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
             ),
           ),
         ),
+              ],
+            ),
+          ),
+        ),
         // Indicador de alertas críticas
         _buildCriticalAlertsIndicator(),
         IconButton(
@@ -2355,8 +2363,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                   ),
               ],
             ),
-            onPressed: _hyperRefresh,
-            tooltip: 'Actualización Ultra-Rápida',
+            onPressed: () async {
+              print('🔄 REFRESH MANUAL INICIADO');
+              await _processExpiredReservations(); // Procesar liberaciones
+              await _loadData(); // Actualizar vista
+              print('✅ REFRESH MANUAL COMPLETADO');
+            },
+            tooltip: 'REFRESH MANUAL - Ver cambios ahora',
           ),
         ),
         IconButton(
