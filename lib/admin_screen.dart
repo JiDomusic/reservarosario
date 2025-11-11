@@ -215,6 +215,7 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
   }
 
   Future<void> _deleteReview(String reviewId) async {
+    print('🗑️ ELIMINANDO RESEÑA: $reviewId');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -241,12 +242,13 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
           reviews.removeWhere((review) => review['id'] == reviewId);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reseña eliminada exitosamente')),
+          const SnackBar(content: Text('🗑️ Reseña eliminada exitosamente')),
         );
+        print('✅ RESEÑA ELIMINADA DESDE ADMIN');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error al eliminar la reseña'),
+            content: Text('❌ Error al eliminar la reseña'),
             backgroundColor: Colors.red,
           ),
         );
@@ -256,7 +258,7 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
 
   Future<void> _editReview(Map<String, dynamic> review) async {
     final commentController = TextEditingController(text: review['comment'] ?? '');
-    int selectedStars = review['stars'] ?? 5;
+    int selectedStars = review['calificacion'] ?? review['stars'] ?? 5;
 
     await showDialog(
       context: context,
@@ -268,7 +270,7 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Cliente: ${review['customer_name']}'),
+                Text('Cliente: ${review['nombre'] ?? review['customer_name'] ?? 'Cliente anónimo'}'),
                 const SizedBox(height: 16),
                 const Text('Calificación:'),
                 Row(
@@ -306,10 +308,13 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
             ),
             ElevatedButton(
               onPressed: () async {
+                print('✏️ EDITANDO RESEÑA: ${review['id']}');
                 final success = await RatingService.updateRating(
-                  ratingId: review['id'],
-                  comment: commentController.text,
-                  stars: selectedStars,
+                  review['id'],
+                  {
+                    'comment': commentController.text,
+                    'calificacion': selectedStars, // Usar campo correcto de sodita_reviews
+                  }
                 );
                 
                 Navigator.pop(context);
@@ -319,16 +324,18 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
                     final index = reviews.indexWhere((r) => r['id'] == review['id']);
                     if (index != -1) {
                       reviews[index]['comment'] = commentController.text;
-                      reviews[index]['stars'] = selectedStars;
+                      reviews[index]['calificacion'] = selectedStars; // Actualizar campo correcto
+                      reviews[index]['stars'] = selectedStars; // Por compatibilidad
                     }
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Reseña actualizada exitosamente')),
+                    const SnackBar(content: Text('✏️ Reseña actualizada exitosamente')),
                   );
+                  print('✅ RESEÑA EDITADA DESDE ADMIN');
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Error al actualizar la reseña'),
+                      content: Text('❌ Error al actualizar la reseña'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -475,7 +482,7 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        review['customer_name'] ?? 'Cliente anónimo',
+                        review['nombre'] ?? review['customer_name'] ?? 'Cliente anónimo',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -493,8 +500,9 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
                 ),
                 Row(
                   children: List.generate(5, (index) {
+                    final rating = review['calificacion'] ?? review['stars'] ?? 0;
                     return Icon(
-                      index < (review['stars'] ?? 0) ? Icons.star : Icons.star_border,
+                      index < rating ? Icons.star : Icons.star_border,
                       color: Colors.amber,
                       size: 20,
                     );
@@ -1146,17 +1154,23 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     List<Map<String, dynamic>> newActiveReservations,
     Map<String, dynamic> newStats
   ) {
-    // Verificar cambios en reservas
-    if (_hasReservationChanges(newActiveReservations)) return true;
-    
-    // Verificar cambios en estadísticas importantes
-    if (stats['total'] != newStats['total']) return true;
-    if (stats['confirmadas'] != newStats['confirmadas']) return true;
-    if (stats['en_mesa'] != newStats['en_mesa']) return true;
-    if (stats['completadas'] != newStats['completadas']) return true;
-    
-    // No hay cambios significativos
-    return false;
+    try {
+      // Verificar cambios en reservas
+      if (_hasReservationChanges(newActiveReservations)) return true;
+      
+      // Verificar cambios en estadísticas importantes - con null safety
+      if ((stats['total'] ?? 0) != (newStats['total'] ?? 0)) return true;
+      if ((stats['confirmadas'] ?? 0) != (newStats['confirmadas'] ?? 0)) return true;
+      if ((stats['en_mesa'] ?? 0) != (newStats['en_mesa'] ?? 0)) return true;
+      if ((stats['completadas'] ?? 0) != (newStats['completadas'] ?? 0)) return true;
+      
+      // No hay cambios significativos
+      return false;
+    } catch (e) {
+      // Si hay error, asumir que hay cambios para actualizar
+      print('Error en _hasActualChanges: $e');
+      return true;
+    }
   }
 
   Future<void> _processExpiredReservations() async {
@@ -1324,11 +1338,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     // NUNCA pantalla en blanco - mantener datos anteriores
     if (!mounted) return;
     
-    // Indicador sutil sin ocultar contenido
+    // Solo mostrar loading si NO hay datos previos
     if (mounted) {
       setState(() {
-        _isSoftLoading = true;
-        // NUNCA isLoading = true después de tener datos
+        if (reservations.isEmpty) {
+          isLoading = true;
+        } else {
+          _isSoftLoading = true;
+        }
       });
     }
 
@@ -1346,8 +1363,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           setState(() {
             calendarEvents = calendarData;
             stats = statsData;
+            isLoading = false;
             _isSoftLoading = false;
-            // NUNCA cambiar isLoading = false si ya hay datos
           });
         }
       } else {
@@ -1363,23 +1380,16 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         print('⏰ Reservas confirmadas: ${activeReservations.where((r) => r['estado'] == 'confirmada').length}');
         print('📊 Stats calculadas: $todayStats');
         
-        // ACTUALIZACIÓN INTELIGENTE - Solo si hay cambios reales
-        if (mounted && _hasActualChanges(todaysReservations, activeReservations, todayStats)) {
+        // ACTUALIZACIÓN FORZADA PARA ARREGLAR EL PROBLEMA
+        if (mounted) {
           setState(() {
             allReservations = todaysReservations;
             reservations = activeReservations;
             stats = todayStats;
+            isLoading = false;
             _isSoftLoading = false;
           });
-          print('✅ Datos actualizados de forma inteligente');
-        } else {
-          // Solo actualizar el indicador de loading sin rebuild
-          if (mounted) {
-            setState(() {
-              _isSoftLoading = false;
-            });
-          }
-          print('🔄 Sin cambios detectados - no rebuild innecesario');
+          print('✅ Datos cargados correctamente');
         }
         
         // Las alertas críticas se verifican en el timer independiente

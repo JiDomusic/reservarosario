@@ -218,88 +218,24 @@ class RatingService {
     }
   }
 
-  // FUNCIONES DE MODERACIÓN PARA ADMIN
-  static Future<bool> updateRating({
-    required String ratingId,
-    String? comment,
-    int? stars,
-  }) async {
-    try {
-      final updateData = <String, dynamic>{};
-      if (comment != null) updateData['comment'] = comment;
-      if (stars != null) updateData['stars'] = stars;
-      
-      await _client
-          .from('reviews')
-          .update(updateData)
-          .eq('id', ratingId);
-
-      print('✅ Rating updated successfully');
-      return true;
-    } catch (e) {
-      print('❌ Error updating rating: $e');
-      return false;
-    }
-  }
-
-  static Future<bool> deleteRating(String ratingId) async {
-    try {
-      await _client
-          .from('reviews')
-          .delete()
-          .eq('id', ratingId);
-
-      print('✅ Rating deleted successfully');
-      return true;
-    } catch (e) {
-      print('❌ Error deleting rating: $e');
-      return false;
-    }
-  }
+  // FUNCIONES DE MODERACIÓN ELIMINADAS - usando las nuevas versiones abajo
 
   static Future<List<Map<String, dynamic>>> getRatingsForModerationPaginated({
     int limit = 20,
     int offset = 0,
   }) async {
     try {
-      // Buscar en múltiples tablas de reseñas
-      List<dynamic> response = [];
+      // CONECTAR CON LAS RESEÑAS REALES DE USUARIOS
+      print('🔍 BUSCANDO EN sodita_reviews (tabla real de usuarios)...');
+      final response = await _client
+          .from('sodita_reviews')
+          .select('*')
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
       
-      // Intentar tabla 'reviews' primero
-      try {
-        response = await _client
-            .from('reviews')
-            .select('*')
-            .order('created_at', ascending: false)
-            .range(offset, offset + limit - 1);
-      } catch (e) {
-        print('❌ Tabla reviews no encontrada: $e');
-      }
-      
-      // Si no hay datos, intentar 'calificaciones' 
-      if (response.isEmpty) {
-        try {
-          response = await _client
-              .from('calificaciones')
-              .select('*')
-              .order('created_at', ascending: false)
-              .range(offset, offset + limit - 1);
-        } catch (e) {
-          print('❌ Tabla calificaciones no encontrada: $e');
-        }
-      }
-      
-      // Si no hay datos, intentar 'ratings'
-      if (response.isEmpty) {
-        try {
-          response = await _client
-              .from('ratings')
-              .select('*')
-              .order('created_at', ascending: false)
-              .range(offset, offset + limit - 1);
-        } catch (e) {
-          print('❌ Tabla ratings no encontrada: $e');
-        }
+      print('📋 RESEÑAS ENCONTRADAS: ${response.length}');
+      if (response.isNotEmpty) {
+        print('📝 PRIMERA RESEÑA: ${response.first}');
       }
 
       if (response.isNotEmpty) {
@@ -363,7 +299,7 @@ class RatingService {
   static Future<bool> hideRating(String ratingId) async {
     try {
       await _client
-          .from('reviews')
+          .from('sodita_reviews')
           .update({'is_hidden': true})
           .eq('id', ratingId);
 
@@ -378,7 +314,7 @@ class RatingService {
   static Future<bool> showRating(String ratingId) async {
     try {
       await _client
-          .from('reviews')
+          .from('sodita_reviews')
           .update({'is_hidden': false})
           .eq('id', ratingId);
 
@@ -389,4 +325,37 @@ class RatingService {
       return false;
     }
   }
+
+  // NUEVO: Actualizar reseña (para editar comentarios de haters)
+  static Future<bool> updateRating(String ratingId, Map<String, dynamic> updates) async {
+    try {
+      await _client
+          .from('sodita_reviews')
+          .update(updates)
+          .eq('id', ratingId);
+
+      print('✅ Rating updated successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error updating rating: $e');
+      return false;
+    }
+  }
+
+  // NUEVO: Eliminar reseña completamente  
+  static Future<bool> deleteRating(String ratingId) async {
+    try {
+      await _client
+          .from('sodita_reviews')
+          .delete()
+          .eq('id', ratingId);
+
+      print('✅ Rating deleted successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error deleting rating: $e');
+      return false;
+    }
+  }
+
 }
