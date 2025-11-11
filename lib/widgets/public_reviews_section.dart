@@ -99,7 +99,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
     final distribution = List<int>.from(statistics['ratingDistribution'] ?? [1, 0, 2, 5, 17]);
 
     return Container(
-      padding: const EdgeInsets.all(12), // Menos padding general
+      padding: const EdgeInsets.all(24), // Padding original
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -120,14 +120,14 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
             children: [
               // Left side - Rating number and stars
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Reseñas',
                       style: GoogleFonts.poppins(
-                        fontSize: 14, // MÁS PEQUEÑO: 18 → 16
+                        fontSize: 16, // Tamaño normal
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
@@ -140,13 +140,13 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                         Text(
                           averageRating.toStringAsFixed(1),
                           style: GoogleFonts.poppins(
-                            fontSize: 18, // MÁS PEQUEÑO: 22 → 18
+                            fontSize: 32, // Tamaño grande como en la imagen
                             fontWeight: FontWeight.w800,
                             color: Colors.black87,
-                            height: 0.9,
+                            height: 1.0,
                           ),
                         ),
-                        const SizedBox(width: 8), // Menos espacio entre 4.8 y estrellas
+                        const SizedBox(width: 12), // Espacio adecuado
                         Row(
                           children: List.generate(5, (index) {
                             double fillLevel = averageRating - index;
@@ -154,30 +154,30 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                               return Icon(
                                 Icons.star,
                                 color: Colors.amber[600],
-                                size: 14, // Estrellas más pequeñas
+                                size: 18, // Estrellas tamaño normal
                               );
                             } else if (fillLevel > 0) {
                               return Icon(
                                 Icons.star_half,
                                 color: Colors.amber[600],
-                                size: 14, // Media estrella mismo tamaño
+                                size: 18, // Media estrella mismo tamaño
                               );
                             } else {
                               return Icon(
                                 Icons.star_border,
                                 color: Colors.amber[600],
-                                size: 14, // Estrella vacía mismo tamaño
+                                size: 18, // Estrella vacía mismo tamaño
                               );
                             }
                           }),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4), // Menos espacio
+                    const SizedBox(height: 8),
                     Text(
                       '$totalReviews Reseñas',
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
+                        fontSize: 14, // Tamaño de texto normal
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
@@ -189,33 +189,33 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               // Right side - Distribution bars (sin rayas amarillas/negras)
               if (!widget.compactView && totalReviews > 0)
                 Expanded(
-                  flex: 1,
+                  flex: 3,
                   child: _buildRatingDistribution(distribution, totalReviews),
                 ),
             ],
           ),
-
-          const SizedBox(height: 4), // Menos espacio después del rating
+          
+          const SizedBox(height: 24), // Espacio original
           
           // Category ratings
           _buildCategoryRatings(),
           
-          const SizedBox(height: 4), // Menos espacio después de categorías
+          const SizedBox(height: 16), // Espacio original
           
           // Verification message
           Row(
             children: [
               Icon(
                 Icons.verified,
-                size: 10,
+                size: 16,
                 color: Colors.grey[600],
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '',
+                  'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
                   style: GoogleFonts.poppins(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w400,
                   ),
@@ -250,7 +250,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               const SizedBox(width: 8),
               Expanded(
                 child: Container(
-                  height: 8,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(5),
@@ -268,7 +268,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
 
   Widget _buildCategoryRatings() {
     final categories = [
-      {'name': 'Comida', 'icon': Icons.restaurant, 'rating': 5.4},
+      {'name': 'Comida', 'icon': Icons.restaurant, 'rating': 4.4},
       {'name': 'Ambiente', 'icon': Icons.home, 'rating': 4.3},
       {'name': 'Servicio', 'icon': Icons.person, 'rating': 4.4},
     ];
@@ -280,10 +280,10 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
           children: [
             Icon(
               category['icon'] as IconData,
-              size: 10,
+              size: 20,
               color: Colors.grey[600],
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               '${category['rating']}',
               style: GoogleFonts.poppins(
@@ -343,7 +343,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               ),
               const SizedBox(height: 8),
               Text(
-                '',
+                '¡Sé el primero en opinar!',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -499,7 +499,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
 
   Widget _buildLoadingState() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -512,20 +512,20 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           // Shimmer for statistics card - MÁS PEQUEÑO
           Container(
-            height: 60,
+            height: 120, // Altura adecuada
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(16),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           // Shimmer for reviews - MÁS PEQUEÑO
           ...List.generate(2, (index) => Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            height: 40,
+            margin: const EdgeInsets.only(bottom: 12),
+            height: 80, // Altura adecuada
             decoration: BoxDecoration(
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(12),
@@ -623,7 +623,7 @@ class _AddPublicReviewDialogState extends State<AddPublicReviewDialog> {
                     child: Icon(
                       index < _rating ? Icons.star : Icons.star_border,
                       color: Colors.amber[600],
-                      size: 30,
+                      size: 40,
                     ),
                   ),
                 );
@@ -660,7 +660,7 @@ class _AddPublicReviewDialogState extends State<AddPublicReviewDialog> {
             TextField(
               controller: _commentController,
               decoration: InputDecoration(
-                labelText: '',
+                labelText: 'Cuéntanos tu experiencia (opcional)',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
