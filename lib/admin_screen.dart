@@ -2909,8 +2909,9 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // MI CONTADOR DIGITAL EN VIVO
-                        _buildDigitalCounter(reservation['hora']),
+                        // CONTADOR ANIMADO DE 15 MIN PARA RESERVAS CONFIRMADAS
+                        if (reservation['estado'] == 'confirmada') 
+                          _buildAnimatedTimer(reservation['hora']),
                       ],
                     ),
                   ],
@@ -3465,6 +3466,64 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       default:
         return const Color(0xFF424242);
     }
+  }
+
+  // CONTADOR ANIMADO DE 15 MINUTOS PARA RESERVAS CONFIRMADAS
+  Widget _buildAnimatedTimer(String hora) {
+    final horaReserva = DateTime.parse('${DateTime.now().toIso8601String().split('T')[0]}T$hora');
+    final tiempoLimite = horaReserva.add(const Duration(minutes: 15));
+    final ahora = DateTime.now();
+    
+    // Si ya pasó el tiempo límite, no mostrar contador
+    if (ahora.isAfter(tiempoLimite)) {
+      return const SizedBox.shrink();
+    }
+    
+    final tiempoRestante = tiempoLimite.difference(ahora);
+    final minutosRestantes = tiempoRestante.inMinutes;
+    final segundosRestantes = tiempoRestante.inSeconds % 60;
+    
+    // Color basado en tiempo restante
+    Color colorTimer;
+    if (minutosRestantes <= 5) {
+      colorTimer = Colors.red;
+    } else if (minutosRestantes <= 10) {
+      colorTimer = Colors.orange;
+    } else {
+      colorTimer = Colors.blue;
+    }
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorTimer.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorTimer,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer,
+            size: 16,
+            color: colorTimer,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${minutosRestantes.toString().padLeft(2, '0')}:${segundosRestantes.toString().padLeft(2, '0')}',
+            style: GoogleFonts.inter(
+              color: colorTimer,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
   }
   
   // Diálogo de confirmación para no-show

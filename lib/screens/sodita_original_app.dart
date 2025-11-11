@@ -1502,6 +1502,13 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         setState(() {
           selectedTableId = isSelected ? null : tableId;
           selectedTableNumber = isSelected ? null : tableNumber;
+          
+          // 🔄 RESETEAR FLAGS DE RESERVA AL CAMBIAR DE MESA
+          if (selectedTableId != tableId || isSelected) {
+            _reservationCompleted = false; // Permitir nueva reserva para mesa diferente o al deseleccionar
+            _isCreatingReservation = false; // Resetear flag de creación
+            print('>>> MESA CAMBIADA/DESELECCIONADA: Flags de reserva reseteados');
+          }
         });
       } : null,
       child: AnimatedContainer(
@@ -1731,6 +1738,12 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
       return;
     }
     
+    // 🛡️ PREVENIR APERTURA SI YA HAY UN MODAL ABIERTO
+    if (ModalRoute.of(context)?.isCurrent == false) {
+      print('>>> BLOQUEADO: Ya hay un modal abierto');
+      return;
+    }
+    
     // Limpiar variables temporales
     _tempName = '';
     _tempPhone = '';
@@ -1837,6 +1850,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           backgroundColor: Colors.red,
         ),
       );
+      _isCreatingReservation = false; // Resetear flag
       return;
     }
 
@@ -1849,6 +1863,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
           backgroundColor: Colors.red,
         ),
       );
+      _isCreatingReservation = false; // Resetear flag
       return;
     }
 
@@ -1884,6 +1899,9 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         if (mounted && Navigator.canPop(context)) {
           Navigator.pop(context);
           print('>>> PASO 7.5: Formulario cerrado inmediatamente');
+          
+          // Pequeño delay para asegurar que el modal se cierre completamente
+          await Future.delayed(const Duration(milliseconds: 100));
         }
         
         // VERIFICAR SI AÚN ESTÁ MONTADO ANTES DE MOSTRAR DIÁLOGO

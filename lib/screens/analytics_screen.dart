@@ -336,9 +336,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           ),
           ElevatedButton(
             onPressed: () async {
+              print('🔧 EDITANDO - Review ID: ${review['id']}');
+              print('🔧 EDITANDO - Nuevo comentario: ${commentController.text}');
+              print('🔧 EDITANDO - Review completo: $review');
+              
               final success = await RatingService.updateRating(
-                review['id'],
-                {'comentario': commentController.text}, // Usar el campo correcto
+                review['id'].toString(), // Asegurar que sea String
+                {'comment': commentController.text}, // Usar 'comment' para que el mapeo funcione
               );
               
               Navigator.pop(context);
@@ -356,7 +360,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 );
                 
                 if (success) {
-                  _showReviewModerationPanel(); // Refresh solo si fue exitoso
+                  print('✅ EDICIÓN EXITOSA - Cerrando modal sin reabrir');
                 }
               }
             },
@@ -368,22 +372,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   void _hideReview(String reviewId) async {
-    final success = await RatingService.hideRating(reviewId);
+    print('🔧 OCULTANDO - Review ID: $reviewId');
+    
+    final success = await RatingService.hideRating(reviewId.toString());
+    
+    print('🔧 OCULTAR RESULTADO: $success');
     
     if (!mounted) return;
     
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Comentario ocultado exitosamente'),
+          content: Text('✅ Comentario ocultado exitosamente'),
           backgroundColor: Colors.green,
         ),
       );
-      _showReviewModerationPanel(); // Refresh
+      print('✅ OCULTADO EXITOSO - No reabriendo modal');
+      // No reabrimos el modal para evitar duplicación
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error ocultando comentario'),
+          content: Text('❌ Error ocultando comentario'),
           backgroundColor: Colors.red,
         ),
       );
@@ -391,6 +400,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
   }
 
   void _deleteReview(String reviewId) async {
+    print('🔧 ELIMINANDO - Review ID: $reviewId');
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -417,22 +428,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     );
 
     if (confirmed == true && mounted) {
-      final success = await RatingService.deleteRating(reviewId);
+      print('🔧 CONFIRMADO - Procediendo a eliminar: $reviewId');
+      
+      final success = await RatingService.deleteRating(reviewId.toString());
+      
+      print('🔧 ELIMINAR RESULTADO: $success');
       
       if (!mounted) return;
       
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Comentario eliminado exitosamente'),
+            content: Text('✅ Comentario eliminado exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
-        _showReviewModerationPanel(); // Refresh
+        print('✅ ELIMINADO EXITOSO - No reabriendo modal');
+        // No reabrimos el modal para evitar duplicación
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error eliminando comentario'),
+            content: Text('❌ Error eliminando comentario'),
             backgroundColor: Colors.red,
           ),
         );
