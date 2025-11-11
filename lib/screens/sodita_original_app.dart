@@ -2633,48 +2633,107 @@ SODITA - Comida gourmet
   // 💬 SECCIÓN PÚBLICA DE COMENTARIOS DE CLIENTES
   Widget _buildPublicReviewsSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
+        // 🌟 GLASSMORPHISM 2025 
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        // 🎨 SOMBRAS MÚLTIPLES MODERNAS
+        boxShadow: [
+          // Sombra principal
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+            spreadRadius: 0,
+          ),
+          // Sombra secundaria
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+            spreadRadius: 0,
+          ),
+          // Resaltado interior
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.8),
+            blurRadius: 0,
+            offset: const Offset(0, 1),
+            spreadRadius: 0,
+            blurStyle: BlurStyle.inner,
+          ),
+        ],
+        // 🌈 GRADIENTE SUTIL
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.98),
+            Colors.grey.shade50.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0.92),
+          ],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título de la sección
+          // 🌟 Título mejorado con mejor diseño
           Row(
             children: [
-              Icon(Icons.star, color: Colors.amber, size: 24),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Lo que dicen nuestros clientes',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1C1B1F),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                    width: 1,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                ),
+                child: Icon(Icons.star_rounded, color: Colors.amber.shade600, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lo que dicen nuestros clientes',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1C1B1F),
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Experiencias reales de quienes visitaron SODITA',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Experiencias reales de quienes visitaron SODITA',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: const Color(0xFF6B7280),
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           
-          // Lista horizontal de reseñas CON BOTONES ESTILO NETFLIX
+          // 📱 Lista horizontal más alta y espaciosa
           SizedBox(
-            height: 180,
+            height: 200,
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: RatingService.getAllRatings(),
               builder: (context, snapshot) {
@@ -2805,59 +2864,13 @@ SODITA - Comida gourmet
                     ),
                   ),
                   const Spacer(),
-                  // 👤 Etiqueta "Cliente" estilo 2025 
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      // 🌟 Gradiente moderno
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF2563EB).withValues(alpha: 0.15),
-                          const Color(0xFF1D4ED8).withValues(alpha: 0.1),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                        width: 1.2,
-                      ),
-                      // 🎨 Sombra sutil
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB).withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 12,
-                            color: const Color(0xFF2563EB),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Cliente',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1E40AF),
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
+                  // Nombre del cliente
+                  Text(
+                    'Cliente',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2563EB),
                     ),
                   ),
                 ],
