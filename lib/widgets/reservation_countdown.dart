@@ -30,9 +30,25 @@ class _ReservationCountdownState extends State<ReservationCountdown> {
   void initState() {
     super.initState();
     _updateCountdown();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _updateCountdown();
+      if (mounted) {
+        _updateCountdown();
+      }
     });
+  }
+
+  @override
+  void didUpdateWidget(ReservationCountdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reservationTime != widget.reservationTime) {
+      // Solo si cambia la hora de reserva, actualizar
+      _updateCountdown();
+    }
   }
 
   @override

@@ -902,18 +902,22 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                           Text(
                             '${reservation['sodita_mesas']['ubicacion']} • ${reservation['cantidad_personas']} personas',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: const Color(0xFF6B7280),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             '📅 ${reservation['fecha']} a las ${reservation['hora']}',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF374151),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -931,6 +935,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ReservationCountdown(
+                    key: ValueKey('countdown_${reservation['id']}'),
                     reservationTime: reservation['hora'],
                     isLarge: true,
                     onExpired: () {
@@ -1145,7 +1150,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                 child: GestureDetector(
                   onTap: () => _showTimeSelector(),
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9FA),
                       borderRadius: BorderRadius.circular(12),
@@ -1165,7 +1170,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                               : const Color(0xFF6B7280),
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1183,12 +1188,14 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                                   ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
                                   : 'Seleccionar',
                               style: GoogleFonts.poppins(
-                                fontSize: 18,
+                                fontSize: 15,
                                 color: selectedTime != null 
                                     ? const Color(0xFF1C1B1F) 
                                     : const Color(0xFF2563EB),
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                           ),
