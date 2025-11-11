@@ -4482,7 +4482,377 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     );
   }
 
-  void _showReviewModerationPanel() {}
+  void _showReviewModerationPanel() async {
+    print('🚀 INICIANDO PANEL DE MODERACIÓN DESDE ADMIN...');
+    try {
+      print('📡 Cargando comentarios desde Supabase...');
+      final reviews = await RatingService.getRatingsForModerationPaginated(limit: 50);
+      print('📋 Comentarios obtenidos: ${reviews.length}');
+      
+      if (!mounted) {
+        print('⚠️ Widget desmontado, cancelando...');
+        return;
+      }
+      
+      print('🎭 Mostrando modal...');
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDC2626),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.admin_panel_settings, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Moderación de Comentarios',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: reviews.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No hay comentarios para moderar',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: reviews.length,
+                        itemBuilder: (context, index) {
+                          final review = reviews[index];
+                          return _buildModerationCardForAdmin(review);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+      print('✅ Modal mostrado exitosamente');
+    } catch (e) {
+      print('💥 ERROR CRÍTICO: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cargando comentarios: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildModerationCardForAdmin(Map<String, dynamic> review) {
+    final isNegative = (review['stars'] as int?) != null && review['stars'] <= 2;
+    final comment = review['comment'] as String? ?? '';
+    final hasOffensiveContent = comment.toLowerCase().contains(RegExp(r'(asco|horrible|ladrón|maleducado|pésimo|odio|basura)'));
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: hasOffensiveContent ? 8 : 2,
+      color: hasOffensiveContent ? Colors.red[50] : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: hasOffensiveContent 
+            ? const BorderSide(color: Colors.red, width: 2)
+            : BorderSide.none,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: isNegative ? Colors.red[100] : Colors.green[100],
+                  child: Icon(
+                    isNegative ? Icons.sentiment_very_dissatisfied : Icons.sentiment_satisfied,
+                    color: isNegative ? Colors.red : Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        review['customer_name'] ?? 'Cliente Anónimo',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          ...List.generate(5, (i) => Icon(
+                            Icons.star,
+                            size: 16,
+                            color: i < (review['stars'] ?? 0) 
+                                ? Colors.amber 
+                                : Colors.grey[300],
+                          )),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${review['stars'] ?? 0}/5',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasOffensiveContent)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'REVISAR',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (comment.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: hasOffensiveContent ? Colors.red[100] : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: hasOffensiveContent 
+                      ? Border.all(color: Colors.red[300]!, width: 1)
+                      : null,
+                ),
+                child: Text(
+                  comment,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: hasOffensiveContent ? Colors.red[800] : Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _editReviewFromAdmin(review),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: Text('Editar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => _hideReviewFromAdmin(review['id']),
+                  icon: const Icon(Icons.visibility_off, size: 16),
+                  label: Text('Ocultar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => _deleteReviewFromAdmin(review['id']),
+                  icon: const Icon(Icons.delete, size: 16),
+                  label: Text('Eliminar'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editReviewFromAdmin(Map<String, dynamic> review) {
+    final TextEditingController commentController = TextEditingController(
+      text: review['comment'] ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Editar Comentario',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Cliente: ${review['customer_name']}',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Comentario',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await RatingService.updateRating(
+                review['id'],
+                {'comment': commentController.text},
+              );
+              
+              Navigator.pop(context);
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Comentario editado exitosamente'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _showReviewModerationPanel(); // Refresh
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error editando comentario'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _hideReviewFromAdmin(String reviewId) async {
+    final success = await RatingService.hideRating(reviewId);
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Comentario ocultado exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _showReviewModerationPanel(); // Refresh
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error ocultando comentario'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _deleteReviewFromAdmin(String reviewId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Confirmar eliminación',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar este comentario permanentemente?',
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await RatingService.deleteRating(reviewId);
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comentario eliminado exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _showReviewModerationPanel(); // Refresh
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error eliminando comentario'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
 }
 
