@@ -73,15 +73,5 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
-  
-  fonts:
-    - family: Roboto
-      fonts:
-        - asset: packages/flutter/fonts/Roboto-Regular.ttf
-        - asset: packages/flutter/fonts/Roboto-Bold.ttf
-          weight: 700
-    - family: NotoEmoji
-      fonts:
-        - asset: packages/flutter/fonts/NotoColorEmoji.ttf
-        
-# Google Fonts maneja todo automáticamente, estas son fuentes de respaldo
+    
+# Google Fonts maneja todo automáticamente
