@@ -104,9 +104,10 @@ class AnalyticsService {
   /// Métricas de reservas del día
   static Future<Map<String, dynamic>> _getReservationMetrics(String date) async {
     try {
+      // USAR SOLO COLUMNAS QUE REALMENTE EXISTEN EN LA BD
       final reservations = await _client
           .from('sodita_reservas')
-          .select('estado, tipo_reserva, personas, hora')
+          .select('estado, personas, hora')
           .eq('fecha', date);
 
       final total = reservations.length;
@@ -114,9 +115,9 @@ class AnalyticsService {
       final noShows = reservations.where((r) => r['estado'] == 'no_show').length;
       final inProgress = reservations.where((r) => r['estado'] == 'en_mesa').length;
       final pending = reservations.where((r) => r['estado'] == 'confirmada').length;
+      final cancelled = reservations.where((r) => r['estado'] == 'cancelada').length;
       
-      final mesaYaReservations = reservations.where((r) => r['tipo_reserva'] == 'mesaya').length;
-      final queueReservations = reservations.where((r) => r['tipo_reserva'] == 'cola_virtual').length;
+      print('📊 RESERVAS REALES: Total: $total, Completadas: $completed, No Shows: $noShows, En Mesa: $inProgress, Confirmadas: $pending, Canceladas: $cancelled');
       
       final totalGuests = reservations.fold<int>(0, (sum, r) => sum + ((r['personas'] ?? 0) as int));
       
@@ -131,16 +132,15 @@ class AnalyticsService {
       }
 
       return {
-        'total_reservas': total,
+        'total': total,
         'completadas': completed,
         'no_shows': noShows,
-        'en_progreso': inProgress,
-        'pendientes': pending,
-        'mesaya_reservas': mesaYaReservations,
-        'cola_reservas': queueReservations,
+        'en_mesa': inProgress,
+        'confirmadas': pending,
+        'canceladas': cancelled,
         'total_comensales': totalGuests,
-        'tasa_completion': completionRate,
-        'tasa_no_show': noShowRate,
+        'tasa_completadas': completionRate,
+        'tasa_no_shows': noShowRate,
         'promedio_personas_reserva': total > 0 ? (totalGuests ~/ total) : 0,
         'breakdown_horario': hourlyBreakdown,
       };

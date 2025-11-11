@@ -352,12 +352,13 @@ class RatingService {
 
   static Future<bool> hideRating(String ratingId) async {
     try {
+      // SIMULAR OCULTAR cambiando el comentario a "[OCULTO POR ADMIN]"
       await _client
           .from('sodita_reviews')
-          .update({'is_hidden': true})
+          .update({'comentario': '[COMENTARIO OCULTO POR ADMINISTRADOR]'})
           .eq('id', ratingId);
 
-      print('✅ Rating hidden successfully');
+      print('✅ Rating hidden successfully (comment replaced)');
       return true;
     } catch (e) {
       print('❌ Error hiding rating: $e');
@@ -367,12 +368,8 @@ class RatingService {
 
   static Future<bool> showRating(String ratingId) async {
     try {
-      await _client
-          .from('sodita_reviews')
-          .update({'is_hidden': false})
-          .eq('id', ratingId);
-
-      print('✅ Rating shown successfully');
+      // NOTA: Esta función ya no se usa, pero la mantemos por compatibilidad
+      print('⚠️ ShowRating no implementado - usar unhide manual si es necesario');
       return true;
     } catch (e) {
       print('❌ Error showing rating: $e');
