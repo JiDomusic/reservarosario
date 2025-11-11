@@ -446,14 +446,18 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
         onRefresh: () async {
           await _processExpiredReservationsAndLoadTables();
         },
+        // 🛡️ MENOS SENSIBLE - Solo si bajas desde arriba del todo
+        displacement: 60,
+        strokeWidth: 2,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               _buildHeader(l10n),
-              // CALIFICACIONES EN LA PARTE SUPERIOR
+              // 🌟 CALIFICACIONES MÁS GRANDES Y MEJOR DISEÑADAS
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                height: 220, // Más alto para que no se corten
                 child: const PublicReviewsSection(
                   showAddReviewButton: false,
                   compactView: true,
@@ -2801,33 +2805,56 @@ SODITA - Comida gourmet
                     ),
                   ),
                   const Spacer(),
-                  // 👤 Etiqueta "Cliente" mejorada
+                  // 👤 Etiqueta "Cliente" estilo 2025 
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.2),
-                        width: 1,
+                      // 🌟 Gradiente moderno
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF2563EB).withValues(alpha: 0.15),
+                          const Color(0xFF1D4ED8).withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                        width: 1.2,
+                      ),
+                      // 🎨 Sombra sutil
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.person_rounded,
-                          size: 14,
-                          color: const Color(0xFF2563EB),
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 12,
+                            color: const Color(0xFF2563EB),
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
                           'Cliente',
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF2563EB),
-                            letterSpacing: 0.2,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E40AF),
+                            letterSpacing: 0.3,
                           ),
                         ),
                       ],
