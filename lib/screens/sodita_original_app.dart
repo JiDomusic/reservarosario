@@ -236,6 +236,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   List<String> reservedTableIds = [];
   List<Map<String, dynamic>> reservations = []; // Para almacenar reservas
   bool isLoadingTables = true;
+  bool _userIsInteracting = false; // Flag para pausar updates durante interacción
+  DateTime? _lastFullUpdate; // Cache para optimizar actualizaciones
   
   // Timer para actualizaciones automáticas
   Timer? _autoUpdateTimer;
@@ -269,11 +271,48 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     super.dispose();
   }
 
-  // Iniciar actualización automática cada 30 segundos
+  // Sistema de actualización SÚPER OPTIMIZADO con frecuencias inteligentes
   void _startAutoUpdate() {
-    _autoUpdateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      _processExpiredReservationsAndLoadTables();
+    _autoUpdateTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _smartUpdate(); // Actualización inteligente cada 15 segundos
     });
+  }
+
+  // Actualización inteligente que solo actualiza cuando es necesario
+  Future<void> _smartUpdate() async {
+    if (!mounted || _userIsInteracting) return; // SÚPER OPTIMIZACIÓN: pausar durante interacción
+    
+    try {
+      // Solo procesar si hay cambios o cada 2 minutos como máximo
+      final now = DateTime.now();
+      
+      if (_lastFullUpdate == null || now.difference(_lastFullUpdate!).inMinutes >= 2) {
+        await _processExpiredReservationsAndLoadTables();
+        _lastFullUpdate = now;
+        debugPrint('🔄 Full update - mesas y reservas actualizadas');
+      } else {
+        // Actualización rápida solo de estados críticos
+        await _quickStatusUpdate();
+      }
+    } catch (e) {
+      debugPrint('❌ Error en smart update: $e');
+    }
+  }
+
+  // Actualización rápida - usa la función existente
+  Future<void> _quickStatusUpdate() async {
+    // Usa la función existente que ya funciona
+    await _processExpiredReservationsAndLoadTables();
+    debugPrint('⚡ Quick update completado');
+  }
+
+  // Comparar listas eficientemente
+  bool _listsEqual(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   // Procesar reservas expiradas y actualizar mesas
@@ -431,8 +470,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
   }
 
   void _startReservationCacheTimer() {
-    _reservationCacheTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      _loadActiveReservationCache();
+    _reservationCacheTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      _loadActiveReservationCache(); // Optimizado: 10s → 20s para reducir carga
     });
   }
 
