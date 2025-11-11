@@ -1864,159 +1864,212 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ],
       ),
       actions: [
-        // Scrollable actions to prevent overflow
-        SizedBox(
-          width: 300, // Fixed width to prevent overflow
+        // 🚀 DISEÑO 2025 - Botones modernos con glassmorphism
+        Flexible(
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(right: 8),
             child: Row(
               children: [
-                // Home button
-                Container(
-                  margin: const EdgeInsets.only(right: 4),
-                  child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(
-                      Icons.home,
-                      color: Color(0xFFA10319),
-                      size: 16,
-                    ),
-                    label: Text(
-                      'Home',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF8B4513),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                    style: TextButton.styleFrom(
-                      backgroundColor: const Color(0xB3DC0B3F),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: const Size(0, 32),
-                    ),
-                  ),
+                // Home button - Diseño 2025 con glassmorphism
+                _buildModernButton(
+                  icon: Icons.home_rounded,
+                  color: const Color(0xFFA10319),
+                  onPressed: () => Navigator.pop(context),
+                  tooltip: 'Inicio',
+                  isPrimary: true,
                 ),
-        // Analytics button
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          child: TextButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AnalyticsScreen()),
-              );
-            },
-            icon: const Icon(
-              Icons.analytics,
-              color: Color(0xFF8B4513),
-              size: 20,
-            ),
-            label: Text(
-              l10n.analytics,
-              style: GoogleFonts.poppins(
-                color: const Color(0xFF8B4513),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xB3DC0B3F).withOpacity(0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-        ),
+                const SizedBox(width: 4),
+                
+                // Analytics button - Diseño 2025 
+                _buildModernButton(
+                  icon: Icons.analytics_rounded,
+                  color: const Color(0xFF8B4513),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AnalyticsScreen()),
+                    );
+                  },
+                  tooltip: 'Analytics',
+                ),
+                const SizedBox(width: 4),
+                
+                // Indicador de alertas críticas
+                _buildCriticalAlertsIndicator(),
+                const SizedBox(width: 4),
+                
+                // Calendar toggle - Diseño 2025
+                _buildModernButton(
+                  icon: showCalendarView ? Icons.view_list_rounded : Icons.calendar_month_rounded,
+                  color: showCalendarView ? const Color(0xFF2563EB) : const Color(0xFF6B7280),
+                  onPressed: () {
+                    setState(() {
+                      showCalendarView = !showCalendarView;
+                    });
+                    if (showCalendarView) {
+                      _loadCalendarData();
+                    }
+                  },
+                  tooltip: showCalendarView ? 'Lista' : 'Calendario',
+                  isActive: showCalendarView,
+                ),
+                const SizedBox(width: 4),
+                
+                // Refresh button - Animado 2025
+                _buildModernButton(
+                  icon: (isLoading || _isSoftLoading) ? Icons.sync_rounded : Icons.refresh_rounded,
+                  color: isLoading ? Colors.blue : (_isSoftLoading ? Colors.green : const Color(0xFF6B7280)),
+                  onPressed: () async {
+                    await _processExpiredReservations();
+                    await _loadData();
+                  },
+                  tooltip: 'Actualizar',
+                  isAnimated: isLoading || _isSoftLoading,
+                ),
+                const SizedBox(width: 4),
+                
+                // Debug button - Minimalista 2025
+                _buildModernButton(
+                  icon: Icons.bug_report_rounded,
+                  color: const Color(0xFF6B7280),
+                  onPressed: _debugDatabaseConnection,
+                  tooltip: 'Debug',
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                
+                // Timezone button
+                _buildModernButton(
+                  icon: Icons.access_time_rounded,
+                  color: const Color(0xFF6B7280),
+                  onPressed: _testTimezoneAndExpiration,
+                  tooltip: 'Timezone',
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                
+                // No-show button
+                _buildModernButton(
+                  icon: Icons.person_off_rounded,
+                  color: const Color(0xFF6B7280),
+                  onPressed: _autoMarkNoShows,
+                  tooltip: 'No-Shows',
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                
+                // Close day button
+                _buildModernButton(
+                  icon: Icons.bedtime_rounded,
+                  color: const Color(0xFF6B7280),
+                  onPressed: _cerrarDia,
+                  tooltip: 'Cerrar Día',
+                  size: 16,
+                ),
               ],
             ),
           ),
-        ),
-        // Indicador de alertas críticas
-        _buildCriticalAlertsIndicator(),
-        IconButton(
-          icon: Icon(
-            showCalendarView ? Icons.view_list : Icons.calendar_month,
-            color: const Color(0xFF6B7280),
-          ),
-          onPressed: () {
-            setState(() {
-              showCalendarView = !showCalendarView;
-            });
-            // 🗓️ CARGAR DATOS INMEDIATAMENTE AL CAMBIAR A CALENDARIO
-            if (showCalendarView) {
-              print('📅 Activando vista calendario - cargando datos históricos...');
-              _loadCalendarData();
-            }
-          },
-          tooltip: showCalendarView ? 'Vista Lista' : l10n.calendarView,
-        ),
-        // 🚀 REFRESH SÚPER INTELIGENTE
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          child: IconButton(
-            icon: Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedRotation(
-                  turns: (isLoading || _isSoftLoading) ? 1 : 0,
-                  duration: const Duration(milliseconds: 800),
-                  child: Icon(
-                    (isLoading || _isSoftLoading) ? Icons.sync : Icons.refresh,
-                    color: isLoading ? Colors.blue : (_isSoftLoading ? Colors.green : null),
-                  ),
-                ),
-                // Indicador sutil para soft loading
-                if (_isSoftLoading && !isLoading)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: () async {
-              print('🔄 REFRESH MANUAL INICIADO');
-              await _processExpiredReservations(); // Procesar liberaciones
-              await _loadData(); // Actualizar vista
-              print('✅ REFRESH MANUAL COMPLETADO');
-            },
-            tooltip: 'REFRESH MANUAL - Ver cambios ahora',
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.bug_report),
-          onPressed: _debugDatabaseConnection,
-          tooltip: 'Debug DB Connection',
-        ),
-        IconButton(
-          icon: const Icon(Icons.access_time),
-          onPressed: _testTimezoneAndExpiration,
-          tooltip: 'Test Timezone Argentina',
-        ),
-        IconButton(
-          icon: const Icon(Icons.person_off),
-          onPressed: _autoMarkNoShows,
-          tooltip: 'Marcar No-Shows',
-        ),
-        IconButton(
-          icon: const Icon(Icons.bedtime),
-          onPressed: _cerrarDia,
-          tooltip: 'Cerrar Día',
         ),
       ],
+    );
+  }
+
+  // 🚀 BOTÓN MODERNO 2025 - Diseño glassmorphism táctil para móvil
+  Widget _buildModernButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+    bool isPrimary = false,
+    bool isActive = false,
+    bool isAnimated = false,
+    double size = 20,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 1),
+      child: Material(
+        color: Colors.transparent,
+        child: Tooltip(
+          message: tooltip,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onPressed,
+            // 📱 ÁREA DE TOQUE AMPLIADA PARA MÓVIL
+            child: Container(
+              width: isPrimary ? 44 : (size >= 18 ? 40 : 32),
+              height: isPrimary ? 44 : (size >= 18 ? 40 : 32),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                // 🌟 GLASSMORPHISM 2025
+                color: isPrimary 
+                  ? color.withValues(alpha: 0.15)
+                  : isActive 
+                    ? color.withValues(alpha: 0.2)
+                    : Colors.white.withValues(alpha: 0.1),
+                border: Border.all(
+                  color: isPrimary 
+                    ? color.withValues(alpha: 0.3)
+                    : isActive
+                      ? color.withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.15),
+                  width: isPrimary ? 1.5 : 1,
+                ),
+                // 🎨 SOMBRA SUAVE MODERNA
+                boxShadow: [
+                  if (isPrimary || isActive)
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
+                // 🌈 GRADIENTE SUTIL
+                gradient: isPrimary 
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(alpha: 0.1),
+                        color.withValues(alpha: 0.05),
+                      ],
+                    )
+                  : null,
+              ),
+              child: Center(
+                child: isAnimated
+                  ? TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 1000),
+                      tween: Tween(begin: 0, end: 1),
+                      builder: (context, value, child) {
+                        return Transform.rotate(
+                          angle: value * 2 * 3.14159, // Rotación completa
+                          child: Icon(
+                            icon,
+                            size: size,
+                            color: isPrimary 
+                              ? color 
+                              : isActive 
+                                ? color
+                                : color.withValues(alpha: 0.8),
+                          ),
+                        );
+                      },
+                    )
+                  : Icon(
+                      icon,
+                      size: size,
+                      color: isPrimary 
+                        ? color 
+                        : isActive 
+                          ? color
+                          : color.withValues(alpha: 0.8),
+                    ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
   
@@ -3362,12 +3415,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        width: 56,  // 🔥 BOTONES GRANDES PARA TABLET (era 26)
-        height: 56, // 🔥 BOTONES GRANDES PARA TABLET (era 26) 
+        width: 36,  // Botones aún más pequeños para que entre "personas"
+        height: 36, // Botones aún más pequeños para que entre "personas" 
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16), // Bordes más redondeados
+          borderRadius: BorderRadius.circular(12), // Bordes proporcionados
           border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
           boxShadow: [
             BoxShadow(
@@ -3380,14 +3433,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             onTap: onPressed,
             splashColor: color.withValues(alpha: 0.3),
             highlightColor: color.withValues(alpha: 0.1),
             child: Center(
               child: Icon(
                 icon, 
-                size: 28, // 🔥 ICONOS GRANDES (era 18)
+                size: 18, // Iconos aún más pequeños para que entre "personas"
                 color: color,
               ),
             ),

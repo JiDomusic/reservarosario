@@ -2718,80 +2718,166 @@ SODITA - Comida gourmet
   Widget _buildReviewCard(Map<String, dynamic> review) {
     final rating = review['rating'] ?? 5;
     final comment = review['comment'] ?? '';
-    final customerName = review['customer_name'] ?? 'Usuario';
+    final customerName = review['customer_name'] ?? 'Cliente';
     final createdAt = review['created_at'] ?? '';
     
     return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Estrellas y nombre
-          Row(
-            children: [
-              // Estrellas
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 16,
-                  );
-                }),
+      width: 290,
+      margin: const EdgeInsets.only(right: 16),
+      child: Material(
+        elevation: 0,
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            // 🌟 GLASSMORPHISM 2025
+            color: Colors.white.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            // 🎨 SOMBRAS MÚLTIPLES ESTILO 2025
+            boxShadow: [
+              // Sombra principal profunda
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+                spreadRadius: 0,
               ),
-              const Spacer(),
-              // Nombre
-              Text(
-                customerName,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF2563EB),
-                ),
+              // Sombra secundaria suave
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
+              ),
+              // Sombra de resaltado interior
+              BoxShadow(
+                color: Colors.white.withValues(alpha: 0.6),
+                blurRadius: 0,
+                offset: const Offset(0, 1),
+                spreadRadius: 0,
+                blurStyle: BlurStyle.inner,
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          
-          // Comentario
-          Expanded(
-            child: Text(
-              comment.isNotEmpty ? comment : 'Excelente experiencia en SODITA',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                color: const Color(0xFF1C1B1F),
-                height: 1.4,
-              ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
+            // 🌈 GRADIENTE SUTIL DE FONDO
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.98),
+                Colors.grey.shade50.withValues(alpha: 0.95),
+              ],
             ),
           ),
-          
-          const SizedBox(height: 8),
-          
-          // Fecha
-          if (createdAt.isNotEmpty)
-            Text(
-              _formatReviewDate(createdAt),
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: const Color(0xFF9CA3AF),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header con estrellas y "Cliente"
+              Row(
+                children: [
+                  // ⭐ Estrellas con mejor diseño
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(5, (index) {
+                        return Icon(
+                          index < rating ? Icons.star_rounded : Icons.star_border_rounded,
+                          color: index < rating ? Colors.amber.shade600 : Colors.grey.shade300,
+                          size: 16,
+                        );
+                      }),
+                    ),
+                  ),
+                  const Spacer(),
+                  // 👤 Etiqueta "Cliente" mejorada
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.person_rounded,
+                          size: 14,
+                          color: const Color(0xFF2563EB),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Cliente',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2563EB),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-        ],
+              const SizedBox(height: 16),
+              
+              // 💬 Comentario con mejor tipografía
+              Expanded(
+                child: Text(
+                  comment.isNotEmpty ? comment : 'Excelente experiencia en SODITA',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: const Color(0xFF1F2937),
+                    height: 1.5,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0.1,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // 📅 Fecha con icono
+              if (createdAt.isNotEmpty)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 12,
+                      color: const Color(0xFF9CA3AF),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatReviewDate(createdAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: const Color(0xFF9CA3AF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
