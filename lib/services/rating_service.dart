@@ -227,19 +227,73 @@ class RatingService {
     try {
       // CONECTAR CON LAS RESEÑAS REALES DE USUARIOS
       print('🔍 BUSCANDO EN sodita_reviews (tabla real de usuarios)...');
-      final response = await _client
-          .from('sodita_reviews')
-          .select('*')
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+      
+      // Primero intentar otras posibles tablas donde podrían estar los comentarios
+      List<String> tablesToTry = ['sodita_reviews', 'reviews', 'comentarios', 'reseñas', 'ratings'];
+      List<Map<String, dynamic>> response = [];
+      String? workingTable;
+      
+      for (String tableName in tablesToTry) {
+        try {
+          print('🔍 Probando tabla: $tableName');
+          final testResponse = await _client
+              .from(tableName)
+              .select('*')
+              .limit(1);
+          
+          if (testResponse.isNotEmpty) {
+            print('✅ TABLA ENCONTRADA: $tableName con ${testResponse.length} registros de ejemplo');
+            print('🔧 ESTRUCTURA: ${testResponse.first.keys.toList()}');
+            workingTable = tableName;
+            break;
+          }
+        } catch (e) {
+          print('❌ Tabla $tableName no existe o no es accesible: $e');
+        }
+      }
+      
+      if (workingTable != null) {
+        final fullResponse = await _client
+            .from(workingTable)
+            .select('*')
+            .order('created_at', ascending: false)
+            .range(offset, offset + limit - 1);
+        response = List<Map<String, dynamic>>.from(fullResponse);
+      } else {
+        print('❌ NO SE ENCONTRÓ NINGUNA TABLA DE COMENTARIOS VÁLIDA');
+        response = [];
+      }
       
       print('📋 RESEÑAS ENCONTRADAS: ${response.length}');
       if (response.isNotEmpty) {
         print('📝 PRIMERA RESEÑA: ${response.first}');
+        print('🔧 COLUMNAS DISPONIBLES: ${response.first.keys.toList()}');
       }
 
       if (response.isNotEmpty) {
-        return List<Map<String, dynamic>>.from(response);
+        // Normalizar los datos para que siempre tengan las claves correctas
+        return response.map<Map<String, dynamic>>((review) {
+          final normalizedReview = Map<String, dynamic>.from(review);
+          
+          // Asegurar que tengamos 'customer_name' independientemente del nombre real de la columna
+          if (!normalizedReview.containsKey('customer_name')) {
+            normalizedReview['customer_name'] = normalizedReview['nombre_cliente'] ?? 
+                                               normalizedReview['cliente_nombre'] ?? 
+                                               normalizedReview['name'] ??
+                                               'Cliente Anónimo';
+          }
+          
+          // Asegurar que tengamos 'comment' y 'comentario'
+          if (normalizedReview.containsKey('comentario') && !normalizedReview.containsKey('comment')) {
+            normalizedReview['comment'] = normalizedReview['comentario'];
+          }
+          if (normalizedReview.containsKey('comment') && !normalizedReview.containsKey('comentario')) {
+            normalizedReview['comentario'] = normalizedReview['comment'];
+          }
+          
+          print('🔄 REVIEW NORMALIZADA: $normalizedReview');
+          return normalizedReview;
+        }).toList();
       }
 
       // Si no hay datos, devolver datos de ejemplo para moderación
@@ -329,9 +383,21 @@ class RatingService {
   // NUEVO: Actualizar reseña (para editar comentarios de haters)
   static Future<bool> updateRating(String ratingId, Map<String, dynamic> updates) async {
     try {
+      // Mapear 'comment' a la columna correcta
+      final correctUpdates = <String, dynamic>{};
+      for (var entry in updates.entries) {
+        if (entry.key == 'comment') {
+          correctUpdates['comentario'] = entry.value; // Usar 'comentario' en lugar de 'comment'
+        } else {
+          correctUpdates[entry.key] = entry.value;
+        }
+      }
+      
+      print('🔧 Actualizando con datos: $correctUpdates');
+      
       await _client
           .from('sodita_reviews')
-          .update(updates)
+          .update(correctUpdates)
           .eq('id', ratingId);
 
       print('✅ Rating updated successfully');

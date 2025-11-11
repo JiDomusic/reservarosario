@@ -162,7 +162,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   Widget _buildModerationCard(Map<String, dynamic> review) {
     final isNegative = (review['stars'] as int?) != null && review['stars'] <= 2;
-    final comment = review['comment'] as String? ?? '';
+    final comment = (review['comentario'] ?? review['comment'] ?? '') as String;
     final hasOffensiveContent = comment.toLowerCase().contains(RegExp(r'(asco|horrible|ladrón|maleducado|pésimo|odio|basura)'));
     
     return Card(
@@ -301,7 +301,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   void _editReview(Map<String, dynamic> review) {
     final TextEditingController commentController = TextEditingController(
-      text: review['comment'] ?? '',
+      text: review['comentario'] ?? review['comment'] ?? '',
     );
 
     showDialog(
@@ -343,7 +343,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
               
               Navigator.pop(context);
               
-              if (success) {
+              if (mounted && success) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Comentario editado exitosamente'),
@@ -351,7 +351,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   ),
                 );
                 _showReviewModerationPanel(); // Refresh
-              } else {
+              } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Error editando comentario'),
@@ -369,6 +369,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
   void _hideReview(String reviewId) async {
     final success = await RatingService.hideRating(reviewId);
+    
+    if (!mounted) return;
     
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -414,8 +416,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       final success = await RatingService.deleteRating(reviewId);
+      
+      if (!mounted) return;
       
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -5,8 +5,10 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:reservarosario/supabase_config.dart';
 import 'services/reservation_service.dart';
 import 'services/rating_service.dart';
+import 'services/realtime_ratings_service.dart';
 import 'widgets/reservation_countdown.dart';
 import 'widgets/rating_widget.dart';
+import 'widgets/realtime_reviews_widget.dart';
 import 'screens/analytics_screen.dart';
 import 'l10n.dart';
 import 'dart:async';
@@ -4489,6 +4491,25 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       final reviews = await RatingService.getRatingsForModerationPaginated(limit: 50);
       print('📋 Comentarios obtenidos: ${reviews.length}');
       
+      // DEBUG: Mostrar los primeros comentarios para verificar las columnas reales
+      if (reviews.isNotEmpty) {
+        print('🔍 ESTRUCTURA REAL DE LA BASE DE DATOS:');
+        final review = reviews[0];
+        print('   📝 TODAS LAS COLUMNAS: ${review.keys.toList()}');
+        print('   📝 DATOS COMPLETOS: $review');
+        print('   ---');
+        
+        // Solo mostrar si tenemos datos reales
+        if (review.keys.length > 2) {
+          print('🔍 PRIMEROS COMENTARIOS:');
+          for (int i = 0; i < math.min(3, reviews.length); i++) {
+            final r = reviews[i];
+            print('   [$i] ID: ${r['id']}');
+            print('   [$i] Todas las keys: ${r.keys.toList()}');
+          }
+        }
+      }
+      
       if (!mounted) {
         print('⚠️ Widget desmontado, cancelando...');
         return;
@@ -4541,24 +4562,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                 ),
               ),
               Expanded(
-                child: reviews.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No hay comentarios para moderar',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: reviews.length,
-                        itemBuilder: (context, index) {
-                          final review = reviews[index];
-                          return _buildModerationCardForAdmin(review);
-                        },
-                      ),
+                child: RealTimeReviewsWidget(
+                  showModerationActions: true,
+                  onEditReview: _editReviewFromAdmin,
+                  onDeleteReview: _deleteReviewFromAdmin,
+                  onHideReview: _hideReviewFromAdmin,
+                ),
               ),
             ],
           ),
@@ -4580,7 +4589,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
 
   Widget _buildModerationCardForAdmin(Map<String, dynamic> review) {
     final isNegative = (review['stars'] as int?) != null && review['stars'] <= 2;
-    final comment = review['comment'] as String? ?? '';
+    final comment = (review['comentario'] ?? review['comment'] ?? '') as String;
     final hasOffensiveContent = comment.toLowerCase().contains(RegExp(r'(asco|horrible|ladrón|maleducado|pésimo|odio|basura)'));
     
     return Card(
@@ -4719,7 +4728,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
 
   void _editReviewFromAdmin(Map<String, dynamic> review) {
     final TextEditingController commentController = TextEditingController(
-      text: review['comment'] ?? '',
+      text: review['comentario'] ?? review['comment'] ?? '',
     );
 
     showDialog(
@@ -4754,28 +4763,24 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           ),
           ElevatedButton(
             onPressed: () async {
-              final success = await RatingService.updateRating(
+              // USAR ACTUALIZACIÓN OPTIMISTA PROFESIONAL 2025
+              final success = await RealTimeRatingsService.updateReviewOptimistic(
                 review['id'],
-                {'comment': commentController.text},
+                commentController.text,
               );
               
               Navigator.pop(context);
               
-              if (success) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Comentario editado exitosamente'),
-                    backgroundColor: Colors.green,
+                  SnackBar(
+                    content: Text(success 
+                        ? '✅ Comentario editado exitosamente' 
+                        : '❌ Error editando comentario'),
+                    backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
-                _showReviewModerationPanel(); // Refresh
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error editando comentario'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                // No necesitamos refresh manual - RealTime se encarga
               }
             },
             child: Text('Guardar'),
@@ -4786,24 +4791,20 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   }
 
   void _hideReviewFromAdmin(String reviewId) async {
-    final success = await RatingService.hideRating(reviewId);
+    // USAR OCULTACIÓN OPTIMISTA PROFESIONAL 2025
+    final success = await RealTimeRatingsService.hideReviewOptimistic(reviewId);
     
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Comentario ocultado exitosamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      _showReviewModerationPanel(); // Refresh
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error ocultando comentario'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success 
+            ? '✅ Comentario ocultado exitosamente' 
+            : '❌ Error ocultando comentario'),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+    // RealTime actualiza automáticamente
   }
 
   void _deleteReviewFromAdmin(String reviewId) async {
@@ -4832,25 +4833,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       ),
     );
 
-    if (confirmed == true) {
-      final success = await RatingService.deleteRating(reviewId);
+    if (confirmed == true && mounted) {
+      // USAR ELIMINACIÓN OPTIMISTA PROFESIONAL 2025
+      final success = await RealTimeRatingsService.deleteReviewOptimistic(reviewId);
       
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comentario eliminado exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _showReviewModerationPanel(); // Refresh
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error eliminando comentario'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success 
+              ? '✅ Comentario eliminado exitosamente' 
+              : '❌ Error eliminando comentario'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+      // RealTime actualiza automáticamente - NO MÁS REFRESH MANUAL
     }
   }
 
