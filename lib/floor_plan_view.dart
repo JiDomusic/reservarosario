@@ -24,7 +24,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
       children: [
         // Panel lateral izquierdo con reservas (estilo Woki)
         Container(
-          width: 350,
+          width: MediaQuery.of(context).size.width > 600 ? 350 : 300,
           color: Colors.white,
           child: Column(
             children: [
@@ -69,7 +69,7 @@ class _FloorPlanViewState extends State<FloorPlanView> {
               // Lista de reservas
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   itemCount: widget.reservations.length,
                   itemBuilder: (context, index) {
                     return _buildSideReservationCard(widget.reservations[index]);
@@ -138,8 +138,8 @@ class _FloorPlanViewState extends State<FloorPlanView> {
     return GestureDetector(
       onTap: () => widget.onReservationTap(reservation),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
@@ -228,9 +228,11 @@ class _FloorPlanViewState extends State<FloorPlanView> {
             Text(
               reservation['nombre'],
               style: GoogleFonts.inter(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Row(
