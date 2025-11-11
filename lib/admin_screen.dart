@@ -1097,27 +1097,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Iniciar verificación automática OPTIMIZADA - sin loops
+  // Auto-refresh manual para mayor estabilidad
   void _startAutoCheck() {
-    // ✨ ACTUALIZACIÓN SUAVE Y PROFESIONAL PARA RECEPCIONISTA
-    _autoCheckTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    // Auto-refresh cada 2 minutos para máxima estabilidad
+    _autoCheckTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
       if (mounted && !showCalendarView) {
-        print('🔄 Auto-refresh RÁPIDO: Verificando nuevas reservas...');
-        _loadData(); // Recargar datos
+        print('🔄 Auto-refresh suave: Verificando actualizaciones...');
+        _loadData();
       }
     });
     
-    // Contador de tiempo cada segundo para tiempo real
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && !showCalendarView) {
-        setState(() {
-          // Actualizar contadores en tiempo real
-        });
-      }
-    });
-    
-    // Notificaciones cada 3 segundos para alertas inmediatas
-    _notificationTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    // Notificaciones críticas cada minuto
+    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
         _checkCriticalReservations();
       }
@@ -1306,14 +1297,21 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   
   Future<void> _loadData() async {
     // NO mostrar loading si ya hay datos (actualización suave)
+    // Preserve scroll position during updates
+    final previousLength = reservations.length;
+    
     if (reservations.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = true;
+        });
+      }
     } else {
-      setState(() {
-        _isSoftLoading = true; // Indicador sutil
-      });
+      if (mounted) {
+        setState(() {
+          _isSoftLoading = true; // Indicador sutil
+        });
+      }
     }
 
     try {
@@ -1326,12 +1324,14 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         print('📊 Datos calendario cargados: ${calendarData.length} días con reservas');
         print('📈 Stats calculadas: $statsData');
         
-        setState(() {
-          calendarEvents = calendarData;
-          stats = statsData;
-          isLoading = false;
-          _isSoftLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            calendarEvents = calendarData;
+            stats = statsData;
+            isLoading = false;
+            _isSoftLoading = false;
+          });
+        }
       } else {
         // Cargar SOLO las reservas activas del día actual (excluyendo completadas/no_show de días anteriores)
         final today = DateTime.now();
@@ -1345,13 +1345,15 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         print('⏰ Reservas confirmadas: ${activeReservations.where((r) => r['estado'] == 'confirmada').length}');
         print('📊 Stats calculadas: $todayStats');
         
-        setState(() {
-          allReservations = todaysReservations; // TODAS las reservas del día (para contadores)
-          reservations = activeReservations; // Solo reservas activas del día (para lista)
-          stats = todayStats; // Estadísticas de reservas activas
-          isLoading = false;
-          _isSoftLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            allReservations = todaysReservations; // TODAS las reservas del día (para contadores)
+            reservations = activeReservations; // Solo reservas activas del día (para lista)
+            stats = todayStats; // Estadísticas de reservas activas
+            isLoading = false;
+            _isSoftLoading = false;
+          });
+        }
         
         // Las alertas críticas se verifican en el timer independiente
       }
@@ -2677,31 +2679,36 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               color: iconColor,
-              size: 16,
+              size: 14,
             ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: iconColor,
+            const SizedBox(height: 2),
+            Flexible(
+              child: Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: iconColor,
+                ),
               ),
             ),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 8,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF8B4513),
+            Flexible(
+              child: Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF8B4513),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
             ),
           ],
         ),

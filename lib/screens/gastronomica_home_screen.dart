@@ -72,7 +72,7 @@ class _GastronomicaHomeScreenState extends State<GastronomicaHomeScreen>
       Restaurant(
         id: 'sodita',
         name: 'SODITA',
-        description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• PLANTA ALTA únicamente\n• 10 mesas disponibles para reservas online\n• Capacidad: 2 a 50 personas\n• Mesas bajas tradicionales (2-4 personas)\n• Mesas altas de barra (2 personas)\n• Área de living con sofás (4-6 personas)\n• Distribución: Solo interior (planta alta)\n\n📍 Reservas SOLO para la planta alta del restaurante. La planta baja NO está disponible para reservas online.',
+        description: 'El restaurante original - Experiencia premium completa.\n\n🏢 LAYOUT FÍSICO:\n• PLANTA ALTA únicamente\n• 10 mesas / living / salón completo\n• Capacidad: 2 a 50 personas\n• Mesas bajas tradicionales (2-4 personas)\n• Mesas altas de barra (2 personas)\n• Área de living con sofás (4-6 personas)\n• Distribución: Solo interior (planta alta)\n\n📍 Reservas SOLO para la planta alta del restaurante. La planta baja NO está disponible para reservas online.',
         address: 'Laprida 1301, Rosario 2000',
         phone: '+54 341 000-0000',
         email: 'admin@sodita.com',
