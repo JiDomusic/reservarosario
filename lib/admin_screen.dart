@@ -3468,7 +3468,7 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     }
   }
 
-  // CONTADOR ANIMADO DE 15 MINUTOS PARA RESERVAS CONFIRMADAS
+  // CONTADOR SIMPLE Y OPTIMIZADO DE 15 MINUTOS
   Widget _buildAnimatedTimer(String hora) {
     final horaReserva = DateTime.parse('${DateTime.now().toIso8601String().split('T')[0]}T$hora');
     final tiempoLimite = horaReserva.add(const Duration(minutes: 15));
@@ -3493,32 +3493,24 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
       colorTimer = Colors.blue;
     }
     
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colorTimer.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorTimer,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorTimer, width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.timer,
-            size: 16,
-            color: colorTimer,
-          ),
+          Icon(Icons.timer, size: 14, color: colorTimer),
           const SizedBox(width: 4),
           Text(
             '${minutosRestantes.toString().padLeft(2, '0')}:${segundosRestantes.toString().padLeft(2, '0')}',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               color: colorTimer,
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],
