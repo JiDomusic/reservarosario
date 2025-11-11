@@ -2642,12 +2642,16 @@ SODITA - Comida gourmet
             children: [
               Icon(Icons.star, color: Colors.amber, size: 24),
               const SizedBox(width: 8),
-              Text(
-                'Lo que dicen nuestros clientes',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1C1B1F),
+              Expanded(
+                child: Text(
+                  'Lo que dicen nuestros clientes',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1C1B1F),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -2656,9 +2660,11 @@ SODITA - Comida gourmet
           Text(
             'Experiencias reales de quienes visitaron SODITA',
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: 13,
               color: const Color(0xFF6B7280),
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 16),
           
@@ -2686,9 +2692,12 @@ SODITA - Comida gourmet
                         Text(
                           'Sé el primero en dejar una reseña',
                           style: GoogleFonts.poppins(
-                            fontSize: 16,
+                            fontSize: 14,
                             color: Colors.grey.shade600,
                           ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),

@@ -827,7 +827,13 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('⚠️ Reserva Expirada', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                Text('Mesa ${reservation['sodita_mesas']['numero']} - ${reservation['nombre']}'),
+                Text(
+                  'Mesa ${reservation['sodita_mesas']['numero']} - ${reservation['nombre']}',
+                  style: GoogleFonts.poppins(fontSize: 14),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 ElevatedButton(
                   onPressed: () {
                     overlayEntry.remove();
@@ -881,7 +887,12 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('✅ Mesa Liberada', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                Text('Mesa ${reservation['sodita_mesas']['numero']} disponible'),
+                Text(
+                  'Mesa ${reservation['sodita_mesas']['numero']} disponible',
+                  style: GoogleFonts.poppins(fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Row(
                   children: [
                     Expanded(
@@ -2108,10 +2119,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
                           _processExpiredReservations();
                         },
                       ),
-                  title: Text('Mesa ${mesa['numero']} - ${reservation['nombre']}'),
+                  title: Text(
+                    'Mesa ${mesa['numero']} - ${reservation['nombre']}',
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     'Tiempo restante: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : "Vencida"}\n'
                     'Teléfono: ${reservation['telefono']}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -3552,10 +3571,30 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('📋 Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
-                  Text('👤 ${reservation['nombre']}'),
-                  Text('⏰ ${reservation['hora']} - ${reservation['personas']} personas'),
-                  Text('📞 ${reservation['telefono']}'),
+                  Text(
+                    '📋 Mesa ${mesa['numero']} - ${mesa['ubicacion']}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '👤 ${reservation['nombre']}',
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '⏰ ${reservation['hora']} - ${reservation['personas']} personas',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '📞 ${reservation['telefono']}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -3631,8 +3670,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
-                  Text('👤 ${reservation['nombre']}'),
+                  Text(
+                    '🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '👤 ${reservation['nombre']}',
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   Text('⏰ Hora: ${reservation['hora']} (VENCIDA)'),
                   Text('👥 ${reservation['personas']} personas'),
                   Text('📞 ${reservation['telefono']}'),
@@ -3723,8 +3772,18 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}'),
-                  Text('👤 ${reservation['nombre']}'),
+                  Text(
+                    '🍽️ Mesa ${mesa['numero']} - ${mesa['ubicacion']}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '👤 ${reservation['nombre']}',
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   Text('⏰ Hora: ${reservation['hora']}'),
                   Text('⏱️ Tiempo restante: ${timeLeft != null ? ReservationService.formatTimeRemaining(timeLeft) : "Vencida"}'),
                   Text('📞 ${reservation['telefono']}'),
@@ -3955,11 +4014,36 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('📋 Mesa ${mesa?['numero'] ?? 'N/A'} - ${mesa?['ubicacion'] ?? 'N/A'}'),
-                  Text('👤 ${reservation['nombre'] ?? 'N/A'}'),
-                  Text('⏰ ${reservation['hora'] ?? 'N/A'} - ${reservation['personas'] ?? 0} personas'),
-                  Text('📞 ${reservation['telefono'] ?? 'N/A'}'),
-                  Text('🆔 Código: ${reservation['codigo_confirmacion'] ?? 'N/A'}'),
+                  Text(
+                    '📋 Mesa ${mesa?['numero'] ?? 'N/A'} - ${mesa?['ubicacion'] ?? 'N/A'}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '👤 ${reservation['nombre'] ?? 'N/A'}',
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '⏰ ${reservation['hora'] ?? 'N/A'} - ${reservation['personas'] ?? 0} personas',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '📞 ${reservation['telefono'] ?? 'N/A'}',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '🆔 Código: ${reservation['codigo_confirmacion'] ?? 'N/A'}',
+                    style: GoogleFonts.poppins(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
