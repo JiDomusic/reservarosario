@@ -51,17 +51,17 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
     final recentReviews = _reviewsData?['recentReviews'] ?? [];
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10), // PADDING 10PX como pediste
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10), // ESPACIOS INTERNOS 10PX
           _buildStatisticsCard(statistics),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10), // ESPACIOS INTERNOS 10PX
           if (widget.showAddReviewButton) ...[
             _buildAddReviewButton(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
           ],
           _buildRecentReviewsSection(recentReviews),
         ],
@@ -75,14 +75,14 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
         Icon(
           Icons.star,
           color: Colors.amber[600],
-          size: 28,
+          size: 22,
         ),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
             'Opiniones de nuestros clientes',
             style: GoogleFonts.poppins(
-              fontSize: widget.compactView ? 18 : 22,
+              fontSize: widget.compactView ? 16 : 18,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1C1B1F),
             ),
@@ -99,7 +99,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
     final distribution = List<int>.from(statistics['ratingDistribution'] ?? [1, 0, 2, 5, 17]);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -127,51 +127,57 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                     Text(
                       'Reseñas',
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
+                        fontSize: 14, // MÁS PEQUEÑO: 18 → 16
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      averageRating.toStringAsFixed(1),
-                      style: GoogleFonts.poppins(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                        height: 1.0,
-                      ),
-                    ),
                     const SizedBox(height: 8),
+                    // 4.8 Y ESTRELLAS EN LA MISMA LÍNEA
                     Row(
-                      children: List.generate(5, (index) {
-                        double fillLevel = averageRating - index;
-                        if (fillLevel >= 1) {
-                          return Icon(
-                            Icons.star,
-                            color: Colors.amber[600],
-                            size: 20,
-                          );
-                        } else if (fillLevel > 0) {
-                          return Icon(
-                            Icons.star_half,
-                            color: Colors.amber[600],
-                            size: 20,
-                          );
-                        } else {
-                          return Icon(
-                            Icons.star_border,
-                            color: Colors.amber[600],
-                            size: 20,
-                          );
-                        }
-                      }),
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          averageRating.toStringAsFixed(1),
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(width: 16), // Espacio entre 4.8 y estrellas
+                        Row(
+                          children: List.generate(5, (index) {
+                            double fillLevel = averageRating - index;
+                            if (fillLevel >= 1) {
+                              return Icon(
+                                Icons.star,
+                                color: Colors.amber[600],
+                                size: 18, // Un poquito más pequeñas
+                              );
+                            } else if (fillLevel > 0) {
+                              return Icon(
+                                Icons.star_half,
+                                color: Colors.amber[600],
+                                size: 16,
+                              );
+                            } else {
+                              return Icon(
+                                Icons.star_border,
+                                color: Colors.amber[600],
+                                size: 1,
+                              );
+                            }
+                          }),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '$totalReviews Reseñas',
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
+                        fontSize: 10,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
@@ -183,18 +189,18 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               // Right side - Distribution bars (sin rayas amarillas/negras)
               if (!widget.compactView && totalReviews > 0)
                 Expanded(
-                  flex: 3,
+                  flex: 1,
                   child: _buildRatingDistribution(distribution, totalReviews),
                 ),
             ],
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
           
           // Category ratings
           _buildCategoryRatings(),
           
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           
           // Verification message
           Row(
@@ -207,7 +213,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
+                  '',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -337,7 +343,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               ),
               const SizedBox(height: 8),
               Text(
-                '¡Sé el primero en opinar!',
+                '',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -493,7 +499,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
 
   Widget _buildLoadingState() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -617,7 +623,7 @@ class _AddPublicReviewDialogState extends State<AddPublicReviewDialog> {
                     child: Icon(
                       index < _rating ? Icons.star : Icons.star_border,
                       color: Colors.amber[600],
-                      size: 40,
+                      size: 30,
                     ),
                   ),
                 );
@@ -654,7 +660,7 @@ class _AddPublicReviewDialogState extends State<AddPublicReviewDialog> {
             TextField(
               controller: _commentController,
               decoration: InputDecoration(
-                labelText: 'Cuéntanos tu experiencia (opcional)',
+                labelText: '',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

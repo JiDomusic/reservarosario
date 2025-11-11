@@ -91,7 +91,7 @@ class OptimizedReviewWidget extends StatelessWidget {
                 Icon(
                   Icons.star,
                   color: Colors.amber[600],
-                  size: 24,
+                  size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(

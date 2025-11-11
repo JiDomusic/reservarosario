@@ -449,8 +449,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               _buildHeader(l10n),
               // 🌟 CALIFICACIONES MÁS GRANDES Y MEJOR DISEÑADAS
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                height: 220, // Más alto para que no se corten
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), // MÁS CHICO: 8 → 4
+                height: 180,
                 child: const PublicReviewsSection(
                   showAddReviewButton: false,
                   compactView: true,
@@ -2954,7 +2954,7 @@ SODITA - Comida gourmet
           },
         ),
         
-        // Botón izquierdo
+        // 🚀 BOTÓN IZQUIERDO SÚPER PROFESIONAL
         Positioned(
           left: 8,
           top: 0,
@@ -2962,32 +2962,63 @@ SODITA - Comida gourmet
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
+                // 🌟 GLASSMORPHISM MODERNO
+                color: Colors.white.withValues(alpha: 0.95),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+                // 🎨 SOMBRAS PROFESIONALES
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    offset: const Offset(0, 4),
                   ),
                 ],
+                // 🌈 GRADIENTE SUTIL
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.98),
+                    Colors.grey.shade50.withValues(alpha: 0.92),
+                  ],
+                ),
               ),
-              child: IconButton(
-                onPressed: () {
-                  scrollController.animateTo(
-                    scrollController.offset - 300,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-                icon: const Icon(Icons.chevron_left, size: 24),
-                color: const Color(0xFF2563EB),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(30),
+                  onTap: () {
+                    scrollController.animateTo(
+                      scrollController.offset - 300,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOutCubic, // Curva más profesional
+                    );
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.chevron_left_rounded, // Icono redondeado
+                      size: 28,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
         ),
         
-        // Botón derecho  
+        // 🚀 BOTÓN DERECHO SÚPER PROFESIONAL
         Positioned(
           right: 8,
           top: 0,
@@ -2995,26 +3026,57 @@ SODITA - Comida gourmet
           child: Center(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.9),
+                // 🌟 GLASSMORPHISM MODERNO
+                color: Colors.white.withValues(alpha: 0.95),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  width: 1.5,
+                ),
+                // 🎨 SOMBRAS PROFESIONALES
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    offset: const Offset(0, 4),
                   ),
                 ],
+                // 🌈 GRADIENTE SUTIL
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.98),
+                    Colors.grey.shade50.withValues(alpha: 0.92),
+                  ],
+                ),
               ),
-              child: IconButton(
-                onPressed: () {
-                  scrollController.animateTo(
-                    scrollController.offset + 300,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-                icon: const Icon(Icons.chevron_right, size: 24),
-                color: const Color(0xFF2563EB),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(30),
+                  onTap: () {
+                    scrollController.animateTo(
+                      scrollController.offset + 300,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOutCubic, // Curva más profesional
+                    );
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    child: Icon(
+                      Icons.chevron_right_rounded, // Icono redondeado
+                      size: 28,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
