@@ -152,6 +152,7 @@ class _AnimatedClockState extends State<AnimatedClock>
   }
 
   void _showReviewModerationPanel() {
+    print('🔍 ABRIENDO PANEL DE MODERACIÓN...');
     showDialog(
       context: context,
       builder: (context) => Dialog.fullscreen(
@@ -181,11 +182,17 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
 
   Future<void> _loadReviews() async {
     try {
+      print('🔍 CARGANDO RESEÑAS PARA MODERACIÓN...');
       setState(() => isLoading = true);
       final newReviews = await RatingService.getRatingsForModerationPaginated(
         limit: pageSize,
         offset: currentPage * pageSize,
       );
+      
+      print('📋 RESEÑAS ENCONTRADAS: ${newReviews.length}');
+      if (newReviews.isNotEmpty) {
+        print('📝 PRIMERA RESEÑA: ${newReviews.first}');
+      }
       
       setState(() {
         if (currentPage == 0) {
@@ -196,7 +203,10 @@ class _ReviewModerationPanelState extends State<_ReviewModerationPanel> {
         hasMore = newReviews.length == pageSize;
         isLoading = false;
       });
+      
+      print('✅ MODERACIÓN CARGADA: ${reviews.length} reseñas total');
     } catch (e) {
+      print('❌ ERROR EN MODERACIÓN: $e');
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error cargando reseñas: $e')),
@@ -1130,6 +1140,25 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
     return false;
   }
 
+  // Detectar cambios INTELIGENTES - sin rebuilds innecesarios
+  bool _hasActualChanges(
+    List<Map<String, dynamic>> newAllReservations,
+    List<Map<String, dynamic>> newActiveReservations,
+    Map<String, dynamic> newStats
+  ) {
+    // Verificar cambios en reservas
+    if (_hasReservationChanges(newActiveReservations)) return true;
+    
+    // Verificar cambios en estadísticas importantes
+    if (stats['total'] != newStats['total']) return true;
+    if (stats['confirmadas'] != newStats['confirmadas']) return true;
+    if (stats['en_mesa'] != newStats['en_mesa']) return true;
+    if (stats['completadas'] != newStats['completadas']) return true;
+    
+    // No hay cambios significativos
+    return false;
+  }
+
   Future<void> _processExpiredReservations() async {
     try {
       final wasRestaurantFull = await ReservationService.isRestaurantFull();
@@ -1292,22 +1321,15 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
   bool _isSoftLoading = false;
   
   Future<void> _loadData() async {
-    // NO mostrar loading si ya hay datos (actualización suave)
-    // Preserve scroll position during updates
-    final previousLength = reservations.length;
+    // NUNCA pantalla en blanco - mantener datos anteriores
+    if (!mounted) return;
     
-    if (reservations.isEmpty) {
-      if (mounted) {
-        setState(() {
-          isLoading = true;
-        });
-      }
-    } else {
-      if (mounted) {
-        setState(() {
-          _isSoftLoading = true; // Indicador sutil
-        });
-      }
+    // Indicador sutil sin ocultar contenido
+    if (mounted) {
+      setState(() {
+        _isSoftLoading = true;
+        // NUNCA isLoading = true después de tener datos
+      });
     }
 
     try {
@@ -1324,8 +1346,8 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
           setState(() {
             calendarEvents = calendarData;
             stats = statsData;
-            isLoading = false;
             _isSoftLoading = false;
+            // NUNCA cambiar isLoading = false si ya hay datos
           });
         }
       } else {
@@ -1341,14 +1363,23 @@ class _AdminScreenState extends State<AdminScreen> with TickerProviderStateMixin
         print('⏰ Reservas confirmadas: ${activeReservations.where((r) => r['estado'] == 'confirmada').length}');
         print('📊 Stats calculadas: $todayStats');
         
-        if (mounted) {
+        // ACTUALIZACIÓN INTELIGENTE - Solo si hay cambios reales
+        if (mounted && _hasActualChanges(todaysReservations, activeReservations, todayStats)) {
           setState(() {
-            allReservations = todaysReservations; // TODAS las reservas del día (para contadores)
-            reservations = activeReservations; // Solo reservas activas del día (para lista)
-            stats = todayStats; // Estadísticas de reservas activas
-            isLoading = false;
+            allReservations = todaysReservations;
+            reservations = activeReservations;
+            stats = todayStats;
             _isSoftLoading = false;
           });
+          print('✅ Datos actualizados de forma inteligente');
+        } else {
+          // Solo actualizar el indicador de loading sin rebuild
+          if (mounted) {
+            setState(() {
+              _isSoftLoading = false;
+            });
+          }
+          print('🔄 Sin cambios detectados - no rebuild innecesario');
         }
         
         // Las alertas críticas se verifican en el timer independiente

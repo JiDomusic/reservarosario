@@ -643,7 +643,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Restaurante Gourmet • 10 mesas + living (4-50 pers)',
+                              'Restaurante Gourmet • 10 mesas / living / salón completo (4-50 pers)',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
@@ -1409,7 +1409,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '10 mesas + living',
+                  '10 mesas / living / salón completo',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

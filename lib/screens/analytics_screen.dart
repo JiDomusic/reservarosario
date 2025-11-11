@@ -626,12 +626,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
             ),
             const SizedBox(height: 16),
             Container(
-              height: 120,
+              height: 200, // Más altura
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: _buildTableOccupancyChart(),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(8),
+                child: _buildTableOccupancyChart(),
+              ),
             ),
           ],
         ),
