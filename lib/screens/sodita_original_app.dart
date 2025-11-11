@@ -442,18 +442,21 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
             children: [
               _buildHeader(l10n),
-              // 🌟 CALIFICACIONES MÁS GRANDES Y MEJOR DISEÑADAS
+              // 🌟 CALIFICACIONES RESPONSIVAS Y SCROLLEABLES
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), // MÁS CHICO: 8 → 4
-                height: 180,
-                child: const PublicReviewsSection(
-                  showAddReviewButton: false,
-                  compactView: true,
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), 
+                height: 160, // RESPONSIVO: altura ajustada para scroll
+                child: const SingleChildScrollView(
+                  child: PublicReviewsSection(
+                    showAddReviewButton: false,
+                    compactView: true,
+                  ),
                 ),
               ),
               // _buildActiveReservationSection(), // Movido solo al admin
@@ -466,6 +469,7 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
               _buildActionButtons(),
               const SizedBox(height: 40),
             ],
+          ),
         ),
       ),
     );

@@ -82,6 +82,68 @@ class SimpleReviewService {
     }
   }
 
+  // Editar comentario desde admin - sincronización automática
+  static Future<bool> editReview({
+    required String reviewId,
+    String? newComment,
+    int? newRating,
+  }) async {
+    try {
+      debugPrint('✏️ Editando review desde admin: $reviewId');
+      
+      Map<String, dynamic> updates = {};
+      if (newComment != null) updates['comentario'] = newComment;
+      if (newRating != null) updates['rating'] = newRating;
+      
+      final response = await _client
+          .from('sodita_reviews')
+          .update(updates)
+          .eq('id', reviewId);
+      
+      debugPrint('✅ Review editado exitosamente - carrusel se actualizará automáticamente');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error editando review: $e');
+      return false;
+    }
+  }
+
+  // Eliminar comentario desde admin - sincronización automática
+  static Future<bool> deleteReview(String reviewId) async {
+    try {
+      debugPrint('🗑️ Eliminando review desde admin: $reviewId');
+      
+      final response = await _client
+          .from('sodita_reviews')
+          .delete()
+          .eq('id', reviewId);
+      
+      debugPrint('✅ Review eliminado exitosamente - carrusel se actualizará automáticamente');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error eliminando review: $e');
+      return false;
+    }
+  }
+
+  // Marcar review como verificado/no verificado desde admin
+  static Future<bool> toggleVerification(String reviewId, bool verified) async {
+    try {
+      debugPrint('✔️ Cambiando verificación de review: $reviewId -> $verified');
+      
+      final response = await _client
+          .from('sodita_reviews')
+          .update({'verificado': verified})
+          .eq('id', reviewId);
+      
+      debugPrint('✅ Verificación actualizada - carrusel se sincronizará automáticamente');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error actualizando verificación: $e');
+      return false;
+    }
+  }
+
   // Create anonymous review using a simplified approach - CREATE TEMPORARY USER
   static Future<bool> createAnonymousReview({
     required int rating,

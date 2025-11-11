@@ -103,14 +103,18 @@ flutter_native_splash:
   image: "assets/images/logo color.png"
   color_dark: "#000000"
   image_dark: "assets/images/logo color.png"
+  # Configuración para mostrar el logo completo SIN recortar
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web_image_mode: center
+  fullscreen: false
   android_12:
     image: "assets/images/logo color.png"
     color: "#ffffff"
     color_dark: "#000000"
     image_dark: "assets/images/logo color.png"
+    icon_background_color: "#ffffff"
+    icon_background_color_dark: "#000000"
   web: true
   ios: true
   android: true
-  # Quitar cualquier texto de Flutter
-  branding: "assets/images/logo color.png"
-  branding_mode: bottom

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/simple_review_service.dart';
@@ -19,11 +20,28 @@ class PublicReviewsSection extends StatefulWidget {
 class _PublicReviewsSectionState extends State<PublicReviewsSection> {
   Map<String, dynamic>? _reviewsData;
   bool _isLoading = true;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadReviewsData();
+    _startAutoRefresh(); // Auto-actualización para sincronización con admin
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  // Auto-refresh cada 30 segundos para sincronización con admin
+  void _startAutoRefresh() {
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        _loadReviewsData();
+      }
+    });
   }
 
   Future<void> _loadReviewsData() async {
@@ -56,9 +74,9 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          const SizedBox(height: 10), // ESPACIOS INTERNOS 10PX
+          const SizedBox(height: 6), // COMPACTO: 10 → 6px
           _buildStatisticsCard(statistics),
-          const SizedBox(height: 10), // ESPACIOS INTERNOS 10PX
+          const SizedBox(height: 6), // COMPACTO: 10 → 6px
           if (widget.showAddReviewButton) ...[
             _buildAddReviewButton(),
             const SizedBox(height: 14),
@@ -99,7 +117,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
     final distribution = List<int>.from(statistics['ratingDistribution'] ?? [1, 0, 2, 5, 17]);
 
     return Container(
-      padding: const EdgeInsets.all(24), // Padding original
+      padding: const EdgeInsets.all(8), // SUPER COMPACTO: 10 → 8px para scroll responsivo
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -132,7 +150,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4), // Menos espacio entre título y 4.8
                     // 4.8 Y ESTRELLAS EN LA MISMA LÍNEA
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -140,7 +158,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                         Text(
                           averageRating.toStringAsFixed(1),
                           style: GoogleFonts.poppins(
-                            fontSize: 32, // Tamaño grande como en la imagen
+                            fontSize: 22, // EXACTO del commit que funcionaba
                             fontWeight: FontWeight.w800,
                             color: Colors.black87,
                             height: 1.0,
@@ -173,7 +191,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4), // Menos espacio entre estrellas y texto
                     Text(
                       '$totalReviews Reseñas',
                       style: GoogleFonts.poppins(
@@ -195,14 +213,14 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
             ],
           ),
           
-          const SizedBox(height: 24), // Espacio original
+          const SizedBox(height: 4), // SUPER COMPACTO: 6 → 4px
           
           // Category ratings
           _buildCategoryRatings(),
           
-          const SizedBox(height: 16), // Espacio original
+          const SizedBox(height: 6), // COMPACTO: 8 → 6px
           
-          // Verification message
+          // Verification message RESTAURADO del commit
           Row(
             children: [
               Icon(
@@ -213,7 +231,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Todas las reseñas han sido realizadas por usuarios que asistieron al establecimiento',
+                  '',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -283,7 +301,7 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
               size: 20,
               color: Colors.grey[600],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 4), // EXACTO del commit que funcionaba
             Text(
               '${category['rating']}',
               style: GoogleFonts.poppins(
