@@ -131,7 +131,8 @@ class _RestaurantLoginScreenState extends State<RestaurantLoginScreen>
                     ],
                   ),
                   child: const Icon(
-                    Icons.admin_panel_settings,
+                    // Icons.admin_panel_settings,
+                    Icons.restaurant,
                     color: Colors.white,
                     size: 40,
                   ),
@@ -154,7 +155,8 @@ class _RestaurantLoginScreenState extends State<RestaurantLoginScreen>
           const SizedBox(height: 8),
           
           Text(
-            'Accede a tu panel de administración',
+            // 'Accede a tu panel de administración',
+            'Accede a tu panel de restaurante',
             style: GoogleFonts.inter(
               fontSize: 16,
               color: const Color(0xFF64748B),

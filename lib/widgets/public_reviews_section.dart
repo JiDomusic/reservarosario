@@ -191,56 +191,56 @@ class _PublicReviewsSectionState extends State<PublicReviewsSection> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4), // Menos espacio entre estrellas y texto
-                    Text(
-                      '$totalReviews Reseñas',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14, // Tamaño de texto normal
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    // const SizedBox(height: 4), // Menos espacio entre estrellas y texto
+                    // Text(
+                    //   '$totalReviews Reseñas',
+                    //   style: GoogleFonts.poppins(
+                    //     fontSize: 14, // Tamaño de texto normal
+                    //     color: Colors.grey[600],
+                    //     fontWeight: FontWeight.w500,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
               
               // Right side - Distribution bars (sin rayas amarillas/negras)
-              if (!widget.compactView && totalReviews > 0)
-                Expanded(
-                  flex: 3,
-                  child: _buildRatingDistribution(distribution, totalReviews),
-                ),
+              // if (!widget.compactView && totalReviews > 0)
+              //   Expanded(
+              //     flex: 3,
+              //     child: _buildRatingDistribution(distribution, totalReviews),
+              //   ),
             ],
           ),
           
-          const SizedBox(height: 4), // SUPER COMPACTO: 6 → 4px
-          
-          // Category ratings
-          _buildCategoryRatings(),
-          
-          const SizedBox(height: 6), // COMPACTO: 8 → 6px
-          
-          // Verification message RESTAURADO del commit
-          Row(
-            children: [
-              Icon(
-                Icons.verified,
-                size: 16,
-                color: Colors.grey[600],
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          // const SizedBox(height: 4), // SUPER COMPACTO: 6 → 4px
+          //
+          // // Category ratings
+          // _buildCategoryRatings(),
+          //
+          // const SizedBox(height: 6), // COMPACTO: 8 → 6px
+          //
+          // // Verification message RESTAURADO del commit
+          // Row(
+          //   children: [
+          //     Icon(
+          //       Icons.verified,
+          //       size: 16,
+          //       color: Colors.grey[600],
+          //     ),
+          //     const SizedBox(width: 8),
+          //     Expanded(
+          //       child: Text(
+          //         '',
+          //         style: GoogleFonts.poppins(
+          //           fontSize: 12,
+          //           color: Colors.grey[600],
+          //           fontWeight: FontWeight.w400,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );

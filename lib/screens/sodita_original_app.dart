@@ -570,7 +570,8 @@ class _RestaurantsPageState extends State<RestaurantsPage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const AdminScreen()),
+                        // MaterialPageRoute(builder: (context) => const AdminScreen()),
+                        MaterialPageRoute(builder: (context) => const RestaurantListScreen()),
                       );
                     },
                     child: Container(

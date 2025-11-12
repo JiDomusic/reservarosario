@@ -144,7 +144,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: isLoading ? _buildLoadingScreen() : _buildMainContent(),
-      floatingActionButton: _buildAdminLoginFAB(),
+      // floatingActionButton: _buildAdminLoginFAB(),
     );
   }
 
